@@ -2,6 +2,7 @@ export type AppLink = { name: string; url: string; blurb: string };
 
 export type Tier = {
   id: string;
+  level: 1 | 2 | 3;
   name: string;
   tagline: string;
   usd: number;
@@ -15,6 +16,7 @@ export type Tier = {
 export const tiers: Tier[] = [
   {
     id: "tier-1",
+    level: 1,
     name: "Tier 1 — Catalogue & Business",
     tagline: "Entry access for emerging independents",
     usd: 300,
@@ -49,6 +51,7 @@ export const tiers: Tier[] = [
   },
   {
     id: "tier-2",
+    level: 2,
     name: "Tier 2 — Campaign Operations",
     tagline: "Campaign / marketing engagement",
     usd: 500,
@@ -74,6 +77,7 @@ export const tiers: Tier[] = [
   },
   {
     id: "tier-3",
+    level: 3,
     name: "Tier 3 — Full Finance Management",
     tagline: "The complete label back office",
     usd: 700,
