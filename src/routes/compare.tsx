@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Fragment } from "react";
 import { ArrowRight, Check, Minus } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { compareGroups, tiers, type CompareRow } from "@/lib/tiers";
@@ -66,8 +67,8 @@ function ComparePage() {
             </thead>
             <tbody>
               {compareGroups.map((group) => (
-                <>
-                  <tr key={group.group} className="bg-surface/60">
+                <Fragment key={group.group}>
+                  <tr className="bg-surface/60">
                     <td
                       colSpan={4}
                       className="border-y border-border px-5 py-2.5 font-mono text-[0.7rem] tracking-[0.2em] text-accent uppercase"
@@ -89,7 +90,7 @@ function ComparePage() {
                       </td>
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
