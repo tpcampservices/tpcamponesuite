@@ -5,14 +5,14 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 
-const navItems = [
+const navItems: { to: string; label: string; exact?: boolean }[] = [
   { to: "/", label: "Home", exact: true },
   { to: "/about", label: "About" },
   { to: "/services", label: "Services" },
   { to: "/pricing", label: "Pricing" },
   { to: "/compare", label: "Compare" },
   { to: "/contact", label: "Contact" },
-] as const;
+];
 
 export function SiteHeader() {
   const { user, loading } = useSession();
