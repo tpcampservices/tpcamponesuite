@@ -56,7 +56,7 @@ export const startCheckout = createServerFn({ method: "POST" })
       2: { USD: 500, TTD: 3700 },
       3: { USD: 700, TTD: 5000 },
     };
-    const amount = prices[data.tier][data.currency];
+    const amount = data.currency === "TTD" ? prices[data.tier].TTD : prices[data.tier].USD;
     const reference = `tpcamp-${data.tier}-${crypto.randomUUID()}`;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
