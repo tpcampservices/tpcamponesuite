@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarClock, Lock, Receipt, ShieldCheck } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { tiers } from "@/lib/tiers";
 import { getMyAccount, startCheckout } from "@/lib/account.functions";
