@@ -101,6 +101,25 @@ function AuthPage() {
     navigate({ to: "/dashboard" });
   }
 
+  async function handleForgotPassword() {
+    const email = window.prompt("Enter the email address on your TP-CAMP account");
+    if (!email) return;
+    const parsed = z.string().trim().email().max(255).safeParse(email);
+    if (!parsed.success) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Password reset link sent. Check your inbox.");
+  }
+
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -145,6 +164,15 @@ function AuthPage() {
               {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
+
+          {mode === "signin" && (
+            <p className="mt-4 text-center text-sm">
+              <button onClick={handleForgotPassword} className="text-muted-foreground underline">
+                Forgot your password?
+              </button>
+            </p>
+          )}
+
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "New to TP-CAMP?" : "Already have an account?"}{" "}
