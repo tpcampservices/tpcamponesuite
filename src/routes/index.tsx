@@ -93,20 +93,42 @@ function HomePage() {
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">
             Apps unlock as your tier goes up
           </h2>
+
+          <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-border bg-surface p-1.5">
+            <button
+              type="button"
+              onClick={() => setYearly(false)}
+              aria-pressed={!yearly}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${!yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setYearly(true)}
+              aria-pressed={yearly}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Yearly <span className="text-xs font-normal">· 2 months free</span>
+            </button>
+          </div>
+
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
             {tiers.map((tier) => (
               <article key={tier.id} className="panel flex flex-col p-7">
                 <h3 className="text-lg font-semibold">{tier.name.split(" — ")[0]}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
                 <p className="mt-5 font-display text-3xl font-semibold">
-                  ${tier.usdMonthly.toLocaleString()}
+                  ${(yearly ? tier.usd : tier.usdMonthly).toLocaleString()}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    USD / month
+                    USD / {yearly ? "year" : "month"}
                   </span>
                 </p>
                 <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                  or ${tier.usd.toLocaleString()} USD per year
+                  TTD ${(yearly ? tier.ttd : tier.ttdMonthly).toLocaleString()} per{" "}
+                  {yearly ? "year" : "month"}
                 </p>
+
                 <ul className="mt-5 space-y-2 text-sm">
                   {tier.highlights.slice(0, 3).map((h) => (
                     <li key={h} className="flex gap-2.5">
