@@ -170,9 +170,8 @@ function DashboardPage() {
             return (
               <article key={tier.id} className="panel flex flex-col p-7">
                 <h2 className="text-lg font-semibold">{tier.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  ${tier.usd.toLocaleString()} USD / TTD ${tier.ttd.toLocaleString()} per year
-                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
+
 
                 <div className="mt-5 flex-1 space-y-2">
                   {tier.apps.map((app) =>
