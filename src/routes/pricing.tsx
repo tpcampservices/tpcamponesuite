@@ -27,12 +27,14 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
+  const [yearly, setYearly] = useState(false);
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main>
         <section className="mx-auto max-w-6xl px-5 pt-16 pb-10">
-          <p className="eyebrow">Yearly subscriptions</p>
+          <p className="eyebrow">{yearly ? "Yearly subscriptions" : "Monthly subscriptions"}</p>
           <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold sm:text-5xl">
             One suite. Three tiers. Every app unlocks as you grow.
           </h1>
@@ -40,6 +42,25 @@ function PricingPage() {
             Create an account, choose a tier and pay through our secure payment portal. Your apps
             unlock automatically once the payment is confirmed.
           </p>
+
+          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-border bg-surface p-1.5">
+            <button
+              type="button"
+              onClick={() => setYearly(false)}
+              aria-pressed={!yearly}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${!yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setYearly(true)}
+              aria-pressed={yearly}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Yearly <span className="text-xs font-normal">· 2 months free</span>
+            </button>
+          </div>
         </section>
 
         <section id="tiers" className="mx-auto max-w-6xl px-5 pb-8">
@@ -60,13 +81,17 @@ function PricingPage() {
 
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="font-display text-4xl font-semibold">
-                    ${tier.usd.toLocaleString()}
+                    ${(yearly ? tier.usd : tier.usdMonthly).toLocaleString()}
                   </span>
-                  <span className="text-sm text-muted-foreground">USD / year</span>
+                  <span className="text-sm text-muted-foreground">
+                    USD / {yearly ? "year" : "month"}
+                  </span>
                 </div>
                 <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                  TTD ${tier.ttd.toLocaleString()} per year
+                  TTD ${(yearly ? tier.ttd : tier.ttdMonthly).toLocaleString()} per{" "}
+                  {yearly ? "year" : "month"}
                 </p>
+
 
                 <p className="mt-5 text-sm text-muted-foreground">{tier.summary}</p>
 
