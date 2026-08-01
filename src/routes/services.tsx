@@ -10,7 +10,7 @@ export const Route = createFileRoute("/services")({
       {
         name: "description",
         content:
-          "Catalogue and rights administration, DSP distribution, publishing support, release strategy, marketing, video monetisation, account management and creative production.",
+          "Catalogue and rights administration, split sheets, invoicing and payables, publishing support, release strategy, marketing and label finance.",
       },
       { property: "og:title", content: "TP-CAMP Services" },
       {
@@ -39,8 +39,8 @@ const services = [
     body: "Invoices, quotations and receipts with a conversion workflow, customer directory, branded PDF export, supplier bills, payment vouchers and a payables dashboard.",
   },
   {
-    title: "Distribution & publishing support",
-    body: "Distribution to DSPs and publishing support so your registrations, metadata and royalties stay accurate and traceable.",
+    title: "Publishing support",
+    body: "Publishing support so your registrations, metadata and royalties stay accurate and traceable.",
   },
   {
     title: "Release strategy & marketing",
@@ -49,14 +49,6 @@ const services = [
   {
     title: "Label finance & royalties",
     body: "Double-entry accounting, general ledger, statements, release P&L with ROI and recoupment, budgets, forecasts and royalty CSV/XLSX imports.",
-  },
-  {
-    title: "Video monetisation & account management",
-    body: "Claim and monetise video assets with account management support across your catalogue and campaigns.",
-  },
-  {
-    title: "Creative production",
-    body: "A creative team available for audio, video and artwork production when a release needs more than administration.",
   },
 ];
 

@@ -86,7 +86,7 @@ function HomePage() {
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-16">
-          <p className="eyebrow">Three yearly tiers</p>
+          <p className="eyebrow">Three tiers · monthly or yearly</p>
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">
             Apps unlock as your tier goes up
           </h2>
@@ -96,8 +96,13 @@ function HomePage() {
                 <h3 className="text-lg font-semibold">{tier.name.split(" — ")[0]}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
                 <p className="mt-5 font-display text-3xl font-semibold">
-                  ${tier.usd.toLocaleString()}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">USD / year</span>
+                  ${tier.usdMonthly.toLocaleString()}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    USD / month
+                  </span>
+                </p>
+                <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
+                  or ${tier.usd.toLocaleString()} USD per year
                 </p>
                 <ul className="mt-5 space-y-2 text-sm">
                   {tier.highlights.slice(0, 3).map((h) => (
