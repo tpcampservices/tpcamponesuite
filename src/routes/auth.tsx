@@ -165,6 +165,15 @@ function AuthPage() {
             </button>
           </form>
 
+          {mode === "signin" && (
+            <p className="mt-4 text-center text-sm">
+              <button onClick={handleForgotPassword} className="text-muted-foreground underline">
+                Forgot your password?
+              </button>
+            </p>
+          )}
+
+
           <p className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "New to TP-CAMP?" : "Already have an account?"}{" "}
             <button
