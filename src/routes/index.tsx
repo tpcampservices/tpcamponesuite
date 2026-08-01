@@ -27,7 +27,9 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const [yearly, setYearly] = useState(false);
   return (
+
     <div className="min-h-screen">
       <SiteHeader />
       <main>
