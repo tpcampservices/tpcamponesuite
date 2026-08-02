@@ -7,8 +7,6 @@ export type Tier = {
   tagline: string;
   usd: number;
   ttd: number;
-  usdMonthly: number;
-  ttdMonthly: number;
   summary: string;
   highlights: string[];
   apps: AppLink[];
@@ -20,11 +18,9 @@ export const tiers: Tier[] = [
     id: "tier-1",
     level: 1,
     name: "Tier 1 — Catalogue & Business",
-    tagline: "Entry access for emerging independents",
-    usd: 300,
-    ttd: 2000,
-    usdMonthly: 30,
-    ttdMonthly: 200,
+    tagline: "Free access for emerging independents",
+    usd: 0,
+    ttd: 0,
     summary:
       "Full catalogue management, split sheets and an invoicing system to keep track of expenses and client billing.",
     highlights: [
@@ -58,10 +54,8 @@ export const tiers: Tier[] = [
     level: 2,
     name: "Tier 2 — Campaign Operations",
     tagline: "Campaign / marketing engagement",
-    usd: 500,
-    ttd: 3700,
-    usdMonthly: 50,
-    ttdMonthly: 370,
+    usd: 300,
+    ttd: 2000,
     summary:
       "Everything in Tier 1, plus the TP-CAMP Operations Hub — a command centre for release workflows, tasks and approvals.",
     highlights: [
@@ -86,10 +80,8 @@ export const tiers: Tier[] = [
     level: 3,
     name: "Tier 3 — Full Finance Management",
     tagline: "The complete label back office",
-    usd: 700,
-    ttd: 5000,
-    usdMonthly: 70,
-    ttdMonthly: 500,
+    usd: 500,
+    ttd: 3700,
     summary:
       "Everything in Tiers 1 and 2, plus double-entry label accounting, budgets, forecasts and royalty imports.",
     highlights: [
@@ -169,10 +161,8 @@ export const compareGroups: CompareGroup[] = [
     group: "Access",
     rows: [
       { feature: "Included applications", t1: "3 apps", t2: "4 apps", t3: "5 apps" },
-      { feature: "Monthly price (USD)", t1: "$30", t2: "$50", t3: "$70" },
-      { feature: "Monthly price (TTD)", t1: "$200", t2: "$370", t3: "$500" },
-      { feature: "Yearly price (USD)", t1: "$300", t2: "$500", t3: "$700" },
-      { feature: "Yearly price (TTD)", t1: "$2,000", t2: "$3,700", t3: "$5,000" },
+      { feature: "One-time price (USD)", t1: "Free", t2: "$300", t3: "$500" },
+      { feature: "One-time price (TTD)", t1: "Free", t2: "$2,000", t3: "$3,700" },
     ],
   },
 ];

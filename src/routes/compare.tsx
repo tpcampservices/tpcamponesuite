@@ -17,7 +17,7 @@ export const Route = createFileRoute("/compare")({
       {
         property: "og:description",
         content:
-          "Every TP-CAMP feature compared across Tier 1, Tier 2 and Tier 3 yearly subscriptions.",
+          "Every TP-CAMP feature compared across Tier 1 (free), Tier 2 and Tier 3 one-time plans.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -59,7 +59,9 @@ function ComparePage() {
                       {tier.name.split(" — ")[1]}
                     </span>
                     <span className="mt-2 block font-mono text-xs text-accent">
-                      ${tier.usd} USD · ${tier.ttd.toLocaleString()} TTD
+                      {tier.usd === 0
+                        ? "Free"
+                        : `$${tier.usd.toLocaleString()} USD · $${tier.ttd.toLocaleString()} TTD one-time`}
                     </span>
                   </th>
                 ))}

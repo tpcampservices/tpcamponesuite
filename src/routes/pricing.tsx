@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { tiers } from "@/lib/tiers";
@@ -7,13 +6,13 @@ import { tiers } from "@/lib/tiers";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "TP-CAMP Pricing — Yearly Plans from USD $300" },
+      { title: "TP-CAMP Pricing — Free Tier 1, One-Time Fees" },
       {
         name: "description",
         content:
-          "Yearly TP-CAMP plans from USD $300: catalogue, split sheets and invoicing, campaign operations, and full label finance management. Apps unlock as your tier goes up.",
+          "TP-CAMP plans: Tier 1 free, then one-time fees from USD $300 — catalogue, split sheets and invoicing, campaign operations, and full label finance management. Apps unlock as your tier goes up.",
       },
-      { property: "og:title", content: "TP-CAMP Pricing — Yearly Plans for Labels" },
+      { property: "og:title", content: "TP-CAMP Pricing — Free Tier 1, One-Time Fees" },
       {
         property: "og:description",
         content:
@@ -27,40 +26,20 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
-  const [yearly, setYearly] = useState(false);
-
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main>
         <section className="mx-auto max-w-6xl px-5 pt-16 pb-10">
-          <p className="eyebrow">{yearly ? "Yearly subscriptions" : "Monthly subscriptions"}</p>
+          <p className="eyebrow">One-time payment · no subscription</p>
           <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold sm:text-5xl">
             One suite. Three tiers. Every app unlocks as you grow.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            Create an account, choose a tier and pay through our secure payment portal. Your apps
-            unlock automatically once the payment is confirmed.
+            Create an account and start free on Tier 1. Upgrade with a single one-time payment —
+            no monthly or yearly billing. Your apps unlock automatically once payment is confirmed.
           </p>
 
-          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-border bg-surface p-1.5">
-            <button
-              type="button"
-              onClick={() => setYearly(false)}
-              aria-pressed={!yearly}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${!yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setYearly(true)}
-              aria-pressed={yearly}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Yearly <span className="text-xs font-normal">· 2 months free</span>
-            </button>
-          </div>
         </section>
 
         <section id="tiers" className="mx-auto max-w-6xl px-5 pb-8">
@@ -81,15 +60,14 @@ function PricingPage() {
 
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="font-display text-4xl font-semibold">
-                    ${(yearly ? tier.usd : tier.usdMonthly).toLocaleString()}
+                    {tier.usd === 0 ? "Free" : `$${tier.usd.toLocaleString()}`}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    USD / {yearly ? "year" : "month"}
+                    {tier.usd === 0 ? "no payment required" : "USD one-time"}
                   </span>
                 </div>
                 <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                  TTD ${(yearly ? tier.ttd : tier.ttdMonthly).toLocaleString()} per{" "}
-                  {yearly ? "year" : "month"}
+                  {tier.ttd === 0 ? "TTD $0" : `TTD $${tier.ttd.toLocaleString()} one-time`}
                 </p>
 
 
@@ -126,7 +104,7 @@ function PricingPage() {
                       : "border border-border bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  Get started <ArrowRight className="h-4 w-4" />
+                  {tier.usd === 0 ? "Start free" : "Get started"} <ArrowRight className="h-4 w-4" />
                 </Link>
               </article>
             ))}
