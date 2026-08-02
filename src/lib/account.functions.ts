@@ -52,19 +52,22 @@ export const startCheckout = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const prices: Record<number, { USD: number; TTD: number }> = {
-      1: { USD: 300, TTD: 2000 },
-      2: { USD: 500, TTD: 3700 },
-      3: { USD: 700, TTD: 5000 },
+      1: { USD: 0, TTD: 0 },
+      2: { USD: 300, TTD: 2000 },
+      3: { USD: 500, TTD: 3700 },
     };
     const amount = data.currency === "TTD" ? prices[data.tier].TTD : prices[data.tier].USD;
     const reference = `tpcamp-${data.tier}-${crypto.randomUUID()}`;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const isFree = amount === 0;
+
     const { error } = await supabaseAdmin.from("subscriptions").insert({
       user_id: context.userId,
       tier: data.tier,
-      status: "pending",
+      status: isFree ? "active" : "pending",
+      started_at: isFree ? new Date().toISOString() : null,
       currency: data.currency,
       amount,
       payment_reference: reference,
@@ -72,11 +75,15 @@ export const startCheckout = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
+    if (isFree) {
+      return { configured: false as const, free: true, reference, amount, currency: data.currency };
+    }
+
     const apiUrl = process.env.PAYMENT_PORTAL_API_URL;
     const apiKey = process.env.PAYMENT_PORTAL_API_KEY;
 
     if (!apiUrl) {
-      return { configured: false as const, reference, amount, currency: data.currency };
+      return { configured: false as const, free: false, reference, amount, currency: data.currency };
     }
 
     const response = await fetch(apiUrl, {

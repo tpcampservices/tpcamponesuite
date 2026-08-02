@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { ArrowRight, Check, ShieldCheck, Globe2, Sparkles } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { tiers } from "@/lib/tiers";
@@ -27,7 +26,6 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const [yearly, setYearly] = useState(false);
   return (
 
     <div className="min-h-screen">
@@ -89,29 +87,10 @@ function HomePage() {
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-16">
-          <p className="eyebrow">Three tiers · monthly or yearly</p>
+          <p className="eyebrow">Three tiers · one-time payment</p>
           <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">
             Apps unlock as your tier goes up
           </h2>
-
-          <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-border bg-surface p-1.5">
-            <button
-              type="button"
-              onClick={() => setYearly(false)}
-              aria-pressed={!yearly}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${!yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setYearly(true)}
-              aria-pressed={yearly}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Yearly <span className="text-xs font-normal">· 2 months free</span>
-            </button>
-          </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
             {tiers.map((tier) => (
@@ -119,14 +98,13 @@ function HomePage() {
                 <h3 className="text-lg font-semibold">{tier.name.split(" — ")[0]}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
                 <p className="mt-5 font-display text-3xl font-semibold">
-                  ${(yearly ? tier.usd : tier.usdMonthly).toLocaleString()}
+                  {tier.usd === 0 ? "Free" : `$${tier.usd.toLocaleString()}`}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    USD / {yearly ? "year" : "month"}
+                    {tier.usd === 0 ? "no payment required" : "USD one-time"}
                   </span>
                 </p>
                 <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                  TTD ${(yearly ? tier.ttd : tier.ttdMonthly).toLocaleString()} per{" "}
-                  {yearly ? "year" : "month"}
+                  {tier.ttd === 0 ? "TTD $0" : `TTD $${tier.ttd.toLocaleString()} one-time`}
                 </p>
 
                 <ul className="mt-5 space-y-2 text-sm">
@@ -142,7 +120,7 @@ function HomePage() {
                   hash={tier.id}
                   className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent"
                 >
-                  Get started <ArrowRight className="h-4 w-4" />
+                  {tier.usd === 0 ? "Start free" : "Get started"} <ArrowRight className="h-4 w-4" />
                 </Link>
               </article>
             ))}
