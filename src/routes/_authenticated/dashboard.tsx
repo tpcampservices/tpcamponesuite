@@ -46,9 +46,13 @@ function DashboardPage() {
         window.location.href = result.checkoutUrl;
         return;
       }
-      toast.success(
-        `Order created (ref ${result.reference}). The payment portal isn't linked yet — access unlocks once payment is confirmed.`,
-      );
+      if (result.free) {
+        toast.success("Tier 1 unlocked — it's free. Your apps are ready.");
+      } else {
+        toast.success(
+          `Order created (ref ${result.reference}). The payment portal isn't linked yet — access unlocks once payment is confirmed.`,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["account"] });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Checkout failed");
@@ -216,9 +220,11 @@ function DashboardPage() {
                   >
                     {pendingTier === tier.level
                       ? "Starting…"
-                      : pending
-                        ? "Awaiting payment — retry"
-                        : "Get access"}
+                      : tier.usd === 0
+                        ? "Unlock free access"
+                        : pending
+                          ? "Awaiting payment — retry"
+                          : "Get access"}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 )}
