@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_profiles: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          default_currency: string
+          governing_law: string
+          id: string
+          legal_name: string
+          registration_number: string | null
+          signatory_name: string | null
+          signatory_title: string | null
+          trading_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_currency?: string
+          governing_law?: string
+          id?: string
+          legal_name: string
+          registration_number?: string | null
+          signatory_name?: string | null
+          signatory_title?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_currency?: string
+          governing_law?: string
+          id?: string
+          legal_name?: string
+          registration_number?: string | null
+          signatory_name?: string | null
+          signatory_title?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -38,6 +89,48 @@ export type Database = {
           message?: string
           name?: string
           subject?: string | null
+        }
+        Relationships: []
+      }
+      contracts: {
+        Row: {
+          counterparty: string | null
+          created_at: string
+          generated_at: string | null
+          id: string
+          status: string
+          template_id: string
+          template_title: string
+          title: string
+          updated_at: string
+          user_id: string
+          values: Json
+        }
+        Insert: {
+          counterparty?: string | null
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          status?: string
+          template_id: string
+          template_title: string
+          title: string
+          updated_at?: string
+          user_id: string
+          values?: Json
+        }
+        Update: {
+          counterparty?: string | null
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          status?: string
+          template_id?: string
+          template_title?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          values?: Json
         }
         Relationships: []
       }

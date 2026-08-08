@@ -1,0 +1,3138 @@
+{
+  "schema_version": "1.0",
+  "jurisdiction": "Republic of Trinidad and Tobago",
+  "template_engine": {
+    "syntax": "Double-curly-brace token replacement, for example {{ARTIST_LEGAL_NAME}}.",
+    "unresolved_token_rule": "Block signature and export if any {{TOKEN}} remains unresolved.",
+    "empty_optional_rule": "Remove an optional clause or sentence cleanly; never leave a blank token."
+  },
+  "legal_review_triggers": [
+    "Artist is under 18 or lacks full legal capacity.",
+    "Any transfer or assignment of copyright, masters or neighbouring rights is selected.",
+    "Joint ownership of masters or compositions is selected.",
+    "Personal repayment of an advance is selected.",
+    "Broad cross-collateralisation is selected.",
+    "Exclusive term exceeds three years or contains multiple automatic renewals.",
+    "The Label or Manager can sign contracts, borrow, settle claims or control the Artist's bank/payout accounts.",
+    "A CMO mandate or prior exclusive agreement may conflict with the selected rights.",
+    "A party is outside Trinidad and Tobago, or foreign tax/withholding is material.",
+    "The Artist Management Agreement is combined with label, publishing or distribution services from the same entity."
+  ],
+  "forms": [
+    {
+      "template_id": "TT-ALS-01",
+      "template_file": "01_Artist_Label_Services_Agreement_TT.docx",
+      "title": "Artist / Label Services Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "approval_response_days",
+          "token": "APPROVAL_RESPONSE_DAYS",
+          "label": "Approval Response Days",
+          "group": "Rights, ownership and approvals",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "approved_recoupable_costs",
+          "token": "APPROVED_RECOUPABLE_COSTS",
+          "label": "Approved Recoupable Costs",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List cost categories; require invoices/receipts and budget approval."
+        },
+        {
+          "id": "artist_approval_email",
+          "token": "ARTIST_APPROVAL_EMAIL",
+          "label": "Artist Approval Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_legal_name",
+          "token": "ARTIST_LEGAL_NAME",
+          "label": "Artist Legal Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": true,
+          "help_text": "Use the Artist's full legal name. The stage name is captured separately."
+        },
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_revenue_share",
+          "token": "ARTIST_REVENUE_SHARE",
+          "label": "Artist Revenue Share",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_stage_name",
+          "token": "ARTIST_STAGE_NAME",
+          "label": "Artist Stage Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "catalogue_or_project",
+          "token": "CATALOGUE_OR_PROJECT",
+          "label": "Catalogue Or Project",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "cross_collateralisation_rule",
+          "token": "CROSS_COLLATERALISATION_RULE",
+          "label": "Cross Collateralisation Rule",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Separate project accounting is the default. Broader cross-collateralisation needs careful legal review.",
+          "options": [
+            "prohibited; this Project is accounted for separately",
+            "permitted only among the releases expressly listed",
+            "broad cross-collateralisation - attorney review required"
+          ]
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "express_approval_items",
+          "token": "EXPRESS_APPROVAL_ITEMS",
+          "label": "Express Approval Items",
+          "group": "Rights, ownership and approvals",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_revenue_share",
+          "token": "LABEL_REVENUE_SHARE",
+          "label": "Label Revenue Share",
+          "group": "Parties and signatures",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "minimum_payout",
+          "token": "MINIMUM_PAYOUT",
+          "label": "Minimum Payout",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "permitted_deductions",
+          "token": "PERMITTED_DEDUCTIONS",
+          "label": "Permitted Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "platform_account_ownership",
+          "token": "PLATFORM_ACCOUNT_OWNERSHIP",
+          "label": "Platform Account Ownership",
+          "group": "Rights, ownership and approvals",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "release_delivery_plan",
+          "token": "RELEASE_DELIVERY_PLAN",
+          "label": "Release Delivery Plan",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "reporting_deliverables",
+          "token": "REPORTING_DELIVERABLES",
+          "label": "Reporting Deliverables",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "selected_label_services",
+          "token": "SELECTED_LABEL_SERVICES",
+          "label": "Selected Label Services",
+          "group": "Project, services and operations",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "service_appointment_type",
+          "token": "SERVICE_APPOINTMENT_TYPE",
+          "label": "Service Appointment Type",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "non-exclusive",
+            "exclusive only for selected services and catalogue"
+          ]
+        },
+        {
+          "id": "service_fee_description",
+          "token": "SERVICE_FEE_DESCRIPTION",
+          "label": "Service Fee Description",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "service_licence_type",
+          "token": "SERVICE_LICENCE_TYPE",
+          "label": "Service Licence Type",
+          "group": "Rights, ownership and approvals",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "non-exclusive",
+            "exclusive only for the selected service rights"
+          ]
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "unbudgeted_expense_cap",
+          "token": "UNBUDGETED_EXPENSE_CAP",
+          "label": "Unbudgeted Expense Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        }
+      ]
+    },
+    {
+      "template_id": "TT-RPA-02",
+      "template_file": "02_Recording_Project_Agreement_TT.docx",
+      "title": "Recording Project Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "acceptance_review_days",
+          "token": "ACCEPTANCE_REVIEW_DAYS",
+          "label": "Acceptance Review Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "advance_payment_schedule",
+          "token": "ADVANCE_PAYMENT_SCHEDULE",
+          "label": "Advance Payment Schedule",
+          "group": "Money, accounting and controls",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "advance_recoupment_status",
+          "token": "ADVANCE_RECOUPMENT_STATUS",
+          "label": "Advance Recoupment Status",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "recoupable only from the selected Project Receipts and not personally repayable",
+            "non-recoupable",
+            "personally repayable - attorney review required"
+          ]
+        },
+        {
+          "id": "approved_project_budget",
+          "token": "APPROVED_PROJECT_BUDGET",
+          "label": "Approved Project Budget",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "approved_recoupable_costs",
+          "token": "APPROVED_RECOUPABLE_COSTS",
+          "label": "Approved Recoupable Costs",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List cost categories; require invoices/receipts and budget approval."
+        },
+        {
+          "id": "artist_advance_amount",
+          "token": "ARTIST_ADVANCE_AMOUNT",
+          "label": "Artist Advance Amount",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_and_label_credit",
+          "token": "ARTIST_AND_LABEL_CREDIT",
+          "label": "Artist And Label Credit",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_net_receipts_share",
+          "token": "ARTIST_NET_RECEIPTS_SHARE",
+          "label": "Artist Net Receipts Share",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_recording_royalty",
+          "token": "ARTIST_RECORDING_ROYALTY",
+          "label": "Artist Recording Royalty",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "creative_approval_matrix",
+          "token": "CREATIVE_APPROVAL_MATRIX",
+          "label": "Creative Approval Matrix",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "cross_collateralisation_rule",
+          "token": "CROSS_COLLATERALISATION_RULE",
+          "label": "Cross Collateralisation Rule",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Separate project accounting is the default. Broader cross-collateralisation needs careful legal review.",
+          "options": [
+            "prohibited; this Project is accounted for separately",
+            "permitted only among the releases expressly listed",
+            "broad cross-collateralisation - attorney review required"
+          ]
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "delivery_package",
+          "token": "DELIVERY_PACKAGE",
+          "label": "Delivery Package",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "excluded_deductions",
+          "token": "EXCLUDED_DEDUCTIONS",
+          "label": "Excluded Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List costs that must never be deducted, including unrelated overhead and unapproved costs."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "master_ownership_selection",
+          "token": "MASTER_OWNERSHIP_SELECTION",
+          "label": "Master Ownership Selection",
+          "group": "Rights, ownership and approvals",
+          "type": "select",
+          "required": false,
+          "help_text": "Artist ownership plus a limited licence is the default for an independent label-services model.",
+          "options": [
+            "owned solely by the Artist",
+            "owned solely by the Label under the specific written assignment in Schedule 1",
+            "joint ownership - attorney review required"
+          ]
+        },
+        {
+          "id": "minimum_payout",
+          "token": "MINIMUM_PAYOUT",
+          "label": "Minimum Payout",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "neighbouring_rights_allocation",
+          "token": "NEIGHBOURING_RIGHTS_ALLOCATION",
+          "label": "Neighbouring Rights Allocation",
+          "group": "Rights, ownership and approvals",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "number_of_tracks",
+          "token": "NUMBER_OF_TRACKS",
+          "label": "Number Of Tracks",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "production_contracting_party",
+          "token": "PRODUCTION_CONTRACTING_PARTY",
+          "label": "Production Contracting Party",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "project_delivery_date",
+          "token": "PROJECT_DELIVERY_DATE",
+          "label": "Project Delivery Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "project_title",
+          "token": "PROJECT_TITLE",
+          "label": "Project Title",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "project_type",
+          "token": "PROJECT_TYPE",
+          "label": "Project Type",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "reasonable_revision_rounds",
+          "token": "REASONABLE_REVISION_ROUNDS",
+          "label": "Reasonable Revision Rounds",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recording_exclusivity_period",
+          "token": "RECORDING_EXCLUSIVITY_PERIOD",
+          "label": "Recording Exclusivity Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recording_exclusivity_scope",
+          "token": "RECORDING_EXCLUSIVITY_SCOPE",
+          "label": "Recording Exclusivity Scope",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recording_period",
+          "token": "RECORDING_PERIOD",
+          "label": "Recording Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "release_cure_days",
+          "token": "RELEASE_CURE_DAYS",
+          "label": "Release Cure Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "release_deadline",
+          "token": "RELEASE_DEADLINE",
+          "label": "Release Deadline",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "royalty_base",
+          "token": "ROYALTY_BASE",
+          "label": "Royalty Base",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "specific_master_rights",
+          "token": "SPECIFIC_MASTER_RIGHTS",
+          "label": "Specific Master Rights",
+          "group": "Rights, ownership and approvals",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Select each right expressly. Do not use a vague 'all rights' answer."
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "unreleased_master_remedy",
+          "token": "UNRELEASED_MASTER_REMEDY",
+          "label": "Unreleased Master Remedy",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        }
+      ]
+    },
+    {
+      "template_id": "TT-MLD-03",
+      "template_file": "03_Master_Recording_Licence_Distribution_Agreement_TT.docx",
+      "title": "Master Recording Licence and Distribution Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "approved_recoupable_costs",
+          "token": "APPROVED_RECOUPABLE_COSTS",
+          "label": "Approved Recoupable Costs",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List cost categories; require invoices/receipts and budget approval."
+        },
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "authorized_dsp_channels",
+          "token": "AUTHORIZED_DSP_CHANNELS",
+          "label": "Authorized DSP Channels",
+          "group": "Project, services and operations",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency_conversion_method",
+          "token": "CURRENCY_CONVERSION_METHOD",
+          "label": "Currency Conversion Method",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "distribution_appointment_type",
+          "token": "DISTRIBUTION_APPOINTMENT_TYPE",
+          "label": "Distribution Appointment Type",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "exclusive",
+            "non-exclusive"
+          ]
+        },
+        {
+          "id": "distribution_fee_or_share",
+          "token": "DISTRIBUTION_FEE_OR_SHARE",
+          "label": "Distribution Fee Or Share",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "isrc_responsibility",
+          "token": "ISRC_RESPONSIBILITY",
+          "label": "ISRC Responsibility",
+          "group": "Rights, ownership and approvals",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "licensed_masters_schedule",
+          "token": "LICENSED_MASTERS_SCHEDULE",
+          "label": "Licensed Masters Schedule",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "master_delivery_date",
+          "token": "MASTER_DELIVERY_DATE",
+          "label": "Master Delivery Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "master_licence_type",
+          "token": "MASTER_LICENCE_TYPE",
+          "label": "Master Licence Type",
+          "group": "Rights, ownership and approvals",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "exclusive",
+            "non-exclusive"
+          ]
+        },
+        {
+          "id": "master_use_approval_rule",
+          "token": "MASTER_USE_APPROVAL_RULE",
+          "label": "Master Use Approval Rule",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "minimum_payout",
+          "token": "MINIMUM_PAYOUT",
+          "label": "Minimum Payout",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "permitted_deductions",
+          "token": "PERMITTED_DEDUCTIONS",
+          "label": "Permitted Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "release_delivery_plan",
+          "token": "RELEASE_DELIVERY_PLAN",
+          "label": "Release Delivery Plan",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "specific_master_rights",
+          "token": "SPECIFIC_MASTER_RIGHTS",
+          "label": "Specific Master Rights",
+          "group": "Rights, ownership and approvals",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Select each right expressly. Do not use a vague 'all rights' answer."
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "takedown_request_days",
+          "token": "TAKEDOWN_REQUEST_DAYS",
+          "label": "Takedown Request Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "ugc_monetisation_selection",
+          "token": "UGC_MONETISATION_SELECTION",
+          "label": "UGC Monetisation Selection",
+          "group": "Rights, ownership and approvals",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "included for the selected Licensed Masters",
+            "excluded",
+            "included with an approved whitelist"
+          ]
+        },
+        {
+          "id": "upc_responsibility",
+          "token": "UPC_RESPONSIBILITY",
+          "label": "UPC Responsibility",
+          "group": "Rights, ownership and approvals",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        }
+      ]
+    },
+    {
+      "template_id": "TT-MPA-04",
+      "template_file": "04_Marketing_Promotion_Agreement_TT.docx",
+      "title": "Marketing and Promotion Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "approval_response_days",
+          "token": "APPROVAL_RESPONSE_DAYS",
+          "label": "Approval Response Days",
+          "group": "Rights, ownership and approvals",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_approval_email",
+          "token": "ARTIST_APPROVAL_EMAIL",
+          "label": "Artist Approval Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_availability_requirements",
+          "token": "ARTIST_AVAILABILITY_REQUIREMENTS",
+          "label": "Artist Availability Requirements",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_account_handover",
+          "token": "CAMPAIGN_ACCOUNT_HANDOVER",
+          "label": "Campaign Account Handover",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_budget_categories",
+          "token": "CAMPAIGN_BUDGET_CATEGORIES",
+          "label": "Campaign Budget Categories",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_cancellation_notice",
+          "token": "CAMPAIGN_CANCELLATION_NOTICE",
+          "label": "Campaign Cancellation Notice",
+          "group": "Legal and notices",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_end_date",
+          "token": "CAMPAIGN_END_DATE",
+          "label": "Campaign End Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_name",
+          "token": "CAMPAIGN_NAME",
+          "label": "Campaign Name",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_objectives_and_kpis",
+          "token": "CAMPAIGN_OBJECTIVES_AND_KPIS",
+          "label": "Campaign Objectives And KPIS",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_project",
+          "token": "CAMPAIGN_PROJECT",
+          "label": "Campaign Project",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_reporting_frequency",
+          "token": "CAMPAIGN_REPORTING_FREQUENCY",
+          "label": "Campaign Reporting Frequency",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "campaign_start_date",
+          "token": "CAMPAIGN_START_DATE",
+          "label": "Campaign Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "final_reconciliation_days",
+          "token": "FINAL_RECONCILIATION_DAYS",
+          "label": "Final Reconciliation Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_approval_matrix",
+          "token": "MARKETING_APPROVAL_MATRIX",
+          "label": "Marketing Approval Matrix",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_channels",
+          "token": "MARKETING_CHANNELS",
+          "label": "Marketing Channels",
+          "group": "Project, services and operations",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_cost_recoupment_status",
+          "token": "MARKETING_COST_RECOUPMENT_STATUS",
+          "label": "Marketing Cost Recoupment Status",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_deliverables",
+          "token": "MARKETING_DELIVERABLES",
+          "label": "Marketing Deliverables",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_payment_schedule",
+          "token": "MARKETING_PAYMENT_SCHEDULE",
+          "label": "Marketing Payment Schedule",
+          "group": "Money, accounting and controls",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "marketing_professional_fee",
+          "token": "MARKETING_PROFESSIONAL_FEE",
+          "label": "Marketing Professional Fee",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "media_budget",
+          "token": "MEDIA_BUDGET",
+          "label": "Media Budget",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "new_campaign_asset_ownership",
+          "token": "NEW_CAMPAIGN_ASSET_OWNERSHIP",
+          "label": "New Campaign Asset Ownership",
+          "group": "Rights, ownership and approvals",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "raw_files_included",
+          "token": "RAW_FILES_INCLUDED",
+          "label": "Raw Files Included",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "Yes",
+            "No",
+            "Only the files specifically listed"
+          ]
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "selected_marketing_services",
+          "token": "SELECTED_MARKETING_SERVICES",
+          "label": "Selected Marketing Services",
+          "group": "Project, services and operations",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "target_audience",
+          "token": "TARGET_AUDIENCE",
+          "label": "Target Audience",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "unbudgeted_expense_cap",
+          "token": "UNBUDGETED_EXPENSE_CAP",
+          "label": "Unbudgeted Expense Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        },
+        {
+          "id": "vendor_contract_threshold",
+          "token": "VENDOR_CONTRACT_THRESHOLD",
+          "label": "Vendor Contract Threshold",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        }
+      ]
+    },
+    {
+      "template_id": "TT-PBR-05",
+      "template_file": "05_Project_Budget_Advance_Recoupment_Addendum_TT.docx",
+      "title": "Project Budget, Artist Advance and Recoupment Addendum",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "advance_payment_conditions",
+          "token": "ADVANCE_PAYMENT_CONDITIONS",
+          "label": "Advance Payment Conditions",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "advance_payment_schedule",
+          "token": "ADVANCE_PAYMENT_SCHEDULE",
+          "label": "Advance Payment Schedule",
+          "group": "Money, accounting and controls",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "advance_recoupment_status",
+          "token": "ADVANCE_RECOUPMENT_STATUS",
+          "label": "Advance Recoupment Status",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "recoupable only from the selected Project Receipts and not personally repayable",
+            "non-recoupable",
+            "personally repayable - attorney review required"
+          ]
+        },
+        {
+          "id": "approved_project_budget",
+          "token": "APPROVED_PROJECT_BUDGET",
+          "label": "Approved Project Budget",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "approved_recoupable_costs",
+          "token": "APPROVED_RECOUPABLE_COSTS",
+          "label": "Approved Recoupable Costs",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List cost categories; require invoices/receipts and budget approval."
+        },
+        {
+          "id": "artist_advance_amount",
+          "token": "ARTIST_ADVANCE_AMOUNT",
+          "label": "Artist Advance Amount",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "budget_overrun_approver",
+          "token": "BUDGET_OVERRUN_APPROVER",
+          "label": "Budget Overrun Approver",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "cross_collateralisation_rule",
+          "token": "CROSS_COLLATERALISATION_RULE",
+          "label": "Cross Collateralisation Rule",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Separate project accounting is the default. Broader cross-collateralisation needs careful legal review.",
+          "options": [
+            "prohibited; this Project is accounted for separately",
+            "permitted only among the releases expressly listed",
+            "broad cross-collateralisation - attorney review required"
+          ]
+        },
+        {
+          "id": "currency_conversion_method",
+          "token": "CURRENCY_CONVERSION_METHOD",
+          "label": "Currency Conversion Method",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "emergency_cost_notice_days",
+          "token": "EMERGENCY_COST_NOTICE_DAYS",
+          "label": "Emergency Cost Notice Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "excluded_deductions",
+          "token": "EXCLUDED_DEDUCTIONS",
+          "label": "Excluded Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "List costs that must never be deducted, including unrelated overhead and unapproved costs."
+        },
+        {
+          "id": "final_reconciliation_days",
+          "token": "FINAL_RECONCILIATION_DAYS",
+          "label": "Final Reconciliation Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_recoupment_split",
+          "token": "POST_RECOUPMENT_SPLIT",
+          "label": "Post Recoupment Split",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "project_budget_categories",
+          "token": "PROJECT_BUDGET_CATEGORIES",
+          "label": "Project Budget Categories",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "project_title",
+          "token": "PROJECT_TITLE",
+          "label": "Project Title",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recoupment_percentage",
+          "token": "RECOUPMENT_PERCENTAGE",
+          "label": "Recoupment Percentage",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recoupment_revenue_sources",
+          "token": "RECOUPMENT_REVENUE_SOURCES",
+          "label": "Recoupment Revenue Sources",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "recoupment_waterfall",
+          "token": "RECOUPMENT_WATERFALL",
+          "label": "Recoupment Waterfall",
+          "group": "Money, accounting and controls",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "statement_objection_period",
+          "token": "STATEMENT_OBJECTION_PERIOD",
+          "label": "Statement Objection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "underlying_agreement_date",
+          "token": "UNDERLYING_AGREEMENT_DATE",
+          "label": "Underlying Agreement Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "underlying_agreement_title",
+          "token": "UNDERLYING_AGREEMENT_TITLE",
+          "label": "Underlying Agreement Title",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "unrecouped_balance_treatment",
+          "token": "UNRECOUPED_BALANCE_TREATMENT",
+          "label": "Unrecouped Balance Treatment",
+          "group": "Money, accounting and controls",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        },
+        {
+          "id": "worked_example_artist_payment",
+          "token": "WORKED_EXAMPLE_ARTIST_PAYMENT",
+          "label": "Worked Example Artist Payment",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "worked_example_closing_balance",
+          "token": "WORKED_EXAMPLE_CLOSING_BALANCE",
+          "label": "Worked Example Closing Balance",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "worked_example_deductions",
+          "token": "WORKED_EXAMPLE_DEDUCTIONS",
+          "label": "Worked Example Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "worked_example_gross_receipts",
+          "token": "WORKED_EXAMPLE_GROSS_RECEIPTS",
+          "label": "Worked Example Gross Receipts",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "worked_example_opening_balance",
+          "token": "WORKED_EXAMPLE_OPENING_BALANCE",
+          "label": "Worked Example Opening Balance",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "worked_example_recovery",
+          "token": "WORKED_EXAMPLE_RECOVERY",
+          "label": "Worked Example Recovery",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        }
+      ]
+    },
+    {
+      "template_id": "TT-PAA-06",
+      "template_file": "06_Publishing_Administration_Agreement_TT.docx",
+      "title": "Publishing Administration Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "administered_works_and_shares",
+          "token": "ADMINISTERED_WORKS_AND_SHARES",
+          "label": "Administered Works And Shares",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_legal_name",
+          "token": "ARTIST_LEGAL_NAME",
+          "label": "Artist Legal Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": true,
+          "help_text": "Use the Artist's full legal name. The stage name is captured separately."
+        },
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_stage_name",
+          "token": "ARTIST_STAGE_NAME",
+          "label": "Artist Stage Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency_conversion_method",
+          "token": "CURRENCY_CONVERSION_METHOD",
+          "label": "Currency Conversion Method",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "direct_licensing_rule",
+          "token": "DIRECT_LICENSING_RULE",
+          "label": "Direct Licensing Rule",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "existing_publishing_mandates",
+          "token": "EXISTING_PUBLISHING_MANDATES",
+          "label": "Existing Publishing Mandates",
+          "group": "Term, territory and timing",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "minimum_payout",
+          "token": "MINIMUM_PAYOUT",
+          "label": "Minimum Payout",
+          "group": "Money, accounting and controls",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "publishing_admin_commission",
+          "token": "PUBLISHING_ADMIN_COMMISSION",
+          "label": "Publishing Admin Commission",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Enter a percentage and specify whether it applies before or after third-party sub-administration deductions."
+        },
+        {
+          "id": "publishing_appointment_type",
+          "token": "PUBLISHING_APPOINTMENT_TYPE",
+          "label": "Publishing Appointment Type",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "exclusive for the selected Works, rights and Territory",
+            "non-exclusive"
+          ]
+        },
+        {
+          "id": "publishing_approval_rule",
+          "token": "PUBLISHING_APPROVAL_RULE",
+          "label": "Publishing Approval Rule",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "publishing_commission_base",
+          "token": "PUBLISHING_COMMISSION_BASE",
+          "label": "Publishing Commission Base",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "publishing_licence_type",
+          "token": "PUBLISHING_LICENCE_TYPE",
+          "label": "Publishing Licence Type",
+          "group": "Rights, ownership and approvals",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "exclusive administration licence for the selected rights",
+            "non-exclusive administration licence"
+          ]
+        },
+        {
+          "id": "publishing_permitted_deductions",
+          "token": "PUBLISHING_PERMITTED_DEDUCTIONS",
+          "label": "Publishing Permitted Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "selected_publishing_rights",
+          "token": "SELECTED_PUBLISHING_RIGHTS",
+          "label": "Selected Publishing Rights",
+          "group": "Rights, ownership and approvals",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "subadministration_scope",
+          "token": "SUBADMINISTRATION_SCOPE",
+          "label": "Subadministration Scope",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        }
+      ]
+    },
+    {
+      "template_id": "TT-AMA-07",
+      "template_file": "07_Artist_Management_Agreement_TT.docx",
+      "title": "Artist Management Agreement",
+      "form_steps": [
+        "Parties and signatures",
+        "Project, services and operations",
+        "Rights, ownership and approvals",
+        "Term, territory and timing",
+        "Money, accounting and controls",
+        "Legal and notices",
+        "Review and generate"
+      ],
+      "fields": [
+        {
+          "id": "artist_notice_email",
+          "token": "ARTIST_NOTICE_EMAIL",
+          "label": "Artist Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_signature_date",
+          "token": "ARTIST_SIGNATURE_DATE",
+          "label": "Artist Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "artist_witness_name",
+          "token": "ARTIST_WITNESS_NAME",
+          "label": "Artist Witness Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "closing_deal_list_days",
+          "token": "CLOSING_DEAL_LIST_DAYS",
+          "label": "Closing Deal List Days",
+          "group": "Project, services and operations",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "commercial_territory",
+          "token": "COMMERCIAL_TERRITORY",
+          "label": "Commercial Territory",
+          "group": "Term, territory and timing",
+          "type": "select",
+          "required": true,
+          "help_text": "This is the exploitation/service territory. Governing law remains Trinidad and Tobago.",
+          "options": [
+            "Worldwide",
+            "Republic of Trinidad and Tobago only",
+            "Caribbean region - define countries",
+            "Custom territory"
+          ]
+        },
+        {
+          "id": "commissionable_income_categories",
+          "token": "COMMISSIONABLE_INCOME_CATEGORIES",
+          "label": "Commissionable Income Categories",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "cure_period_days",
+          "token": "CURE_PERIOD_DAYS",
+          "label": "Cure Period Days",
+          "group": "Term, territory and timing",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "currency",
+          "token": "CURRENCY",
+          "label": "Currency",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "TTD",
+            "USD",
+            "GBP",
+            "EUR",
+            "Other"
+          ]
+        },
+        {
+          "id": "dispute_resolution_clause",
+          "token": "DISPUTE_RESOLUTION_CLAUSE",
+          "label": "Dispute Resolution Clause",
+          "group": "Legal and notices",
+          "type": "select",
+          "required": true,
+          "help_text": "Court proceedings after mediation are the lower-complexity default. Arbitration can be selected after considering cost and procedure.",
+          "options": [
+            "courts_after_mediation",
+            "arbitration_after_mediation"
+          ],
+          "computed_clause": {
+            "default": "courts_after_mediation",
+            "options": {
+              "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+              "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+            }
+          }
+        },
+        {
+          "id": "entertainment_activities",
+          "token": "ENTERTAINMENT_ACTIVITIES",
+          "label": "Entertainment Activities",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "excluded_management_income",
+          "token": "EXCLUDED_MANAGEMENT_INCOME",
+          "label": "Excluded Management Income",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "initial_term",
+          "token": "INITIAL_TERM",
+          "label": "Initial Term",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "key_person_absence_period",
+          "token": "KEY_PERSON_ABSENCE_PERIOD",
+          "label": "Key Person Absence Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "key_person_replacement_period",
+          "token": "KEY_PERSON_REPLACEMENT_PERIOD",
+          "label": "Key Person Replacement Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_legal_name",
+          "token": "LABEL_LEGAL_NAME",
+          "label": "Label Legal Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": true,
+          "help_text": "Use the legal person that will sign and receive/pay money, not only a brand or app name."
+        },
+        {
+          "id": "label_notice_email",
+          "token": "LABEL_NOTICE_EMAIL",
+          "label": "Label Notice Email",
+          "group": "Parties and signatures",
+          "type": "email",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_name",
+          "token": "LABEL_SIGNATORY_NAME",
+          "label": "Label Signatory Name",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signatory_title",
+          "token": "LABEL_SIGNATORY_TITLE",
+          "label": "Label Signatory Title",
+          "group": "Parties and signatures",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "label_signature_date",
+          "token": "LABEL_SIGNATURE_DATE",
+          "label": "Label Signature Date",
+          "group": "Parties and signatures",
+          "type": "date",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "liability_cap",
+          "token": "LIABILITY_CAP",
+          "label": "Liability Cap",
+          "group": "Money, accounting and controls",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_activity_expectations",
+          "token": "MANAGEMENT_ACTIVITY_EXPECTATIONS",
+          "label": "Management Activity Expectations",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_appointment_type",
+          "token": "MANAGEMENT_APPOINTMENT_TYPE",
+          "label": "Management Appointment Type",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "exclusive only for the selected Entertainment Activities",
+            "non-exclusive"
+          ]
+        },
+        {
+          "id": "management_commission_rate",
+          "token": "MANAGEMENT_COMMISSION_RATE",
+          "label": "Management Commission Rate",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Enter a negotiated percentage and verify included and excluded income categories."
+        },
+        {
+          "id": "management_exclusivity_scope",
+          "token": "MANAGEMENT_EXCLUSIVITY_SCOPE",
+          "label": "Management Exclusivity Scope",
+          "group": "Rights, ownership and approvals",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_expense_approval_cap",
+          "token": "MANAGEMENT_EXPENSE_APPROVAL_CAP",
+          "label": "Management Expense Approval Cap",
+          "group": "Rights, ownership and approvals",
+          "type": "money_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_inactivity_period",
+          "token": "MANAGEMENT_INACTIVITY_PERIOD",
+          "label": "Management Inactivity Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_income_receipt_method",
+          "token": "MANAGEMENT_INCOME_RECEIPT_METHOD",
+          "label": "Management Income Receipt Method",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_key_person",
+          "token": "MANAGEMENT_KEY_PERSON",
+          "label": "Management Key Person",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_objectives",
+          "token": "MANAGEMENT_OBJECTIVES",
+          "label": "Management Objectives",
+          "group": "Project, services and operations",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_pass_through_deductions",
+          "token": "MANAGEMENT_PASS_THROUGH_DEDUCTIONS",
+          "label": "Management Pass Through Deductions",
+          "group": "Money, accounting and controls",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_review_frequency",
+          "token": "MANAGEMENT_REVIEW_FREQUENCY",
+          "label": "Management Review Frequency",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "management_sunset_schedule",
+          "token": "MANAGEMENT_SUNSET_SCHEDULE",
+          "label": "Management Sunset Schedule",
+          "group": "Term, territory and timing",
+          "type": "textarea",
+          "required": false,
+          "help_text": "Use declining post-term percentages and an absolute end date."
+        },
+        {
+          "id": "manager_spend_authority",
+          "token": "MANAGER_SPEND_AUTHORITY",
+          "label": "Manager Spend Authority",
+          "group": "Project, services and operations",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "non_cash_commission_rule",
+          "token": "NON_CASH_COMMISSION_RULE",
+          "label": "Non Cash Commission Rule",
+          "group": "Money, accounting and controls",
+          "type": "percentage_or_formula",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "payment_days",
+          "token": "PAYMENT_DAYS",
+          "label": "Payment Days",
+          "group": "Money, accounting and controls",
+          "type": "number",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "post_term_collection_period",
+          "token": "POST_TERM_COLLECTION_PERIOD",
+          "label": "Post Term Collection Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "renewal_terms",
+          "token": "RENEWAL_TERMS",
+          "label": "Renewal Terms",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "selected_management_services",
+          "token": "SELECTED_MANAGEMENT_SERVICES",
+          "label": "Selected Management Services",
+          "group": "Project, services and operations",
+          "type": "multiselect_or_text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "statement_frequency",
+          "token": "STATEMENT_FREQUENCY",
+          "label": "Statement Frequency",
+          "group": "Project, services and operations",
+          "type": "select",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties.",
+          "options": [
+            "monthly",
+            "quarterly",
+            "semi-annually"
+          ]
+        },
+        {
+          "id": "sunset_maximum_period",
+          "token": "SUNSET_MAXIMUM_PERIOD",
+          "label": "Sunset Maximum Period",
+          "group": "Term, territory and timing",
+          "type": "text",
+          "required": false,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "term_start_date",
+          "token": "TERM_START_DATE",
+          "label": "Term Start Date",
+          "group": "Term, territory and timing",
+          "type": "date",
+          "required": true,
+          "help_text": "Complete this field only with the term actually agreed by both parties."
+        },
+        {
+          "id": "vat_treatment",
+          "token": "VAT_TREATMENT",
+          "label": "VAT Treatment",
+          "group": "Money, accounting and controls",
+          "type": "select",
+          "required": false,
+          "help_text": "Confirm with a Trinidad and Tobago tax adviser based on the supplier's VAT status and the transaction.",
+          "options": [
+            "exclusive of VAT, if legally chargeable",
+            "inclusive of VAT",
+            "not subject to VAT based on current status - confirm with tax adviser"
+          ]
+        }
+      ]
+    }
+  ],
+  "all_tokens": [
+    "ACCEPTANCE_REVIEW_DAYS",
+    "ADMINISTERED_WORKS_AND_SHARES",
+    "ADVANCE_PAYMENT_CONDITIONS",
+    "ADVANCE_PAYMENT_SCHEDULE",
+    "ADVANCE_RECOUPMENT_STATUS",
+    "APPROVAL_RESPONSE_DAYS",
+    "APPROVED_PROJECT_BUDGET",
+    "APPROVED_RECOUPABLE_COSTS",
+    "ARTIST_ADVANCE_AMOUNT",
+    "ARTIST_AND_LABEL_CREDIT",
+    "ARTIST_APPROVAL_EMAIL",
+    "ARTIST_AVAILABILITY_REQUIREMENTS",
+    "ARTIST_LEGAL_NAME",
+    "ARTIST_NET_RECEIPTS_SHARE",
+    "ARTIST_NOTICE_EMAIL",
+    "ARTIST_RECORDING_ROYALTY",
+    "ARTIST_REVENUE_SHARE",
+    "ARTIST_SIGNATURE_DATE",
+    "ARTIST_STAGE_NAME",
+    "ARTIST_WITNESS_NAME",
+    "AUTHORIZED_DSP_CHANNELS",
+    "BUDGET_OVERRUN_APPROVER",
+    "CAMPAIGN_ACCOUNT_HANDOVER",
+    "CAMPAIGN_BUDGET_CATEGORIES",
+    "CAMPAIGN_CANCELLATION_NOTICE",
+    "CAMPAIGN_END_DATE",
+    "CAMPAIGN_NAME",
+    "CAMPAIGN_OBJECTIVES_AND_KPIS",
+    "CAMPAIGN_PROJECT",
+    "CAMPAIGN_REPORTING_FREQUENCY",
+    "CAMPAIGN_START_DATE",
+    "CATALOGUE_OR_PROJECT",
+    "CLOSING_DEAL_LIST_DAYS",
+    "COMMERCIAL_TERRITORY",
+    "COMMISSIONABLE_INCOME_CATEGORIES",
+    "CREATIVE_APPROVAL_MATRIX",
+    "CROSS_COLLATERALISATION_RULE",
+    "CURE_PERIOD_DAYS",
+    "CURRENCY",
+    "CURRENCY_CONVERSION_METHOD",
+    "DELIVERY_PACKAGE",
+    "DIRECT_LICENSING_RULE",
+    "DISPUTE_RESOLUTION_CLAUSE",
+    "DISTRIBUTION_APPOINTMENT_TYPE",
+    "DISTRIBUTION_FEE_OR_SHARE",
+    "EMERGENCY_COST_NOTICE_DAYS",
+    "ENTERTAINMENT_ACTIVITIES",
+    "EXCLUDED_DEDUCTIONS",
+    "EXCLUDED_MANAGEMENT_INCOME",
+    "EXISTING_PUBLISHING_MANDATES",
+    "EXPRESS_APPROVAL_ITEMS",
+    "FINAL_RECONCILIATION_DAYS",
+    "INITIAL_TERM",
+    "ISRC_RESPONSIBILITY",
+    "KEY_PERSON_ABSENCE_PERIOD",
+    "KEY_PERSON_REPLACEMENT_PERIOD",
+    "LABEL_LEGAL_NAME",
+    "LABEL_NOTICE_EMAIL",
+    "LABEL_REVENUE_SHARE",
+    "LABEL_SIGNATORY_NAME",
+    "LABEL_SIGNATORY_TITLE",
+    "LABEL_SIGNATURE_DATE",
+    "LIABILITY_CAP",
+    "LICENSED_MASTERS_SCHEDULE",
+    "MANAGEMENT_ACTIVITY_EXPECTATIONS",
+    "MANAGEMENT_APPOINTMENT_TYPE",
+    "MANAGEMENT_COMMISSION_RATE",
+    "MANAGEMENT_EXCLUSIVITY_SCOPE",
+    "MANAGEMENT_EXPENSE_APPROVAL_CAP",
+    "MANAGEMENT_INACTIVITY_PERIOD",
+    "MANAGEMENT_INCOME_RECEIPT_METHOD",
+    "MANAGEMENT_KEY_PERSON",
+    "MANAGEMENT_OBJECTIVES",
+    "MANAGEMENT_PASS_THROUGH_DEDUCTIONS",
+    "MANAGEMENT_REVIEW_FREQUENCY",
+    "MANAGEMENT_SUNSET_SCHEDULE",
+    "MANAGER_SPEND_AUTHORITY",
+    "MARKETING_APPROVAL_MATRIX",
+    "MARKETING_CHANNELS",
+    "MARKETING_COST_RECOUPMENT_STATUS",
+    "MARKETING_DELIVERABLES",
+    "MARKETING_PAYMENT_SCHEDULE",
+    "MARKETING_PROFESSIONAL_FEE",
+    "MASTER_DELIVERY_DATE",
+    "MASTER_LICENCE_TYPE",
+    "MASTER_OWNERSHIP_SELECTION",
+    "MASTER_USE_APPROVAL_RULE",
+    "MEDIA_BUDGET",
+    "MINIMUM_PAYOUT",
+    "NEIGHBOURING_RIGHTS_ALLOCATION",
+    "NEW_CAMPAIGN_ASSET_OWNERSHIP",
+    "NON_CASH_COMMISSION_RULE",
+    "NUMBER_OF_TRACKS",
+    "PAYMENT_DAYS",
+    "PERMITTED_DEDUCTIONS",
+    "PLATFORM_ACCOUNT_OWNERSHIP",
+    "POST_RECOUPMENT_SPLIT",
+    "POST_TERM_COLLECTION_PERIOD",
+    "PRODUCTION_CONTRACTING_PARTY",
+    "PROJECT_BUDGET_CATEGORIES",
+    "PROJECT_DELIVERY_DATE",
+    "PROJECT_TITLE",
+    "PROJECT_TYPE",
+    "PUBLISHING_ADMIN_COMMISSION",
+    "PUBLISHING_APPOINTMENT_TYPE",
+    "PUBLISHING_APPROVAL_RULE",
+    "PUBLISHING_COMMISSION_BASE",
+    "PUBLISHING_LICENCE_TYPE",
+    "PUBLISHING_PERMITTED_DEDUCTIONS",
+    "RAW_FILES_INCLUDED",
+    "REASONABLE_REVISION_ROUNDS",
+    "RECORDING_EXCLUSIVITY_PERIOD",
+    "RECORDING_EXCLUSIVITY_SCOPE",
+    "RECORDING_PERIOD",
+    "RECOUPMENT_PERCENTAGE",
+    "RECOUPMENT_REVENUE_SOURCES",
+    "RECOUPMENT_WATERFALL",
+    "RELEASE_CURE_DAYS",
+    "RELEASE_DEADLINE",
+    "RELEASE_DELIVERY_PLAN",
+    "RENEWAL_TERMS",
+    "REPORTING_DELIVERABLES",
+    "ROYALTY_BASE",
+    "SELECTED_LABEL_SERVICES",
+    "SELECTED_MANAGEMENT_SERVICES",
+    "SELECTED_MARKETING_SERVICES",
+    "SELECTED_PUBLISHING_RIGHTS",
+    "SERVICE_APPOINTMENT_TYPE",
+    "SERVICE_FEE_DESCRIPTION",
+    "SERVICE_LICENCE_TYPE",
+    "SPECIFIC_MASTER_RIGHTS",
+    "STATEMENT_FREQUENCY",
+    "STATEMENT_OBJECTION_PERIOD",
+    "SUBADMINISTRATION_SCOPE",
+    "SUNSET_MAXIMUM_PERIOD",
+    "TAKEDOWN_REQUEST_DAYS",
+    "TARGET_AUDIENCE",
+    "TERM_START_DATE",
+    "UGC_MONETISATION_SELECTION",
+    "UNBUDGETED_EXPENSE_CAP",
+    "UNDERLYING_AGREEMENT_DATE",
+    "UNDERLYING_AGREEMENT_TITLE",
+    "UNRECOUPED_BALANCE_TREATMENT",
+    "UNRELEASED_MASTER_REMEDY",
+    "UPC_RESPONSIBILITY",
+    "VAT_TREATMENT",
+    "VENDOR_CONTRACT_THRESHOLD",
+    "WORKED_EXAMPLE_ARTIST_PAYMENT",
+    "WORKED_EXAMPLE_CLOSING_BALANCE",
+    "WORKED_EXAMPLE_DEDUCTIONS",
+    "WORKED_EXAMPLE_GROSS_RECEIPTS",
+    "WORKED_EXAMPLE_OPENING_BALANCE",
+    "WORKED_EXAMPLE_RECOVERY"
+  ],
+  "clause_library": {
+    "DISPUTE_RESOLUTION_CLAUSE": {
+      "default": "courts_after_mediation",
+      "options": {
+        "courts_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, each party submits to the exclusive jurisdiction of the courts of competent jurisdiction in the Republic of Trinidad and Tobago.",
+        "arbitration_after_mediation": "If mediation does not resolve the dispute within thirty days after the mediator's appointment, the dispute shall be finally resolved by arbitration under the Arbitration Act, 2023 by one arbitrator agreed by the parties or appointed in accordance with that Act. The seat is Port of Spain, Trinidad and Tobago, the language is English, and either party may seek urgent interim relief from a court of competent jurisdiction."
+      }
+    }
+  }
+}

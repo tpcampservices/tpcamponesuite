@@ -18,7 +18,10 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
+import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,11 +68,29 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBusinessProfileRoute =
+  AuthenticatedBusinessProfileRouteImport.update({
+    id: '/business-profile',
+    path: '/business-profile',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContractsIndexRoute =
+  AuthenticatedContractsIndexRouteImport.update({
+    id: '/contracts/',
+    path: '/contracts/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedContractsContractIdRoute =
+  AuthenticatedContractsContractIdRouteImport.update({
+    id: '/contracts/$contractId',
+    path: '/contracts/$contractId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -86,7 +107,10 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -98,7 +122,10 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -112,7 +139,10 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -126,7 +156,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/services'
+    | '/business-profile'
     | '/dashboard'
+    | '/contracts/$contractId'
+    | '/contracts/'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,7 +171,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/services'
+    | '/business-profile'
     | '/dashboard'
+    | '/contracts/$contractId'
+    | '/contracts'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -151,7 +187,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/reset-password'
     | '/services'
+    | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
+    | '/_authenticated/contracts/$contractId'
+    | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -233,11 +272,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/business-profile': {
+      id: '/_authenticated/business-profile'
+      path: '/business-profile'
+      fullPath: '/business-profile'
+      preLoaderRoute: typeof AuthenticatedBusinessProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contracts/': {
+      id: '/_authenticated/contracts/'
+      path: '/contracts'
+      fullPath: '/contracts/'
+      preLoaderRoute: typeof AuthenticatedContractsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/contracts/$contractId': {
+      id: '/_authenticated/contracts/$contractId'
+      path: '/contracts/$contractId'
+      fullPath: '/contracts/$contractId'
+      preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/payments/webhook': {
@@ -251,11 +311,17 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
+  AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
+  AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
