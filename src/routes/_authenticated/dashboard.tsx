@@ -164,6 +164,33 @@ function DashboardPage() {
           )}
         </section>
 
+        <section className="panel mt-8 flex flex-wrap items-center justify-between gap-5 p-7">
+          <div>
+            <h2 className="text-lg font-semibold">Contract builder</h2>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              {unlocked >= 1
+                ? "Generate Trinidad and Tobago agreements from seven vetted templates, pre-filled from your business profile."
+                : "Included with Tier 1 — unlock free access below to start generating agreements."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/business-profile"
+              className="rounded-lg border border-border px-5 py-3 text-sm font-medium transition-colors hover:border-accent/60"
+            >
+              Business profile
+            </Link>
+            <Link
+              to="/contracts"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+            >
+              Open contract builder <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
+
+
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
           {tiers.map((tier) => {
