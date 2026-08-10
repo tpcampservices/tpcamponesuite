@@ -48,7 +48,7 @@ export const startCheckout = createServerFn({ method: "POST" })
         typeof data?.returnUrl === "string" && data.returnUrl.startsWith("http")
           ? data.returnUrl.slice(0, 500)
           : undefined;
-      return { cycle, currency, returnUrl };
+      return { cycle: cycle as "monthly" | "yearly", currency: currency as "USD" | "TTD", returnUrl };
     },
   )
   .handler(async ({ data, context }) => {
@@ -89,7 +89,8 @@ export const startCheckout = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         reference,
-        tier: data.tier,
+        plan: "onesuite",
+        cycle: data.cycle,
         amount,
         currency: data.currency,
         customer_email: context.claims.email ?? null,
