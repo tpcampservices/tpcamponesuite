@@ -5,19 +5,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowRight, CalendarClock, Lock, Receipt, ShieldCheck } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
-import { tiers } from "@/lib/tiers";
+import { plan, suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount, startCheckout } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Your TP-CAMP Dashboard — Tier Access & Apps" },
+      { title: "Your TP-CAMP OneSuite Dashboard — Subscription & Apps" },
       {
         name: "description",
-        content: "Manage your TP-CAMP subscription tier and open the applications included in your plan.",
+        content:
+          "Manage your TP-CAMP OneSuite subscription and open every application included in the suite.",
       },
-      { property: "og:title", content: "TP-CAMP Dashboard" },
-      { property: "og:description", content: "Tier access, subscriptions and app links." },
+      { property: "og:title", content: "TP-CAMP OneSuite Dashboard" },
+      { property: "og:description", content: "Subscription status, billing history and app links." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -29,45 +30,47 @@ function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
   const checkout = useServerFn(startCheckout);
   const queryClient = useQueryClient();
-  const [pendingTier, setPendingTier] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [yearly, setYearly] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ["account"],
     queryFn: () => fetchAccount(),
   });
 
-  async function handleCheckout(tier: number) {
-    setPendingTier(tier);
+  async function handleCheckout() {
+    setBusy(true);
     try {
       const result = await checkout({
-        data: { tier, currency: "USD", returnUrl: window.location.href },
+        data: {
+          cycle: yearly ? "yearly" : "monthly",
+          currency: "USD",
+          returnUrl: window.location.href,
+        },
       });
       if (result.configured && result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
         return;
       }
-      if (result.free) {
-        toast.success("Tier 1 unlocked — it's free. Your apps are ready.");
-      } else {
-        toast.success(
-          `Order created (ref ${result.reference}). The payment portal isn't linked yet — access unlocks once payment is confirmed.`,
-        );
-      }
+      toast.success(
+        `Order created (ref ${result.reference}). The payment portal isn't linked yet — access unlocks once payment is confirmed.`,
+      );
       queryClient.invalidateQueries({ queryKey: ["account"] });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Checkout failed");
     } finally {
-      setPendingTier(null);
+      setBusy(false);
     }
   }
 
-  const unlocked = data?.unlockedTier ?? 0;
   const subscriptions = data?.subscriptions ?? [];
-
   const now = Date.now();
   const activeSubs = subscriptions.filter(
     (s) => s.status === "active" && (!s.expires_at || new Date(s.expires_at).getTime() > now),
   );
+  const hasAccess = Boolean(data?.isSuperAdmin) || activeSubs.length > 0;
+  const pending = subscriptions.some((s) => s.status === "pending");
+
   const renewalDates = activeSubs
     .map((s) => (s.expires_at ? new Date(s.expires_at).getTime() : null))
     .filter((d): d is number => d !== null && d > now)
@@ -83,33 +86,35 @@ function DashboardPage() {
   const formatAmount = (amount: number | null, currency: string) =>
     amount === null ? "—" : `${currency} $${Number(amount).toLocaleString()}`;
 
+  const price = yearly ? plan.yearly : plan.monthly;
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-5 pt-16 pb-16">
-        <p className="eyebrow">Your account</p>
+        <p className="eyebrow">{BETA_LABEL} · Your account</p>
         <h1 className="mt-4 text-4xl font-semibold">Dashboard</h1>
         {data?.isSuperAdmin && (
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent/50 px-4 py-1.5 text-sm text-accent">
-            <ShieldCheck className="h-4 w-4" /> Super admin — all tiers unlocked
+            <ShieldCheck className="h-4 w-4" /> Super admin — full suite unlocked
           </p>
         )}
         {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading your access…</p>}
 
         <section className="panel mt-8 p-7">
-          <h2 className="text-lg font-semibold">Billing &amp; subscriptions</h2>
+          <h2 className="text-lg font-semibold">Billing &amp; subscription</h2>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-3">
             <div className="rounded-lg border border-border bg-surface p-5">
-              <p className="eyebrow">Current paid tiers</p>
+              <p className="eyebrow">Subscription status</p>
               <p className="mt-2 text-sm">
                 {data?.isSuperAdmin
-                  ? "All tiers (super admin)"
-                  : activeSubs.length
-                    ? activeSubs
-                        .map((s) => tiers.find((t) => t.level === s.tier)?.name ?? `Tier ${s.tier}`)
-                        .join(", ")
-                    : "No active subscription yet"}
+                  ? "Active (super admin)"
+                  : hasAccess
+                    ? `${plan.name} — active`
+                    : pending
+                      ? "Awaiting payment confirmation"
+                      : "No active subscription yet"}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
@@ -120,8 +125,10 @@ function DashboardPage() {
               </p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
-              <p className="eyebrow">Highest tier unlocked</p>
-              <p className="mt-2 text-sm">{unlocked ? `Tier ${unlocked}` : "None"}</p>
+              <p className="eyebrow">Apps unlocked</p>
+              <p className="mt-2 text-sm">
+                {hasAccess ? `All ${suiteApps.length} apps` : "None yet"}
+              </p>
             </div>
           </div>
 
@@ -130,15 +137,14 @@ function DashboardPage() {
           </h3>
           {subscriptions.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              No payments yet. Choose a tier below to get started.
+              No payments yet. Start your subscription below.
             </p>
           ) : (
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-sm">
+              <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-muted-foreground uppercase">
                   <tr>
                     <th className="py-2 pr-4 font-medium">Date</th>
-                    <th className="py-2 pr-4 font-medium">Tier</th>
                     <th className="py-2 pr-4 font-medium">Amount</th>
                     <th className="py-2 pr-4 font-medium">Status</th>
                     <th className="py-2 pr-4 font-medium">Renews / expires</th>
@@ -149,8 +155,9 @@ function DashboardPage() {
                   {subscriptions.map((s) => (
                     <tr key={s.id} className="border-t border-border/70">
                       <td className="py-2.5 pr-4">{formatDate(s.created_at)}</td>
-                      <td className="py-2.5 pr-4">Tier {s.tier}</td>
-                      <td className="py-2.5 pr-4">{formatAmount(s.amount as number | null, s.currency)}</td>
+                      <td className="py-2.5 pr-4">
+                        {formatAmount(s.amount as number | null, s.currency)}
+                      </td>
                       <td className="py-2.5 pr-4 capitalize">{s.status}</td>
                       <td className="py-2.5 pr-4">{s.expires_at ? formatDate(s.expires_at) : "—"}</td>
                       <td className="py-2.5 font-mono text-xs text-muted-foreground">
@@ -164,13 +171,56 @@ function DashboardPage() {
           )}
         </section>
 
+        {!hasAccess && (
+          <section className="panel-featured mt-8 p-7">
+            <h2 className="text-lg font-semibold">Start your {plan.name} subscription</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              One fee unlocks every tool in the suite. Choose monthly or yearly billing.
+            </p>
+
+            <div className="mt-5 inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1">
+              <button
+                onClick={() => setYearly(false)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  !yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setYearly(true)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Yearly
+              </button>
+            </div>
+
+            <p className="mt-5 font-display text-3xl font-semibold">
+              ${price.usd.toLocaleString()}
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                USD / {yearly ? "year" : "month"} · TTD ${price.ttd.toLocaleString()}
+              </span>
+            </p>
+
+            <button
+              onClick={handleCheckout}
+              disabled={busy}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {busy ? "Starting…" : pending ? "Awaiting payment — retry" : "Subscribe"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </section>
+        )}
+
         <section className="panel mt-8 flex flex-wrap items-center justify-between gap-5 p-7">
           <div>
             <h2 className="text-lg font-semibold">Contract builder</h2>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              {unlocked >= 1
-                ? "Generate Trinidad and Tobago agreements from seven vetted templates, pre-filled from your business profile."
-                : "Included with Tier 1 — unlock free access below to start generating agreements."}
+              Generate Trinidad and Tobago agreements from seven vetted templates, pre-filled from
+              your business profile.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -189,81 +239,42 @@ function DashboardPage() {
           </div>
         </section>
 
-
-
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
-          {tiers.map((tier) => {
-            const isUnlocked = unlocked >= tier.level;
-            const pending = data?.subscriptions.some(
-              (s) => s.tier === tier.level && s.status === "pending",
-            );
-            return (
-              <article key={tier.id} className="panel flex flex-col p-7">
-                <h2 className="text-lg font-semibold">{tier.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
-
-
-                <div className="mt-5 flex-1 space-y-2">
-                  {tier.apps.map((app) =>
-                    isUnlocked ? (
-                      <a
-                        key={app.url}
-                        href={app.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:border-accent/60"
-                      >
-                        <span>
-                          <span className="block text-sm font-medium">{app.name}</span>
-                          <span className="block text-xs text-muted-foreground">{app.blurb}</span>
-                        </span>
-                        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent" />
-                      </a>
-                    ) : (
-                      <div
-                        key={app.url}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface/50 px-4 py-3 opacity-70"
-                      >
-                        <span>
-                          <span className="block text-sm font-medium">{app.name}</span>
-                          <span className="block text-xs text-muted-foreground">{app.blurb}</span>
-                        </span>
-                        <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </div>
-                    ),
-                  )}
-                </div>
-
-                {isUnlocked ? (
-                  <p className="mt-6 rounded-lg border border-accent/40 px-4 py-2.5 text-center text-sm text-accent">
-                    Access active
-                  </p>
-                ) : (
-                  <button
-                    onClick={() => handleCheckout(tier.level)}
-                    disabled={pendingTier === tier.level}
-                    className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-                  >
-                    {pendingTier === tier.level
-                      ? "Starting…"
-                      : tier.usd === 0
-                        ? "Unlock free access"
-                        : pending
-                          ? "Awaiting payment — retry"
-                          : "Get access"}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                )}
-              </article>
-            );
-          })}
+        <h2 className="mt-10 text-lg font-semibold">Your applications</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {suiteApps.map((app) =>
+            hasAccess ? (
+              <a
+                key={app.url}
+                href={app.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-4 transition-colors hover:border-accent/60"
+              >
+                <span>
+                  <span className="block text-sm font-medium">{app.name}</span>
+                  <span className="block text-xs text-muted-foreground">{app.blurb}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent" />
+              </a>
+            ) : (
+              <div
+                key={app.url}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface/50 px-4 py-4 opacity-70"
+              >
+                <span>
+                  <span className="block text-sm font-medium">{app.name}</span>
+                  <span className="block text-xs text-muted-foreground">{app.blurb}</span>
+                </span>
+                <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </div>
+            ),
+          )}
         </div>
 
         <p className="mt-8 text-sm text-muted-foreground">
-          Need help choosing?{" "}
+          Want the full feature list?{" "}
           <Link to="/compare" className="text-accent">
-            Compare the tiers
+            See everything included
           </Link>
           .
         </p>
