@@ -10,7 +10,7 @@ const navItems: { to: string; label: string; exact?: boolean }[] = [
   { to: "/about", label: "About" },
   { to: "/services", label: "Services" },
   { to: "/pricing", label: "Pricing" },
-  { to: "/compare", label: "Compare" },
+  { to: "/compare", label: "Features" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -112,10 +112,12 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 text-sm text-muted-foreground">
-        <p className="font-mono text-xs tracking-[0.2em] text-accent">TP-CAMP SUITE</p>
+        <p className="font-mono text-xs tracking-[0.2em] text-accent">
+          TP-CAMP ONESUITE · BETA VERSION V1.0
+        </p>
         <p>
-          Rights administration, campaign operations and label finance — built in Trinidad and
-          Tobago for Caribbean artists and the world by extension.
+          Run your music business—not just your music. Built in Trinidad and Tobago for Caribbean
+          artists and the world by extension.
         </p>
         <div className="flex flex-wrap gap-4 pt-2">
           <Link to="/about" className="hover:text-foreground">
