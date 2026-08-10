@@ -18,7 +18,7 @@ export const Route = createFileRoute("/contact")({
       { property: "og:title", content: "Contact TP-CAMP" },
       {
         property: "og:description",
-        content: "Questions about tiers, rights administration or label services? Send us a note.",
+        content: "Questions about TP-CAMP OneSuite, rights administration or label services? Send us a note.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -73,7 +73,7 @@ function ContactPage() {
         <p className="eyebrow">Contact</p>
         <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Let's talk about your catalogue</h1>
         <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-          Tell us what you're working on and which tier you're considering. We respond to every
+          Tell us what you're working on and how you plan to use TP-CAMP OneSuite. We respond to every
           enquiry.
         </p>
 

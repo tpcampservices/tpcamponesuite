@@ -14,12 +14,12 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Log in to the TP-CAMP portal to manage your subscription tier and open the applications included in your plan.",
+          "Log in to the TP-CAMP portal to manage your OneSuite subscription and open every application in the suite.",
       },
       { property: "og:title", content: "TP-CAMP Login Portal" },
       {
         property: "og:description",
-        content: "Access your TP-CAMP tier apps: catalogue, split sheets, invoicing, campaigns and finance.",
+        content: "Access the TP-CAMP OneSuite apps: catalogue, split sheets, contracts, invoicing, campaigns and finance.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -129,7 +129,7 @@ function AuthPage() {
           {mode === "signin" ? "Sign in to TP-CAMP" : "Create your TP-CAMP account"}
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Your tier apps unlock here once your subscription is paid.
+          Your apps unlock here once your subscription is active.
         </p>
 
         <div className="panel mt-8 p-7">
@@ -188,7 +188,7 @@ function AuthPage() {
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Not ready yet?{" "}
           <Link to="/pricing" className="text-accent">
-            Review the tiers
+            See what's included
           </Link>
         </p>
       </main>
