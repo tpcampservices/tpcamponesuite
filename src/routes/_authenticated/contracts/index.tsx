@@ -11,7 +11,7 @@ import { contractForms, templateSummaries } from "@/lib/contracts";
 export const Route = createFileRoute("/_authenticated/contracts/")({
   head: () => ({
     meta: [
-      { title: "Contract Builder — TP-CAMP Tier 1" },
+      { title: "Contract Builder — TP-CAMP OneSuite" },
       {
         name: "description",
         content:
@@ -69,7 +69,7 @@ function ContractsPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-5 pt-16 pb-16">
-        <p className="eyebrow">Tier 1 module</p>
+        <p className="eyebrow">OneSuite module</p>
         <h1 className="mt-4 text-4xl font-semibold">Contract builder</h1>
         <p className="mt-4 max-w-2xl text-muted-foreground">
           Seven Trinidad and Tobago agreement templates. Pick the one that matches the real
@@ -82,14 +82,14 @@ function ContractsPage() {
         {!accountLoading && !hasAccess && (
           <div className="panel mt-8 flex flex-col items-start gap-4 p-7">
             <p className="inline-flex items-center gap-2 text-sm">
-              <Lock className="h-4 w-4 text-muted-foreground" /> The contract builder is part of
-              Tier 1.
+              <Lock className="h-4 w-4 text-muted-foreground" /> The contract builder is included
+              with a TP-CAMP OneSuite subscription.
             </p>
             <Link
               to="/dashboard"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
             >
-              Unlock Tier 1 (free) <ArrowRight className="h-4 w-4" />
+              Subscribe to OneSuite <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         )}
