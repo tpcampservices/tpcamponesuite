@@ -62,8 +62,7 @@ function ServicesPage() {
           Label services, on your terms
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-          Choose the services you need. Everything runs on one platform, and each subscription tier
-          unlocks its own set of TP-CAMP applications.
+          Everything runs on one platform, and one subscription unlocks every TP-CAMP application.
         </p>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -76,19 +75,12 @@ function ServicesPage() {
           ))}
         </div>
 
-        <h2 className="mt-14 text-2xl font-semibold">Applications by tier</h2>
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          {tiers.map((tier) => (
-            <article key={tier.id} className="panel p-7">
-              <p className="eyebrow">Tier {tier.level}</p>
-              <h3 className="mt-2 text-lg font-semibold">{tier.name.split(" — ")[1]}</h3>
-              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                {tier.apps.map((app) => (
-                  <li key={app.url}>
-                    <span className="text-foreground">{app.name}</span> — {app.blurb}
-                  </li>
-                ))}
-              </ul>
+        <h2 className="mt-14 text-2xl font-semibold">Applications included</h2>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {suiteApps.map((app) => (
+            <article key={app.url} className="panel p-7">
+              <h3 className="text-lg font-semibold">{app.name}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{app.blurb}</p>
             </article>
           ))}
         </div>
@@ -97,7 +89,7 @@ function ServicesPage() {
           <div>
             <h2 className="text-lg font-semibold">Ready to start?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create an account, choose a tier and your apps unlock once payment clears.
+              Create an account and every app unlocks once your subscription is active.
             </p>
           </div>
           <Link
