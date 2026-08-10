@@ -1,22 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
-import { tiers } from "@/lib/tiers";
+import { plan, suiteApps, BETA_LABEL } from "@/lib/tiers";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "TP-CAMP Pricing — Free Tier 1, One-Time Fees" },
+      { title: "TP-CAMP OneSuite Pricing — $500 USD / $3,500 TTD a Year" },
       {
         name: "description",
         content:
-          "TP-CAMP plans: Tier 1 free, then one-time fees from USD $300 — catalogue, split sheets and invoicing, campaign operations, and full label finance management. Apps unlock as your tier goes up.",
+          "One fee for the whole TP-CAMP suite: $500 USD or $3,500 TTD yearly, or $49 USD / $350 TTD monthly. Catalogue, splits, contracts, invoicing, campaigns and label finance.",
       },
-      { property: "og:title", content: "TP-CAMP Pricing — Free Tier 1, One-Time Fees" },
+      { property: "og:title", content: "TP-CAMP OneSuite Pricing" },
       {
         property: "og:description",
         content:
-          "Three tiers of music business software: catalogue and invoicing, campaign operations, and full finance management.",
+          "One subscription, every tool in the suite. Switch between monthly and yearly billing.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -26,102 +27,118 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
+  const [yearly, setYearly] = useState(true);
+  const price = yearly ? plan.yearly : plan.monthly;
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main>
         <section className="mx-auto max-w-6xl px-5 pt-16 pb-10">
-          <p className="eyebrow">One-time payment · no subscription</p>
+          <p className="eyebrow">{BETA_LABEL} · One fee · all tools</p>
           <h1 className="mt-4 max-w-3xl text-4xl leading-tight font-semibold sm:text-5xl">
-            One suite. Three tiers. Every app unlocks as you grow.
+            One suite. One subscription. Every tool included.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            Create an account and start free on Tier 1. Upgrade with a single one-time payment —
-            no monthly or yearly billing. Your apps unlock automatically once payment is confirmed.
+            No tiers and no upsells — every client gets access to all the tools available in the
+            TP-CAMP suite. Choose monthly or yearly billing.
           </p>
 
+          <div className="mt-7 inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1">
+            <button
+              onClick={() => setYearly(false)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                !yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setYearly(true)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              Yearly
+            </button>
+          </div>
         </section>
 
-        <section id="tiers" className="mx-auto max-w-6xl px-5 pb-8">
+        <section id="plan" className="mx-auto max-w-6xl px-5 pb-8">
           <div className="grid gap-6 lg:grid-cols-3">
-            {tiers.map((tier) => (
-              <article
-                key={tier.id}
-                id={tier.id}
-                className={`${tier.featured ? "panel-featured" : "panel"} flex flex-col p-7`}
+            <article className="panel-featured flex flex-col p-7">
+              <span className="mb-4 w-fit rounded-full bg-primary px-3 py-1 font-mono text-[0.65rem] tracking-[0.2em] text-primary-foreground uppercase">
+                {BETA_LABEL}
+              </span>
+              <h2 className="text-xl font-semibold">{plan.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+
+              <div className="mt-6 flex items-baseline gap-2">
+                <span className="font-display text-4xl font-semibold">
+                  ${price.usd.toLocaleString()}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  USD / {yearly ? "year" : "month"}
+                </span>
+              </div>
+              <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
+                TTD ${price.ttd.toLocaleString()} / {yearly ? "year" : "month"}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {yearly
+                  ? `Billed yearly. Works out to about $${Math.round(plan.yearly.usd / 12)} USD / $${Math.round(plan.yearly.ttd / 12)} TTD a month.`
+                  : `Billed monthly. Pay yearly for $${plan.yearly.usd.toLocaleString()} USD / $${plan.yearly.ttd.toLocaleString()} TTD.`}
+              </p>
+
+              <p className="mt-5 text-sm text-muted-foreground">{plan.summary}</p>
+
+              <Link
+                to="/dashboard"
+                className="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
-                {tier.featured && (
-                  <span className="mb-4 w-fit rounded-full bg-primary px-3 py-1 font-mono text-[0.65rem] tracking-[0.2em] text-primary-foreground uppercase">
-                    Most popular
-                  </span>
-                )}
-                <h2 className="text-xl font-semibold">{tier.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{tier.tagline}</p>
+                Get started <ArrowRight className="h-4 w-4" />
+              </Link>
+            </article>
 
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className="font-display text-4xl font-semibold">
-                    {tier.usd === 0 ? "Free" : `$${tier.usd.toLocaleString()}`}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {tier.usd === 0 ? "no payment required" : "USD one-time"}
-                  </span>
-                </div>
-                <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                  {tier.ttd === 0 ? "TTD $0" : `TTD $${tier.ttd.toLocaleString()} one-time`}
-                </p>
+            <article className="panel flex flex-col p-7 lg:col-span-2">
+              <p className="eyebrow">What's included</p>
+              <ul className="mt-4 grid gap-2.5 text-sm sm:grid-cols-2">
+                {plan.highlights.map((h) => (
+                  <li key={h} className="flex gap-2.5">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
 
-
-                <p className="mt-5 text-sm text-muted-foreground">{tier.summary}</p>
-
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {tier.highlights.map((h) => (
-                    <li key={h} className="flex gap-2.5">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      <span>{h}</span>
+              <div className="mt-7 border-t border-border/70 pt-5">
+                <p className="eyebrow">Applications unlocked</p>
+                <ul className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                  {suiteApps.map((app) => (
+                    <li key={app.url}>
+                      <span className="text-foreground">{app.name}</span> — {app.blurb}
                     </li>
                   ))}
                 </ul>
-
-                <div className="mt-7 border-t border-border/70 pt-5">
-                  <p className="eyebrow">Included apps</p>
-                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                    {tier.apps.map((app) => (
-                      <li key={app.url}>
-                        <span className="text-foreground">{app.name}</span> — {app.blurb}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    App links unlock in your dashboard once this tier is paid for.
-                  </p>
-                </div>
-
-                <Link
-                  to="/dashboard"
-                  className={`mt-6 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-opacity hover:opacity-90 ${
-                    tier.featured
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-secondary text-secondary-foreground"
-                  }`}
-                >
-                  {tier.usd === 0 ? "Start free" : "Get started"} <ArrowRight className="h-4 w-4" />
-                </Link>
-              </article>
-            ))}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  App links unlock in your dashboard once your subscription is active.
+                </p>
+              </div>
+            </article>
           </div>
 
           <div className="panel mt-10 flex flex-col items-start justify-between gap-4 p-7 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-lg font-semibold">Not sure which tier fits?</h2>
+              <h2 className="text-lg font-semibold">Want the full feature list?</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                See every feature side by side in the tier comparison chart.
+                See every module included in OneSuite.
               </p>
             </div>
             <Link
               to="/compare"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Compare tiers <ArrowRight className="h-4 w-4" />
+              View features <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>
