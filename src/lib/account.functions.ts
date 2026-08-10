@@ -40,34 +40,31 @@ export const getMyAccount = createServerFn({ method: "GET" })
 
 export const startCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { tier: number; currency?: "USD" | "TTD"; returnUrl?: string }) => {
-    const tier = Number(data?.tier);
-    if (![1, 2, 3].includes(tier)) throw new Error("Invalid tier");
-    const currency = data?.currency === "TTD" ? "TTD" : "USD";
-    const returnUrl =
-      typeof data?.returnUrl === "string" && data.returnUrl.startsWith("http")
-        ? data.returnUrl.slice(0, 500)
-        : undefined;
-    return { tier, currency, returnUrl };
-  })
+  .inputValidator(
+    (data: { cycle?: "monthly" | "yearly"; currency?: "USD" | "TTD"; returnUrl?: string }) => {
+      const cycle = data?.cycle === "monthly" ? "monthly" : "yearly";
+      const currency = data?.currency === "TTD" ? "TTD" : "USD";
+      const returnUrl =
+        typeof data?.returnUrl === "string" && data.returnUrl.startsWith("http")
+          ? data.returnUrl.slice(0, 500)
+          : undefined;
+      return { cycle, currency, returnUrl };
+    },
+  )
   .handler(async ({ data, context }) => {
-    const prices: Record<number, { USD: number; TTD: number }> = {
-      1: { USD: 0, TTD: 0 },
-      2: { USD: 300, TTD: 2000 },
-      3: { USD: 500, TTD: 3700 },
-    };
-    const amount = data.currency === "TTD" ? prices[data.tier].TTD : prices[data.tier].USD;
-    const reference = `tpcamp-${data.tier}-${crypto.randomUUID()}`;
+    const prices = {
+      monthly: { USD: 49, TTD: 350 },
+      yearly: { USD: 500, TTD: 3500 },
+    } as const;
+    const amount = prices[data.cycle][data.currency];
+    const reference = `tpcamp-onesuite-${data.cycle}-${crypto.randomUUID()}`;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const isFree = amount === 0;
-
     const { error } = await supabaseAdmin.from("subscriptions").insert({
       user_id: context.userId,
-      tier: data.tier,
-      status: isFree ? "active" : "pending",
-      started_at: isFree ? new Date().toISOString() : null,
+      tier: 3,
+      status: "pending",
       currency: data.currency,
       amount,
       payment_reference: reference,
@@ -75,9 +72,7 @@ export const startCheckout = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    if (isFree) {
-      return { configured: false as const, free: true, reference, amount, currency: data.currency };
-    }
+
 
     const apiUrl = process.env.PAYMENT_PORTAL_API_URL;
     const apiKey = process.env.PAYMENT_PORTAL_API_KEY;
