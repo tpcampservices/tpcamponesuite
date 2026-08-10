@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
-import { tiers } from "@/lib/tiers";
+import { suiteApps } from "@/lib/tiers";
 
 export const Route = createFileRoute("/services")({
   head: () => ({
