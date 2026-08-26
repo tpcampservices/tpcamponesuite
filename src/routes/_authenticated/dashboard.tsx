@@ -3,10 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, CalendarClock, Lock, Receipt, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, Lock, Receipt, ShieldCheck } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { plan, suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount, startCheckout } from "@/lib/account.functions";
+import { cancelMySubscription } from "@/lib/paypal.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
   const checkout = useServerFn(startCheckout);
+  const cancelSub = useServerFn(cancelMySubscription);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [yearly, setYearly] = useState(true);
@@ -87,6 +89,39 @@ function DashboardPage() {
     amount === null ? "—" : `${currency} $${Number(amount).toLocaleString()}`;
 
   const price = yearly ? plan.yearly : plan.monthly;
+
+  const paypalActive = activeSubs.find(
+    (s) => s.payment_provider === "paypal" && s.payment_reference,
+  );
+  const suspended = subscriptions.find(
+    (s) => s.payment_provider === "paypal" && s.status === "pending",
+  );
+  const lapsed = subscriptions.find(
+    (s) => s.status === "cancelled" || s.status === "expired",
+  );
+
+  async function handleCancel(reference: string) {
+    if (
+      !window.confirm(
+        "Cancel your TP-CAMP OneSuite subscription? Access stays open until the end of the paid period.",
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const result = await cancelSub({ data: { subscriptionId: reference } });
+      toast.success(
+        result.accessUntil
+          ? `Subscription cancelled. Access remains until ${formatDate(result.accessUntil)}.`
+          : "Subscription cancelled.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["account"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Cancellation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -167,6 +202,33 @@ function DashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {(suspended || (!hasAccess && lapsed)) && (
+            <div className="mt-6 flex gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <p>
+                {suspended
+                  ? "A PayPal payment for your subscription hasn't cleared. Your suite access is suspended until PayPal confirms the payment — update your payment method in PayPal, or resubscribe below."
+                  : "Your subscription is no longer active, so the suite apps are locked. Resubscribe below to restore access."}
+              </p>
+            </div>
+          )}
+
+          {paypalActive?.payment_reference && (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-4">
+              <p className="text-sm text-muted-foreground">
+                Cancel anytime — your access stays open until
+                {" "}
+                {paypalActive.expires_at ? formatDate(paypalActive.expires_at) : "the end of the paid period"}.
+              </p>
+              <button
+                onClick={() => handleCancel(paypalActive.payment_reference as string)}
+                disabled={busy}
+                className="rounded-lg border border-destructive/50 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+              >
+                {busy ? "Working…" : "Cancel subscription"}
+              </button>
             </div>
           )}
         </section>
