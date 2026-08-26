@@ -22,6 +22,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -93,6 +94,12 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminWebhooksRoute =
+  AuthenticatedAdminWebhooksRouteImport.update({
+    id: '/admin/webhooks',
+    path: '/admin/webhooks',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedContractsIndexRoute =
   AuthenticatedContractsIndexRouteImport.update({
     id: '/contracts/',
@@ -130,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -148,6 +156,7 @@ export interface FileRoutesByTo {
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -168,6 +177,7 @@ export interface FileRoutesById {
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
+    | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts/'
     | '/api/public/payments/webhook'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
+    | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts'
     | '/api/public/payments/webhook'
@@ -225,6 +237,7 @@ export interface FileRouteTypes {
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
     | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
@@ -339,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/webhooks': {
+      id: '/_authenticated/admin/webhooks'
+      path: '/admin/webhooks'
+      fullPath: '/admin/webhooks'
+      preLoaderRoute: typeof AuthenticatedAdminWebhooksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/contracts/': {
       id: '/_authenticated/contracts/'
       path: '/contracts'
@@ -374,6 +394,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
   AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
   AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
 }
@@ -382,6 +403,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
   AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
   AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
 }

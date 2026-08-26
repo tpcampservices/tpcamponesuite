@@ -102,7 +102,7 @@ function AdminSettingsPage() {
   async function handleTest() {
     setBusy(true);
     try {
-      const result = await testConnection({ data: {} });
+      const result = await testConnection(undefined);
       if (result.ok) toast.success("PayPal accepted these credentials.");
       else toast.error("PayPal rejected the credentials or they're incomplete.");
     } catch (error) {
