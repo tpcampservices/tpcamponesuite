@@ -19,7 +19,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase
         .from("subscriptions")
-        .select("id, tier, status, currency, amount, expires_at, created_at, payment_reference")
+        .select("id, tier, status, currency, amount, expires_at, created_at, payment_reference, payment_provider")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
     ]);
