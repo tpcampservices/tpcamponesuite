@@ -82,7 +82,7 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
             resource_id: event.resource?.id ?? null,
             subscription_reference: subscriptionId,
             plan_id: event.resource?.plan_id ?? null,
-            payload: event as unknown as Record<string, unknown>,
+            payload: JSON.parse(body) as never,
           });
 
         if (claimError) {
