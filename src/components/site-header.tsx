@@ -31,9 +31,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-accent font-mono text-sm font-bold text-accent-foreground">
-            TP
-          </span>
+          <img src="/logo.png" alt="TP-CAMP Services logo" className="h-9 w-9 rounded-md invert" />
           <span className="font-mono text-sm font-semibold tracking-[0.2em] text-foreground">
             TP-CAMP
           </span>
