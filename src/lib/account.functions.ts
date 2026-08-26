@@ -6,6 +6,14 @@ export const getMyAccount = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
+    // Keep stored subscription state in sync with PayPal on every account load (incl. login).
+    try {
+      const { syncUserSubscriptions } = await import("./subscription.server");
+      await syncUserSubscriptions(userId);
+    } catch (err) {
+      console.error("Subscription sync failed:", err);
+    }
+
     const [profileRes, rolesRes, subsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
