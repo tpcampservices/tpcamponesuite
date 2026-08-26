@@ -30,7 +30,9 @@ export const Route = createFileRoute("/pricing")({
 
 function PricingPage() {
   const [yearly, setYearly] = useState(true);
+  const { session } = useSession();
   const price = yearly ? plan.yearly : plan.monthly;
+
 
   return (
     <div className="min-h-screen">
