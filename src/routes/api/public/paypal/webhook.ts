@@ -102,7 +102,11 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
           }
         }
 
-        const update: Record<string, unknown> = { status };
+        const update: {
+          status: "pending" | "active" | "cancelled" | "expired";
+          started_at?: string;
+          expires_at?: string;
+        } = { status };
         if (status === "active") {
           update.started_at = new Date().toISOString();
           if (nextBilling) update.expires_at = nextBilling;
