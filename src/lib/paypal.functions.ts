@@ -36,7 +36,7 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
     let status: "pending" | "active" | "cancelled" | "expired" = "pending";
     let expiresAt: string | null = null;
 
-    if (paypalConfigured()) {
+    if (await paypalConfigured()) {
       const sub = await fetchPaypalSubscription(data.subscriptionId);
       if (sub) {
         status = mapPaypalStatus(sub.status);
@@ -139,7 +139,7 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
     if (!row || row.user_id !== context.userId) throw new Error("Subscription not found");
 
     let paypalCancelled = false;
-    if (row.payment_provider === "paypal" && paypalConfigured()) {
+    if (row.payment_provider === "paypal" && (await paypalConfigured())) {
       const result = await cancelPaypalSubscription(data.subscriptionId, "Cancelled by customer");
       if (!result.ok) {
         throw new Error("We couldn't cancel with PayPal. Please try again or contact support.");
