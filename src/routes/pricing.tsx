@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
+import { PaypalSubscribe } from "@/components/paypal-subscribe";
+import { useSession } from "@/hooks/use-session";
 import { plan, suiteApps, BETA_LABEL } from "@/lib/tiers";
 
 export const Route = createFileRoute("/pricing")({
@@ -28,7 +30,9 @@ export const Route = createFileRoute("/pricing")({
 
 function PricingPage() {
   const [yearly, setYearly] = useState(true);
+  const { session } = useSession();
   const price = yearly ? plan.yearly : plan.monthly;
+
 
   return (
     <div className="min-h-screen">
@@ -92,13 +96,23 @@ function PricingPage() {
 
               <p className="mt-5 text-sm text-muted-foreground">{plan.summary}</p>
 
-              <Link
-                to="/dashboard"
-                className="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Get started <ArrowRight className="h-4 w-4" />
-              </Link>
+              {session ? (
+                <div className="mt-7">
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Activate your plan — pay securely with PayPal.
+                  </p>
+                  <PaypalSubscribe cycle={yearly ? "yearly" : "monthly"} />
+                </div>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="mt-7 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  Create an account to activate <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
             </article>
+
 
             <article className="panel flex flex-col p-7 lg:col-span-2">
               <p className="eyebrow">What's included</p>
