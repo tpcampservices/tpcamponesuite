@@ -29,27 +29,27 @@ export const plan = {
 export const suiteApps: AppLink[] = [
   {
     name: "TP-CAMP Catalog",
-    url: "https://tpcampcatalog.lovable.app/",
+    url: "https://catalog.tpcamponesuite.app",
     blurb: "Works, recordings, releases and splits",
   },
   {
     name: "TP-CAMP Invoice",
-    url: "https://tpcampinvoice.lovable.app/",
+    url: "https://invoice.tpcamponesuite.app",
     blurb: "Invoicing, receipts and supplier payables",
   },
   {
     name: "TP-CAMP Split Sheets",
-    url: "https://tpcampsplitsheets.lovable.app/",
+    url: "https://splits.tpcamponesuite.app",
     blurb: "Composition & master split sheet studio",
   },
   {
-    name: "TP-CAMP Workflow",
-    url: "https://tpcampworkflow.lovable.app/",
+    name: "TP-CAMP Operations Hub",
+    url: "https://operations.tpcamponesuite.app",
     blurb: "Release operations & campaign command centre",
   },
   {
     name: "TP-CAMP Finance",
-    url: "https://tpcampfinance.lovable.app/",
+    url: "https://finance.tpcamponesuite.app",
     blurb: "Double-entry accounting, budgets and royalties",
   },
 ];
