@@ -79,6 +79,31 @@ function DashboardPage() {
     .sort((a, b) => a - b);
   const nextBilling = renewalDates[0] ?? null;
 
+  const accessTier = data?.isSuperAdmin
+    ? 3
+    : activeSubs.length
+      ? Math.max(...activeSubs.map((s) => Number(s.tier)))
+      : 0;
+  const cancelledButActive = activeSubs.some((s) => s.status === "cancelled");
+  const statusLabel = data?.isSuperAdmin
+    ? "Active (super admin)"
+    : hasAccess
+      ? cancelledButActive
+        ? "Cancelled — access until period end"
+        : "Active"
+      : pending
+        ? "Pending payment — access suspended"
+        : subscriptions.length
+          ? "Inactive"
+          : "No subscription";
+  const statusTone: "good" | "warn" | "muted" = hasAccess
+    ? "good"
+    : pending || subscriptions.length
+      ? "warn"
+      : "muted";
+
+
+
   const formatDate = (value: string | number) =>
     new Date(value).toLocaleDateString(undefined, {
       year: "numeric",
