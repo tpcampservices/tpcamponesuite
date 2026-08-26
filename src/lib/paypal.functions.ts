@@ -29,24 +29,27 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
       mapPaypalStatus,
       paypalConfigured,
       fallbackExpiry,
+      resolvePlanMapping,
     } = await import("./subscription.server");
 
     const amount = PRICES[data.cycle][data.currency];
 
     let status: "pending" | "active" | "cancelled" | "expired" = "pending";
     let expiresAt: string | null = null;
+    let tier = 3;
 
-    if (paypalConfigured()) {
+    if (await paypalConfigured()) {
       const sub = await fetchPaypalSubscription(data.subscriptionId);
       if (sub) {
         status = mapPaypalStatus(sub.status);
         expiresAt = sub.billing_info?.next_billing_time ?? fallbackExpiry(data.cycle);
+        if (sub.plan_id) tier = (await resolvePlanMapping(sub.plan_id)).tier;
       }
     }
 
     const row = {
       user_id: context.userId,
-      tier: 3,
+      tier,
       status,
       currency: data.currency,
       amount,
@@ -139,7 +142,7 @@ export const cancelMySubscription = createServerFn({ method: "POST" })
     if (!row || row.user_id !== context.userId) throw new Error("Subscription not found");
 
     let paypalCancelled = false;
-    if (row.payment_provider === "paypal" && paypalConfigured()) {
+    if (row.payment_provider === "paypal" && (await paypalConfigured())) {
       const result = await cancelPaypalSubscription(data.subscriptionId, "Cancelled by customer");
       if (!result.ok) {
         throw new Error("We couldn't cancel with PayPal. Please try again or contact support.");

@@ -79,6 +79,31 @@ function DashboardPage() {
     .sort((a, b) => a - b);
   const nextBilling = renewalDates[0] ?? null;
 
+  const accessTier = data?.isSuperAdmin
+    ? 3
+    : activeSubs.length
+      ? Math.max(...activeSubs.map((s) => Number(s.tier)))
+      : 0;
+  const cancelledButActive = activeSubs.some((s) => s.status === "cancelled");
+  const statusLabel = data?.isSuperAdmin
+    ? "Active (super admin)"
+    : hasAccess
+      ? cancelledButActive
+        ? "Cancelled — access until period end"
+        : "Active"
+      : pending
+        ? "Pending payment — access suspended"
+        : subscriptions.length
+          ? "Inactive"
+          : "No subscription";
+  const statusTone: "good" | "warn" | "muted" = hasAccess
+    ? "good"
+    : pending || subscriptions.length
+      ? "warn"
+      : "muted";
+
+
+
   const formatDate = (value: string | number) =>
     new Date(value).toLocaleDateString(undefined, {
       year: "numeric",
@@ -134,7 +159,52 @@ function DashboardPage() {
             <ShieldCheck className="h-4 w-4" /> Super admin — full suite unlocked
           </p>
         )}
+
+        {/* Access state strip — always visible so every app shows the same status */}
+        <div className="mt-6 flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
+            <span className="text-muted-foreground">Tier</span>
+            <strong className="font-medium">
+              {data?.isSuperAdmin ? "Super admin — Tier 3" : accessTier ? `Tier ${accessTier}` : "None"}
+            </strong>
+          </span>
+          <span
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm ${
+              statusTone === "good"
+                ? "border-accent/50 text-accent"
+                : statusTone === "warn"
+                  ? "border-destructive/50 text-destructive"
+                  : "border-border text-muted-foreground"
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {statusLabel}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
+            <CalendarClock className="h-4 w-4 text-accent" />
+            <span className="text-muted-foreground">Next billing</span>
+            <strong className="font-medium">{nextBilling ? formatDate(nextBilling) : "—"}</strong>
+          </span>
+          {data?.isSuperAdmin && (
+            <>
+              <Link
+                to="/admin/settings"
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
+              >
+                PayPal settings
+              </Link>
+              <Link
+                to="/admin/webhooks"
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
+              >
+                Webhook log
+              </Link>
+            </>
+          )}
+        </div>
+
         {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading your access…</p>}
+
 
         <section className="panel mt-8 p-7">
           <h2 className="text-lg font-semibold">Billing &amp; subscription</h2>

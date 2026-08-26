@@ -134,6 +134,117 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_settings: {
+        Row: {
+          created_at: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      paypal_plans: {
+        Row: {
+          active: boolean
+          amount: number | null
+          created_at: string
+          currency: string
+          cycle: string
+          label: string | null
+          plan_id: string
+          tier: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          cycle: string
+          label?: string | null
+          plan_id: string
+          tier: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          cycle?: string
+          label?: string | null
+          plan_id?: string
+          tier?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      paypal_webhook_events: {
+        Row: {
+          applied: boolean
+          created_at: string
+          duplicate: boolean
+          event_id: string
+          event_type: string
+          id: string
+          new_status: string | null
+          note: string | null
+          payload: Json | null
+          plan_id: string | null
+          previous_status: string | null
+          resource_id: string | null
+          subscription_reference: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied?: boolean
+          created_at?: string
+          duplicate?: boolean
+          event_id: string
+          event_type: string
+          id?: string
+          new_status?: string | null
+          note?: string | null
+          payload?: Json | null
+          plan_id?: string | null
+          previous_status?: string | null
+          resource_id?: string | null
+          subscription_reference?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied?: boolean
+          created_at?: string
+          duplicate?: boolean
+          event_id?: string
+          event_type?: string
+          id?: string
+          new_status?: string | null
+          note?: string | null
+          payload?: Json | null
+          plan_id?: string | null
+          previous_status?: string | null
+          resource_id?: string | null
+          subscription_reference?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string | null
