@@ -3,6 +3,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Cycle = "monthly" | "yearly";
 
+/**
+ * Called right after the PayPal button approves. The subscription is only marked
+ * `active` when PayPal's API confirms it (server-side verification); otherwise it
+ * is stored as `pending` and activated later by the webhook.
+ */
 export const recordPaypalSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { subscriptionId?: string; cycle?: Cycle; currency?: "USD" | "TTD" }) => {
@@ -17,48 +22,39 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data, context }) => {
-    const prices = { monthly: { USD: 49, TTD: 350 }, yearly: { USD: 500, TTD: 3500 } } as const;
-    const amount = prices[data.cycle][data.currency];
-
-    const expires = new Date();
-    if (data.cycle === "monthly") expires.setMonth(expires.getMonth() + 1);
-    else expires.setFullYear(expires.getFullYear() + 1);
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const {
+      PRICES,
+      fetchPaypalSubscription,
+      mapPaypalStatus,
+      paypalConfigured,
+      fallbackExpiry,
+    } = await import("./subscription.server");
 
-    // Optional server-side verification when PayPal API credentials are configured.
-    const clientId = process.env.PAYPAL_CLIENT_ID;
-    const secret = process.env.PAYPAL_CLIENT_SECRET;
-    const apiBase =
-      process.env.PAYPAL_API_BASE ?? "https://api-m.paypal.com";
-    let verifiedStatus: string | null = null;
+    const amount = PRICES[data.cycle][data.currency];
 
-    if (clientId && secret) {
-      try {
-        const tokenRes = await fetch(`${apiBase}/v1/oauth2/token`, {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${btoa(`${clientId}:${secret}`)}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: "grant_type=client_credentials",
-        });
-        const token = (await tokenRes.json()) as { access_token?: string };
-        if (token.access_token) {
-          const subRes = await fetch(
-            `${apiBase}/v1/billing/subscriptions/${encodeURIComponent(data.subscriptionId)}`,
-            { headers: { Authorization: `Bearer ${token.access_token}` } },
-          );
-          const sub = (await subRes.json()) as { status?: string };
-          verifiedStatus = sub.status ?? null;
-          if (verifiedStatus && !["ACTIVE", "APPROVED"].includes(verifiedStatus)) {
-            throw new Error(`PayPal subscription is not active (${verifiedStatus})`);
-          }
-        }
-      } catch (err) {
-        console.error("PayPal verification failed:", err);
+    let status: "pending" | "active" | "cancelled" | "expired" = "pending";
+    let expiresAt: string | null = null;
+
+    if (paypalConfigured()) {
+      const sub = await fetchPaypalSubscription(data.subscriptionId);
+      if (sub) {
+        status = mapPaypalStatus(sub.status);
+        expiresAt = sub.billing_info?.next_billing_time ?? fallbackExpiry(data.cycle);
       }
     }
+
+    const row = {
+      user_id: context.userId,
+      tier: 3,
+      status,
+      currency: data.currency,
+      amount,
+      payment_reference: data.subscriptionId,
+      payment_provider: "paypal",
+      started_at: status === "active" ? new Date().toISOString() : null,
+      expires_at: expiresAt,
+    };
 
     const { data: existing } = await supabaseAdmin
       .from("subscriptions")
@@ -66,23 +62,100 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
       .eq("payment_reference", data.subscriptionId)
       .maybeSingle();
 
-    const row = {
-      user_id: context.userId,
-      tier: 3,
-      status: "active" as const,
-      currency: data.currency,
-      amount,
-      payment_reference: data.subscriptionId,
-      payment_provider: "paypal",
-      started_at: new Date().toISOString(),
-      expires_at: expires.toISOString(),
-    };
-
     const { error } = existing
       ? await supabaseAdmin.from("subscriptions").update(row).eq("id", existing.id)
       : await supabaseAdmin.from("subscriptions").insert(row);
 
     if (error) throw new Error(error.message);
 
-    return { ok: true as const, subscriptionId: data.subscriptionId, cycle: data.cycle, amount };
+    return {
+      ok: true as const,
+      subscriptionId: data.subscriptionId,
+      cycle: data.cycle,
+      amount,
+      currency: data.currency,
+      status,
+      nextBillingDate: expiresAt,
+    };
+  });
+
+/** Details for the /payment-success confirmation screen. */
+export const getSubscriptionSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { subscriptionId?: string }) => ({
+    subscriptionId:
+      typeof data?.subscriptionId === "string" ? data.subscriptionId.trim().slice(0, 120) : "",
+  }))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const query = supabase
+      .from("subscriptions")
+      .select("id, status, currency, amount, expires_at, started_at, created_at, payment_reference")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const { data: rows } = data.subscriptionId
+      ? await query.eq("payment_reference", data.subscriptionId)
+      : await query;
+
+    const row = rows?.[0] ?? null;
+    if (!row) return { found: false as const };
+
+    const cycle: Cycle =
+      Number(row.amount) === 49 || Number(row.amount) === 350 ? "monthly" : "yearly";
+
+    return {
+      found: true as const,
+      status: row.status as string,
+      currency: row.currency,
+      amount: row.amount as number | null,
+      cycle,
+      nextBillingDate: row.expires_at as string | null,
+      startedAt: (row.started_at ?? row.created_at) as string,
+      reference: row.payment_reference as string | null,
+    };
+  });
+
+/** User-initiated cancellation: cancels at PayPal, then downgrades locally. */
+export const cancelMySubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { subscriptionId?: string }) => ({
+    subscriptionId:
+      typeof data?.subscriptionId === "string" ? data.subscriptionId.trim().slice(0, 120) : "",
+  }))
+  .handler(async ({ data, context }) => {
+    if (!data.subscriptionId) throw new Error("Missing subscription reference");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { cancelPaypalSubscription, paypalConfigured } = await import("./subscription.server");
+
+    const { data: row } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id, user_id, payment_provider, expires_at")
+      .eq("payment_reference", data.subscriptionId)
+      .maybeSingle();
+
+    if (!row || row.user_id !== context.userId) throw new Error("Subscription not found");
+
+    let paypalCancelled = false;
+    if (row.payment_provider === "paypal" && paypalConfigured()) {
+      const result = await cancelPaypalSubscription(data.subscriptionId, "Cancelled by customer");
+      if (!result.ok) {
+        throw new Error("We couldn't cancel with PayPal. Please try again or contact support.");
+      }
+      paypalCancelled = true;
+    }
+
+    const { error } = await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("id", row.id);
+    if (error) throw new Error(error.message);
+
+    return {
+      ok: true as const,
+      paypalCancelled,
+      accessUntil: row.expires_at as string | null,
+    };
   });
