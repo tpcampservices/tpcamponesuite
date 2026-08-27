@@ -34,6 +34,19 @@ Any failure returns the same shape with `authenticated: false`, `entitled_apps: 
 Tickets are single-use, expire after 2 minutes, are stored only as SHA-256 hashes, and are bound to one app slug.
 **Must be called from the child app's server** (server function / route handler), never the browser.
 
+### B2. Server-to-server re-verification (preferred, no customer token)
+
+```
+POST https://tpcamponesuite.app/api/public/sso/verify
+Content-Type: application/json
+x-tpcamp-key: <TPCAMP_SSO_KEY_FINANCE or TPCAMP_SSO_KEY>
+{ "user_id": "<onesuite_user_id>", "app": "finance" }
+```
+
+Returns the same entitlement shape plus `app_slug`. Requires a configured server credential
+(returns 401 if none is configured). Unknown users return the denied shape with status 200 so
+user IDs cannot be enumerated. Call at most every ~15 minutes or on session refresh.
+
 ### B. Bearer entitlement check (re-validation)
 
 ```
@@ -69,7 +82,10 @@ App slugs: `catalog`, `invoice`, `splits`, `operations`, `finance`.
 
 OneSuite (already present via Lovable Cloud): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY`, plus PayPal credentials.
-Optional new secret: `TPCAMP_SSO_KEY` — shared header value required from child servers.
+Server credentials: `TPCAMP_SSO_KEY` (shared) and/or per-app overrides
+`TPCAMP_SSO_KEY_CATALOG`, `TPCAMP_SSO_KEY_INVOICE`, `TPCAMP_SSO_KEY_SPLITS`,
+`TPCAMP_SSO_KEY_OPERATIONS`, `TPCAMP_SSO_KEY_FINANCE`. The per-app key wins when present.
+Server-only; never exposed to browsers.
 
 Each child app needs (server-side only):
 
