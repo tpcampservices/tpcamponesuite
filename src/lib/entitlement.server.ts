@@ -174,6 +174,7 @@ export async function issueTicket(userId: string, appSlug: AppSlug) {
     expires_at: expiresAt,
   });
   if (error) throw new Error(error.message);
+  void purgeStaleTickets();
   return { ticket: raw, expiresAt };
 }
 
@@ -201,4 +202,62 @@ export async function redeemTicket(
   const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
   const entitlement = await computeEntitlement(data.user_id, userRes?.user?.email ?? null);
   return { entitlement, app_slug: data.app_slug };
+}
+
+// -------------------------------------------------- server-to-server secrets
+
+/** Constant-time string compare (avoids leaking secret length/content by timing). */
+export function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  // Compare a fixed-length digest so differing lengths don't short-circuit.
+  let diff = x.length ^ y.length;
+  const len = Math.max(x.length, y.length);
+  for (let i = 0; i < len; i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
+
+/**
+ * Authenticates a trusted child-app server.
+ * Per-app secret (TPCAMP_SSO_KEY_FINANCE, …) wins; otherwise the shared
+ * TPCAMP_SSO_KEY is accepted. If neither is configured, the check is skipped
+ * (backwards compatible with the current deployment).
+ */
+export function verifyServerKey(provided: string | null, appSlug?: string): boolean {
+  const perApp = appSlug ? process.env[`TPCAMP_SSO_KEY_${appSlug.toUpperCase()}`] : undefined;
+  const shared = process.env["TPCAMP_SSO_KEY"];
+  const expected = perApp || shared;
+  if (!expected) return true; // no secret configured yet
+  if (!provided) return false;
+  return timingSafeEqual(provided, expected);
+}
+
+/** True when any server credential is configured (used to require auth on S2S routes). */
+export function serverKeyConfigured(appSlug?: string): boolean {
+  const perApp = appSlug ? process.env[`TPCAMP_SSO_KEY_${appSlug.toUpperCase()}`] : undefined;
+  return Boolean(perApp || process.env["TPCAMP_SSO_KEY"]);
+}
+
+/** Housekeeping: drop consumed/expired tickets so no auth artefacts linger. */
+export async function purgeStaleTickets() {
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  try {
+    await supabaseAdmin.from("sso_tickets").delete().lt("expires_at", cutoff);
+    await supabaseAdmin
+      .from("sso_tickets")
+      .delete()
+      .not("consumed_at", "is", null)
+      .lt("consumed_at", cutoff);
+  } catch {
+    console.error("Ticket purge failed");
+  }
+}
+
+/** Entitlement for a known OneSuite user id; null when the user does not exist. */
+export async function entitlementForUserId(userId: string): Promise<Entitlement | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return null;
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (error || !data?.user) return null;
+  return computeEntitlement(data.user.id, data.user.email ?? null);
 }

@@ -30,6 +30,7 @@ import { Route as ApiPublicEntitlementRouteImport } from './routes/api/public/en
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
+import { Route as ApiPublicSsoVerifyRouteImport } from './routes/api/public/sso/verify'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -141,6 +142,11 @@ const ApiPublicSsoExchangeRoute = ApiPublicSsoExchangeRouteImport.update({
   path: '/api/public/sso/exchange',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSsoVerifyRoute = ApiPublicSsoVerifyRouteImport.update({
+  id: '/api/public/sso/verify',
+  path: '/api/public/sso/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/exchange'
+    | '/api/public/sso/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/exchange'
+    | '/api/public/sso/verify'
   id:
     | '__root__'
     | '/'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/exchange'
+    | '/api/public/sso/verify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -295,6 +307,7 @@ export interface RootRouteChildren {
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
+  ApiPublicSsoVerifyRoute: typeof ApiPublicSsoVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -446,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSsoExchangeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/sso/verify': {
+      id: '/api/public/sso/verify'
+      path: '/api/public/sso/verify'
+      fullPath: '/api/public/sso/verify'
+      preLoaderRoute: typeof ApiPublicSsoVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -487,6 +507,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
+  ApiPublicSsoVerifyRoute: ApiPublicSsoVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
