@@ -25,8 +25,11 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
+import { Route as AuthenticatedSsoHandoffRouteImport } from './routes/_authenticated/sso/handoff'
+import { Route as ApiPublicEntitlementRouteImport } from './routes/api/public/entitlement'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
+import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -112,6 +115,16 @@ const AuthenticatedContractsContractIdRoute =
     path: '/contracts/$contractId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSsoHandoffRoute = AuthenticatedSsoHandoffRouteImport.update({
+  id: '/sso/handoff',
+  path: '/sso/handoff',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicEntitlementRoute = ApiPublicEntitlementRouteImport.update({
+  id: '/api/public/entitlement',
+  path: '/api/public/entitlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -121,6 +134,11 @@ const ApiPublicPaymentsWebhookRoute =
 const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   id: '/api/public/paypal/webhook',
   path: '/api/public/paypal/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSsoExchangeRoute = ApiPublicSsoExchangeRouteImport.update({
+  id: '/api/public/sso/exchange',
+  path: '/api/public/sso/exchange',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -139,9 +157,12 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
+  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,9 +179,12 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
+  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,9 +203,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/_authenticated/sso/handoff': typeof AuthenticatedSsoHandoffRoute
+  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -200,9 +227,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/sso/handoff'
+    | '/api/public/entitlement'
     | '/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/exchange'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,9 +249,12 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/sso/handoff'
+    | '/api/public/entitlement'
     | '/contracts'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/exchange'
   id:
     | '__root__'
     | '/'
@@ -239,9 +272,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
+    | '/_authenticated/sso/handoff'
+    | '/api/public/entitlement'
     | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/exchange'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -255,8 +291,10 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  ApiPublicEntitlementRoute: typeof ApiPublicEntitlementRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -373,6 +411,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sso/handoff': {
+      id: '/_authenticated/sso/handoff'
+      path: '/sso/handoff'
+      fullPath: '/sso/handoff'
+      preLoaderRoute: typeof AuthenticatedSsoHandoffRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/entitlement': {
+      id: '/api/public/entitlement'
+      path: '/api/public/entitlement'
+      fullPath: '/api/public/entitlement'
+      preLoaderRoute: typeof ApiPublicEntitlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -387,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/sso/exchange': {
+      id: '/api/public/sso/exchange'
+      path: '/api/public/sso/exchange'
+      fullPath: '/api/public/sso/exchange'
+      preLoaderRoute: typeof ApiPublicSsoExchangeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -396,6 +455,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
   AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
+  AuthenticatedSsoHandoffRoute: typeof AuthenticatedSsoHandoffRoute
   AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
 }
 
@@ -405,6 +465,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
   AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
+  AuthenticatedSsoHandoffRoute: AuthenticatedSsoHandoffRoute,
   AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
 }
 
@@ -422,8 +483,10 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  ApiPublicEntitlementRoute: ApiPublicEntitlementRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
