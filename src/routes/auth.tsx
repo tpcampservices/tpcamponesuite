@@ -6,7 +6,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/use-session";
-import { safeTpcampRedirect } from "@/lib/sso-redirect";
+import { safeTpcampRedirect, childAppSlugFromUrl } from "@/lib/sso-redirect";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: z.object({ redirect: z.string().optional() }),
@@ -42,8 +42,15 @@ function AuthPage() {
   const { user, loading } = useSession();
   const { redirect: redirectParam } = Route.useSearch();
   const returnTo = safeTpcampRedirect(redirectParam);
+  const returnApp = childAppSlugFromUrl(returnTo);
 
   function goAfterAuth() {
+    // Child apps are always re-entered through the server-verified SSO handoff,
+    // never by dropping the user back on an unauthenticated child URL.
+    if (returnApp) {
+      window.location.replace(`/sso/handoff?app=${returnApp}`);
+      return;
+    }
     if (returnTo) {
       window.location.replace(returnTo);
       return;
@@ -52,11 +59,9 @@ function AuthPage() {
   }
 
   useEffect(() => {
-    if (!loading && user) {
-      if (returnTo) window.location.replace(returnTo);
-      else navigate({ to: "/dashboard", replace: true });
-    }
-  }, [loading, user, navigate, returnTo]);
+    if (!loading && user) goAfterAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, returnTo, returnApp]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
