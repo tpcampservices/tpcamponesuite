@@ -25,6 +25,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
+import { Route as AuthenticatedSsoHandoffRouteImport } from './routes/_authenticated/sso/handoff'
 import { Route as ApiPublicEntitlementRouteImport } from './routes/api/public/entitlement'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
@@ -114,6 +115,11 @@ const AuthenticatedContractsContractIdRoute =
     path: '/contracts/$contractId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSsoHandoffRoute = AuthenticatedSsoHandoffRouteImport.update({
+  id: '/sso/handoff',
+  path: '/sso/handoff',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicEntitlementRoute = ApiPublicEntitlementRouteImport.update({
   id: '/api/public/entitlement',
   path: '/api/public/entitlement',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
   '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
   '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/_authenticated/sso/handoff': typeof AuthenticatedSsoHandoffRoute
   '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/sso/handoff'
     | '/api/public/entitlement'
     | '/contracts/'
     | '/api/public/payments/webhook'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/sso/handoff'
     | '/api/public/entitlement'
     | '/contracts'
     | '/api/public/payments/webhook'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
+    | '/_authenticated/sso/handoff'
     | '/api/public/entitlement'
     | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
@@ -399,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sso/handoff': {
+      id: '/_authenticated/sso/handoff'
+      path: '/sso/handoff'
+      fullPath: '/sso/handoff'
+      preLoaderRoute: typeof AuthenticatedSsoHandoffRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/entitlement': {
       id: '/api/public/entitlement'
       path: '/api/public/entitlement'
@@ -436,6 +455,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
   AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
+  AuthenticatedSsoHandoffRoute: typeof AuthenticatedSsoHandoffRoute
   AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
 }
 
@@ -445,6 +465,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
   AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
+  AuthenticatedSsoHandoffRoute: AuthenticatedSsoHandoffRoute,
   AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
 }
 
