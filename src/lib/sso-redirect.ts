@@ -16,3 +16,22 @@ export function safeTpcampRedirect(candidate: string | null | undefined): string
     return null;
   }
 }
+
+export const CHILD_APP_HOSTS: Record<string, string> = {
+  "catalog.tpcamponesuite.app": "catalog",
+  "invoice.tpcamponesuite.app": "invoice",
+  "splits.tpcamponesuite.app": "splits",
+  "operations.tpcamponesuite.app": "operations",
+  "finance.tpcamponesuite.app": "finance",
+};
+
+/** If a return URL points at an approved child app, return its slug. */
+export function childAppSlugFromUrl(candidate: string | null | undefined): string | null {
+  const safe = safeTpcampRedirect(candidate);
+  if (!safe) return null;
+  try {
+    return CHILD_APP_HOSTS[new URL(safe).hostname] ?? null;
+  } catch {
+    return null;
+  }
+}

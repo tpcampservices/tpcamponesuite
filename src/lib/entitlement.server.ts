@@ -174,6 +174,7 @@ export async function issueTicket(userId: string, appSlug: AppSlug) {
     expires_at: expiresAt,
   });
   if (error) throw new Error(error.message);
+  void purgeStaleTickets();
   return { ticket: raw, expiresAt };
 }
 
