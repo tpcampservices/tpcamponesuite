@@ -6,8 +6,10 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/use-session";
+import { safeTpcampRedirect } from "@/lib/sso-redirect";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: z.object({ redirect: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Sign in or create your TP-CAMP account" },
@@ -38,10 +40,23 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const { user, loading } = useSession();
+  const { redirect: redirectParam } = Route.useSearch();
+  const returnTo = safeTpcampRedirect(redirectParam);
+
+  function goAfterAuth() {
+    if (returnTo) {
+      window.location.replace(returnTo);
+      return;
+    }
+    navigate({ to: "/dashboard", replace: true });
+  }
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard", replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && user) {
+      if (returnTo) window.location.replace(returnTo);
+      else navigate({ to: "/dashboard", replace: true });
+    }
+  }, [loading, user, navigate, returnTo]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +91,7 @@ function AuthPage() {
         return;
       }
       toast.success("Account created. Check your inbox if confirmation is required.");
-      navigate({ to: "/dashboard" });
+      goAfterAuth();
       return;
     }
 
@@ -86,7 +101,7 @@ function AuthPage() {
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/dashboard" });
+    goAfterAuth();
   }
 
   async function handleGoogle() {
@@ -98,7 +113,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    goAfterAuth();
   }
 
   async function handleForgotPassword() {
