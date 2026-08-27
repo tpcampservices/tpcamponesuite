@@ -249,7 +249,7 @@ export async function purgeStaleTickets() {
       .delete()
       .not("consumed_at", "is", null)
       .lt("consumed_at", cutoff);
-  } catch (err) {
+  } catch {
     console.error("Ticket purge failed");
   }
 }
