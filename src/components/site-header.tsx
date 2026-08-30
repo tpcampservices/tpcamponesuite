@@ -131,6 +131,21 @@ export function SiteFooter() {
             Contact
           </Link>
         </div>
+
+        <div className="mt-4 border-t border-border/60 pt-4">
+          <p className="eyebrow">Legal</p>
+          <div className="mt-2 flex flex-wrap gap-4">
+            <Link to="/terms" className="hover:text-foreground">
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="hover:text-foreground">
+              Privacy Policy
+            </Link>
+            <Link to="/refunds" className="hover:text-foreground">
+              Refund Policy
+            </Link>
+          </div>
+        </div>
       </div>
     </footer>
   );
