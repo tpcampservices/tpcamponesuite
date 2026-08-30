@@ -17,8 +17,11 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
@@ -71,6 +74,16 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -79,6 +92,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBusinessProfileRoute =
@@ -156,8 +174,11 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -179,8 +200,11 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -204,8 +228,11 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -229,8 +256,11 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
     | '/services'
+    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
@@ -252,8 +282,11 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
     | '/services'
+    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
@@ -276,8 +309,11 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
     | '/services'
+    | '/terms'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
     | '/_authenticated/admin/settings'
@@ -301,8 +337,11 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundsRoute: typeof RefundsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  TermsRoute: typeof TermsRoute
   ApiPublicEntitlementRoute: typeof ApiPublicEntitlementRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
@@ -368,6 +407,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -380,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/business-profile': {
@@ -501,8 +561,11 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundsRoute: RefundsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  TermsRoute: TermsRoute,
   ApiPublicEntitlementRoute: ApiPublicEntitlementRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
