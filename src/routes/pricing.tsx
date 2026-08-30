@@ -111,6 +111,22 @@ function PricingPage() {
                   Create an account to activate <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
+
+              <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+                By purchasing or using TP-CAMP One Suite, you agree to our{" "}
+                <Link to="/terms" className="text-accent underline underline-offset-2">
+                  Terms of Service
+                </Link>{" "}
+                and acknowledge our{" "}
+                <Link to="/privacy" className="text-accent underline underline-offset-2">
+                  Privacy Policy
+                </Link>{" "}
+                and{" "}
+                <Link to="/refunds" className="text-accent underline underline-offset-2">
+                  Refund Policy
+                </Link>
+                .
+              </p>
             </article>
 
 
