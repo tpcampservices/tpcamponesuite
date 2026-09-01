@@ -46,9 +46,12 @@ function AuthPage() {
 
   function goAfterAuth() {
     // Child apps are always re-entered through the server-verified SSO handoff,
-    // never by dropping the user back on an unauthenticated child URL.
+    // never by dropping the user back on an unauthenticated child URL. The
+    // originally requested child page rides along so the child app can land
+    // there once its own session exists.
     if (returnApp) {
-      window.location.replace(`/sso/handoff?app=${returnApp}`);
+      const target = returnTo ? `&return_to=${encodeURIComponent(returnTo)}` : "";
+      window.location.replace(`/sso/handoff?app=${returnApp}${target}`);
       return;
     }
     if (returnTo) {
@@ -57,6 +60,7 @@ function AuthPage() {
     }
     navigate({ to: "/dashboard", replace: true });
   }
+
 
   useEffect(() => {
     if (!loading && user) goAfterAuth();
