@@ -6,8 +6,10 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/use-session";
+import { safeTpcampRedirect, childAppSlugFromUrl } from "@/lib/sso-redirect";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: z.object({ redirect: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Sign in or create your TP-CAMP account" },
@@ -38,10 +40,28 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const { user, loading } = useSession();
+  const { redirect: redirectParam } = Route.useSearch();
+  const returnTo = safeTpcampRedirect(redirectParam);
+  const returnApp = childAppSlugFromUrl(returnTo);
+
+  function goAfterAuth() {
+    // Child apps are always re-entered through the server-verified SSO handoff,
+    // never by dropping the user back on an unauthenticated child URL.
+    if (returnApp) {
+      window.location.replace(`/sso/handoff?app=${returnApp}`);
+      return;
+    }
+    if (returnTo) {
+      window.location.replace(returnTo);
+      return;
+    }
+    navigate({ to: "/dashboard", replace: true });
+  }
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard", replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && user) goAfterAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, returnTo, returnApp]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +96,7 @@ function AuthPage() {
         return;
       }
       toast.success("Account created. Check your inbox if confirmation is required.");
-      navigate({ to: "/dashboard" });
+      goAfterAuth();
       return;
     }
 
@@ -86,19 +106,21 @@ function AuthPage() {
       toast.error(error.message);
       return;
     }
-    navigate({ to: "/dashboard" });
+    goAfterAuth();
   }
 
   async function handleGoogle() {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: returnTo
+        ? `${window.location.origin}/auth?redirect=${encodeURIComponent(returnTo)}`
+        : window.location.origin,
     });
     if (result.error) {
       toast.error("Google sign-in failed. Please try again.");
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    goAfterAuth();
   }
 
   async function handleForgotPassword() {

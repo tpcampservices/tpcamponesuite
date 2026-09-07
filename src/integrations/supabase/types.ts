@@ -275,6 +275,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sso_tickets: {
+        Row: {
+          app_slug: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          app_slug: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          app_slug?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount: number | null
