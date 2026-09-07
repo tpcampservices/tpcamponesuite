@@ -17,26 +17,16 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
-import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
-import { Route as AuthenticatedSsoHandoffRouteImport } from './routes/_authenticated/sso/handoff'
-import { Route as ApiPublicEntitlementRouteImport } from './routes/api/public/entitlement'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
-import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
-import { Route as ApiPublicSsoVerifyRouteImport } from './routes/api/public/sso/verify'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -77,16 +67,6 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundsRoute = RefundsRouteImport.update({
-  id: '/refunds',
-  path: '/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -95,11 +75,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBusinessProfileRoute =
@@ -137,16 +112,6 @@ const AuthenticatedContractsContractIdRoute =
     path: '/contracts/$contractId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedSsoHandoffRoute = AuthenticatedSsoHandoffRouteImport.update({
-  id: '/sso/handoff',
-  path: '/sso/handoff',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const ApiPublicEntitlementRoute = ApiPublicEntitlementRouteImport.update({
-  id: '/api/public/entitlement',
-  path: '/api/public/entitlement',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -158,32 +123,6 @@ const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   path: '/api/public/paypal/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSsoExchangeRoute = ApiPublicSsoExchangeRouteImport.update({
-  id: '/api/public/sso/exchange',
-  path: '/api/public/sso/exchange',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicSsoVerifyRoute = ApiPublicSsoVerifyRouteImport.update({
-  id: '/api/public/sso/verify',
-  path: '/api/public/sso/verify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -193,26 +132,16 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
-  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
-  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
-  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
-  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
-  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
-  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -222,26 +151,16 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
-  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
-  '/sso/handoff': typeof AuthenticatedSsoHandoffRoute
-  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
-  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
-  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
-  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -253,26 +172,16 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
-  '/privacy': typeof PrivacyRoute
-  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/services': typeof ServicesRoute
-  '/terms': typeof TermsRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
-  '/_authenticated/sso/handoff': typeof AuthenticatedSsoHandoffRoute
-  '/api/public/entitlement': typeof ApiPublicEntitlementRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
-  '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/verify': typeof ApiPublicSsoVerifyRoute
-  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
-  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -284,26 +193,16 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
-    | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/services'
-    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
-    | '/sso/handoff'
-    | '/api/public/entitlement'
     | '/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
-    | '/api/public/sso/exchange'
-    | '/api/public/sso/verify'
-    | '/lovable/email/auth/preview'
-    | '/lovable/email/auth/webhook'
-    | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -313,26 +212,16 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
-    | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/services'
-    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
-    | '/sso/handoff'
-    | '/api/public/entitlement'
     | '/contracts'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
-    | '/api/public/sso/exchange'
-    | '/api/public/sso/verify'
-    | '/lovable/email/auth/preview'
-    | '/lovable/email/auth/webhook'
-    | '/lovable/email/transactional/preview'
   id:
     | '__root__'
     | '/'
@@ -343,26 +232,16 @@ export interface FileRouteTypes {
     | '/contact'
     | '/payment-success'
     | '/pricing'
-    | '/privacy'
-    | '/refunds'
     | '/reset-password'
     | '/services'
-    | '/terms'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
-    | '/_authenticated/sso/handoff'
-    | '/api/public/entitlement'
     | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
-    | '/api/public/sso/exchange'
-    | '/api/public/sso/verify'
-    | '/lovable/email/auth/preview'
-    | '/lovable/email/auth/webhook'
-    | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -374,19 +253,10 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   PricingRoute: typeof PricingRoute
-  PrivacyRoute: typeof PrivacyRoute
-  RefundsRoute: typeof RefundsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
-  TermsRoute: typeof TermsRoute
-  ApiPublicEntitlementRoute: typeof ApiPublicEntitlementRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
-  ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
-  ApiPublicSsoVerifyRoute: typeof ApiPublicSsoVerifyRoute
-  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
-  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
-  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -447,20 +317,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refunds': {
-      id: '/refunds'
-      path: '/refunds'
-      fullPath: '/refunds'
-      preLoaderRoute: typeof RefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -473,13 +329,6 @@ declare module '@tanstack/react-router' {
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/business-profile': {
@@ -524,20 +373,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/sso/handoff': {
-      id: '/_authenticated/sso/handoff'
-      path: '/sso/handoff'
-      fullPath: '/sso/handoff'
-      preLoaderRoute: typeof AuthenticatedSsoHandoffRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/api/public/entitlement': {
-      id: '/api/public/entitlement'
-      path: '/api/public/entitlement'
-      fullPath: '/api/public/entitlement'
-      preLoaderRoute: typeof ApiPublicEntitlementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -552,41 +387,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/sso/exchange': {
-      id: '/api/public/sso/exchange'
-      path: '/api/public/sso/exchange'
-      fullPath: '/api/public/sso/exchange'
-      preLoaderRoute: typeof ApiPublicSsoExchangeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sso/verify': {
-      id: '/api/public/sso/verify'
-      path: '/api/public/sso/verify'
-      fullPath: '/api/public/sso/verify'
-      preLoaderRoute: typeof ApiPublicSsoVerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/webhook': {
-      id: '/lovable/email/auth/webhook'
-      path: '/lovable/email/auth/webhook'
-      fullPath: '/lovable/email/auth/webhook'
-      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -596,7 +396,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
   AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
-  AuthenticatedSsoHandoffRoute: typeof AuthenticatedSsoHandoffRoute
   AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
 }
 
@@ -606,7 +405,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
   AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
-  AuthenticatedSsoHandoffRoute: AuthenticatedSsoHandoffRoute,
   AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
 }
 
@@ -622,19 +420,10 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   PricingRoute: PricingRoute,
-  PrivacyRoute: PrivacyRoute,
-  RefundsRoute: RefundsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
-  TermsRoute: TermsRoute,
-  ApiPublicEntitlementRoute: ApiPublicEntitlementRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
-  ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
-  ApiPublicSsoVerifyRoute: ApiPublicSsoVerifyRoute,
-  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
-  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
-  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

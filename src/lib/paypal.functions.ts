@@ -61,26 +61,13 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
 
     const { data: existing } = await supabaseAdmin
       .from("subscriptions")
-      .select("id, user_id")
+      .select("id")
       .eq("payment_reference", data.subscriptionId)
       .maybeSingle();
 
-    // A payment reference already claimed by another account must never be
-    // reassigned to the caller.
-    if (existing && existing.user_id !== context.userId) {
-      throw new Error("This subscription reference is not available.");
-    }
-
-    const { user_id: _ownerId, ...updatable } = row;
-
     const { error } = existing
-      ? await supabaseAdmin
-          .from("subscriptions")
-          .update(updatable)
-          .eq("id", existing.id)
-          .eq("user_id", context.userId)
+      ? await supabaseAdmin.from("subscriptions").update(row).eq("id", existing.id)
       : await supabaseAdmin.from("subscriptions").insert(row);
-
 
     if (error) throw new Error(error.message);
 
