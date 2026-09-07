@@ -1,6 +1,4 @@
-export type AppSlug = "catalog" | "invoice" | "splits" | "operations" | "finance";
-
-export type AppLink = { slug: AppSlug; name: string; url: string; blurb: string };
+export type AppLink = { name: string; url: string; blurb: string };
 
 export type BillingCycle = "monthly" | "yearly";
 
@@ -31,31 +29,26 @@ export const plan = {
 export const suiteApps: AppLink[] = [
   {
     name: "TP-CAMP Catalog",
-    slug: "catalog",
     url: "https://catalog.tpcamponesuite.app",
     blurb: "Works, recordings, releases and splits",
   },
   {
     name: "TP-CAMP Invoice",
-    slug: "invoice",
     url: "https://invoice.tpcamponesuite.app",
     blurb: "Invoicing, receipts and supplier payables",
   },
   {
     name: "TP-CAMP Split Sheets",
-    slug: "splits",
     url: "https://splits.tpcamponesuite.app",
     blurb: "Composition & master split sheet studio",
   },
   {
     name: "TP-CAMP Operations Hub",
-    slug: "operations",
     url: "https://operations.tpcamponesuite.app",
     blurb: "Release operations & campaign command centre",
   },
   {
     name: "TP-CAMP Finance",
-    slug: "finance",
     url: "https://finance.tpcamponesuite.app",
     blurb: "Double-entry accounting, budgets and royalties",
   },
