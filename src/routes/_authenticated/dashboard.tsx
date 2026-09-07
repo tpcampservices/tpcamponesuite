@@ -377,9 +377,7 @@ function DashboardPage() {
             hasAccess ? (
               <a
                 key={app.url}
-                href={app.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/sso/handoff?app=${app.slug}`}
                 className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-4 transition-colors hover:border-accent/60"
               >
                 <span>
