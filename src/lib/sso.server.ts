@@ -213,17 +213,42 @@ function clean(value: string) {
 
 export function childAppAuth(request: Request): { ok: boolean; reason?: "not_configured" | "unauthorized" } {
   const key = clean(process.env["TPCAMP_SSO_KEY"] ?? "");
-  if (!key) return { ok: false, reason: "not_configured" };
-  const provided = clean(
+  const rawProvided =
     request.headers.get("x-tpcamp-key") ??
       request.headers.get("X-TPCAMP-KEY") ??
       request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-      "",
-  );
-  if (provided.length !== key.length) return { ok: false, reason: "unauthorized" };
+      "";
+  const provided = clean(rawProvided);
+  if (!key) {
+    console.warn("SSO authorization", {
+      serverKeyConfigured: false,
+      headerReceived: rawProvided.length > 0,
+      receivedLength: provided.length,
+      matched: false,
+    });
+    return { ok: false, reason: "not_configured" };
+  }
+  if (provided.length !== key.length) {
+    console.warn("SSO authorization", {
+      serverKeyConfigured: true,
+      serverKeyLength: key.length,
+      headerReceived: rawProvided.length > 0,
+      receivedLength: provided.length,
+      matched: false,
+    });
+    return { ok: false, reason: "unauthorized" };
+  }
   let diff = 0;
   for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ provided.charCodeAt(i);
-  return diff === 0 ? { ok: true } : { ok: false, reason: "unauthorized" };
+  const matched = diff === 0;
+  console.info("SSO authorization", {
+    serverKeyConfigured: true,
+    serverKeyLength: key.length,
+    headerReceived: rawProvided.length > 0,
+    receivedLength: provided.length,
+    matched,
+  });
+  return matched ? { ok: true } : { ok: false, reason: "unauthorized" };
 }
 
 export function childAppAuthorized(request: Request) {
