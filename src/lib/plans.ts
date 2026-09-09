@@ -1,10 +1,10 @@
 /**
  * Central, single source of truth for TP-CAMP OneSuite pricing, plan limits and add-ons.
- * TTD and USD are separate approved price books — never converted from one another.
+ * Prices are published in USD only (PayPal does not settle TTD).
  * The backend always re-derives price from this file; browser input is never trusted.
  */
 
-export type Currency = "USD" | "TTD";
+export type Currency = "USD";
 export type BillingPeriod = "monthly" | "yearly";
 export type PlanId = "starter" | "growth" | "pro" | "institutional";
 export type AddOnId = "team_add" | "professional_support" | "onboarding";
@@ -34,8 +34,8 @@ export const PLANS: PlanDefinition[] = [
     name: "Starter",
     tagline: "For the independent artist running their own business.",
     price: {
-      monthly: { TTD: 350, USD: 50 },
-      yearly: { TTD: 3500, USD: 500 },
+      monthly: { USD: 50 },
+      yearly: { USD: 500 },
     },
     limits: {
       seats: 1,
@@ -53,8 +53,8 @@ export const PLANS: PlanDefinition[] = [
     tagline: "For managers and small teams with a growing roster.",
     highlight: true,
     price: {
-      monthly: { TTD: 560, USD: 80 },
-      yearly: { TTD: 5600, USD: 800 },
+      monthly: { USD: 80 },
+      yearly: { USD: 800 },
     },
     limits: {
       seats: 3,
@@ -71,8 +71,8 @@ export const PLANS: PlanDefinition[] = [
     name: "Pro",
     tagline: "For labels running multiple releases and campaigns.",
     price: {
-      monthly: { TTD: 1050, USD: 150 },
-      yearly: { TTD: 10500, USD: 1500 },
+      monthly: { USD: 150 },
+      yearly: { USD: 1500 },
     },
     limits: {
       seats: 8,
@@ -89,8 +89,8 @@ export const PLANS: PlanDefinition[] = [
     name: "Institutional",
     tagline: "For collecting societies, agencies and large catalogues.",
     price: {
-      monthly: { TTD: 3500, USD: 500 },
-      yearly: { TTD: 35000, USD: 5000 },
+      monthly: { USD: 500 },
+      yearly: { USD: 5000 },
     },
     limits: {
       seats: 25,
@@ -123,8 +123,8 @@ export const ADD_ONS: AddOnDefinition[] = [
     oneTime: false,
     extraSeats: 1,
     price: {
-      monthly: { TTD: 210, USD: 30 },
-      yearly: { TTD: 2100, USD: 300 },
+      monthly: { USD: 30 },
+      yearly: { USD: 300 },
     },
   },
   {
@@ -133,8 +133,8 @@ export const ADD_ONS: AddOnDefinition[] = [
     description: "Priority support with a named contact and faster response times.",
     oneTime: false,
     price: {
-      monthly: { TTD: 600, USD: 85 },
-      yearly: { TTD: 3600, USD: 500 },
+      monthly: { USD: 85 },
+      yearly: { USD: 500 },
     },
   },
   {
@@ -143,8 +143,8 @@ export const ADD_ONS: AddOnDefinition[] = [
     description: "One-time guided setup, data import and team training.",
     oneTime: true,
     price: {
-      monthly: { TTD: 750, USD: 100 },
-      yearly: { TTD: 750, USD: 100 },
+      monthly: { USD: 100 },
+      yearly: { USD: 100 },
     },
   },
 ];

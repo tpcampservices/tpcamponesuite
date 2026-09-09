@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Catalogue. Rights. Splits. Contracts. Money. Campaigns. One workspace for independent artists and labels — $500 USD / $3,500 TTD per year, or pay monthly.",
+          "Catalogue. Rights. Splits. Contracts. Money. Campaigns. One workspace for independent artists and labels — $500 USD per year, or pay monthly.",
       },
       { property: "og:title", content: "TP-CAMP OneSuite — One workspace for your music business" },
       {
@@ -131,8 +131,9 @@ function HomePage() {
                 </span>
               </p>
               <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                TTD ${price.ttd.toLocaleString()} / {yearly ? "year" : "month"}
+                Billed once — no automatic renewal
               </p>
+
               <Link
                 to="/pricing"
                 className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent"

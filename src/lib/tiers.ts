@@ -1,4 +1,5 @@
-export type AppLink = { name: string; url: string; blurb: string };
+export type AppSlug = "catalog" | "invoice" | "splits" | "operations" | "finance";
+export type AppLink = { slug: AppSlug; name: string; url: string; blurb: string };
 
 export type BillingCycle = "monthly" | "yearly";
 
@@ -28,26 +29,31 @@ export const plan = {
 
 export const suiteApps: AppLink[] = [
   {
+    slug: "catalog",
     name: "TP-CAMP Catalog",
     url: "https://catalog.tpcamponesuite.app",
     blurb: "Works, recordings, releases and splits",
   },
   {
+    slug: "invoice",
     name: "TP-CAMP Invoice",
     url: "https://invoice.tpcamponesuite.app",
     blurb: "Invoicing, receipts and supplier payables",
   },
   {
+    slug: "splits",
     name: "TP-CAMP Split Sheets",
     url: "https://splits.tpcamponesuite.app",
     blurb: "Composition & master split sheet studio",
   },
   {
+    slug: "operations",
     name: "TP-CAMP Operations Hub",
     url: "https://operations.tpcamponesuite.app",
     blurb: "Release operations & campaign command centre",
   },
   {
+    slug: "finance",
     name: "TP-CAMP Finance",
     url: "https://finance.tpcamponesuite.app",
     blurb: "Double-entry accounting, budgets and royalties",
@@ -121,8 +127,8 @@ export const compareGroups: CompareGroup[] = [
     group: "Access",
     rows: [
       { feature: "Included applications", included: "All 5 apps" },
-      { feature: "Monthly price", included: "$49 USD · $350 TTD" },
-      { feature: "Yearly price", included: "$500 USD · $3,500 TTD" },
+      { feature: "Monthly price", included: "$49 USD" },
+      { feature: "Yearly price", included: "$500 USD" },
     ],
   },
 ];

@@ -50,7 +50,7 @@ function ComparePage() {
                 <th className="p-5 text-center align-top">
                   <span className="block font-display text-base font-semibold">{plan.name}</span>
                   <span className="mt-2 block font-mono text-xs text-accent">
-                    ${plan.yearly.usd} USD · ${plan.yearly.ttd.toLocaleString()} TTD / year
+                    ${plan.yearly.usd} USD / year
                   </span>
                 </th>
               </tr>
@@ -106,8 +106,7 @@ function ComparePage() {
           <div>
             <h2 className="text-lg font-semibold">Ready to run your business in one place?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              ${plan.monthly.usd} USD / ${plan.monthly.ttd} TTD a month, or ${plan.yearly.usd} USD /
-              ${plan.yearly.ttd.toLocaleString()} TTD a year.
+              ${plan.monthly.usd} USD a month, or ${plan.yearly.usd} USD a year.
             </p>
           </div>
           <Link
