@@ -201,12 +201,31 @@ export async function redeemTicket(token: string, appSlug: string) {
 }
 
 
-/** Shared secret guard for server-to-server calls from the child apps. */
-export function childAppAuthorized(request: Request) {
-  const key = process.env["TPCAMP_SSO_KEY"];
-  const provided = request.headers.get("x-tpcamp-key") ?? "";
-  if (!key || provided.length !== key.length) return false;
+/**
+ * Shared secret guard for server-to-server calls from the child apps.
+ * Tolerant of stray whitespace, newlines or wrapping quotes on either side —
+ * never of a wrong value. Returns a reason so a missing server secret is
+ * distinguishable from a bad caller key (the value itself is never revealed).
+ */
+function clean(value: string) {
+  return value.trim().replace(/^["']|["']$/g, "").trim();
+}
+
+export function childAppAuth(request: Request): { ok: boolean; reason?: "not_configured" | "unauthorized" } {
+  const key = clean(process.env["TPCAMP_SSO_KEY"] ?? "");
+  if (!key) return { ok: false, reason: "not_configured" };
+  const provided = clean(
+    request.headers.get("x-tpcamp-key") ??
+      request.headers.get("X-TPCAMP-KEY") ??
+      request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+      "",
+  );
+  if (provided.length !== key.length) return { ok: false, reason: "unauthorized" };
   let diff = 0;
   for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ provided.charCodeAt(i);
-  return diff === 0;
+  return diff === 0 ? { ok: true } : { ok: false, reason: "unauthorized" };
+}
+
+export function childAppAuthorized(request: Request) {
+  return childAppAuth(request).ok;
 }
