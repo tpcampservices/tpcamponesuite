@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -13,6 +15,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount } from "@/lib/account.functions";
 import { getAccessState } from "@/lib/billing.functions";
+import { createAppLaunch } from "@/lib/sso.functions";
 import { activeReminder, daysUntil, formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -37,6 +40,29 @@ const formatDate = (value: string | number) =>
   new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 function DashboardPage() {
+  const launchApp = useServerFn(createAppLaunch);
+  const [launching, setLaunching] = useState<string | null>(null);
+
+  const openApp = async (slug: string) => {
+    setLaunching(slug);
+    const tab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const res = await launchApp({ data: { appSlug: slug } });
+      if (res.url) {
+        if (tab) tab.location.href = res.url;
+        else window.location.href = res.url;
+      } else {
+        tab?.close();
+        toast.error("Your access period is not active yet.");
+      }
+    } catch {
+      tab?.close();
+      toast.error("Could not open that app. Please try again.");
+    } finally {
+      setLaunching(null);
+    }
+  };
+
   const fetchAccount = useServerFn(getMyAccount);
   const fetchAccess = useServerFn(getAccessState);
 
@@ -287,19 +313,21 @@ function DashboardPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {suiteApps.map((app) =>
             hasAccess ? (
-              <a
+              <button
                 key={app.url}
-                href={app.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-4 transition-colors hover:border-accent/60"
+                type="button"
+                onClick={() => openApp(app.slug)}
+                disabled={launching === app.slug}
+                className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-4 text-left transition-colors hover:border-accent/60 disabled:opacity-60"
               >
                 <span>
                   <span className="block text-sm font-medium">{app.name}</span>
-                  <span className="block text-xs text-muted-foreground">{app.blurb}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {launching === app.slug ? "Signing you in…" : app.blurb}
+                  </span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent" />
-              </a>
+              </button>
             ) : (
               <div
                 key={app.url}
