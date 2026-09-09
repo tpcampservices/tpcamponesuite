@@ -3,9 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 /**
  * Child apps POST here from their own server with the shared TPCAMP_SSO_KEY:
  *   { ticket: string, app_slug: string }
- * Response: { token_hash, email, entitlement }
- * The child app then calls supabase.auth.verifyOtp({ token_hash, type: 'email' })
- * to create a local session for the SAME OneSuite user account.
+ * Response: canonical OneSuite identity + entitlement + a short-lived HS256
+ * assertion (signed with TPCAMP_SSO_KEY) the child app verifies server-side.
+ * Child apps keep their OWN backend and map a local shadow account to
+ * canonical_user_id. No shared auth.users required.
  */
 export const Route = createFileRoute("/api/public/sso/exchange")({
   server: {
@@ -36,9 +37,15 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
 
         return Response.json(
           {
-            token_hash: result.tokenHash,
+            canonical_user_id: result.canonicalUserId,
             email: result.email,
+            name: result.name,
+            app_slug: result.appSlug,
             entitlement: result.entitlement,
+            issued_at: result.issuedAt,
+            expires_at: result.expiresAt,
+            jti: result.jti,
+            assertion: result.assertion,
           },
           { headers: { "Cache-Control": "no-store" } },
         );
@@ -46,3 +53,4 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
     },
   },
 });
+
