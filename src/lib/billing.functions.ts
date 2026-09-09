@@ -26,7 +26,7 @@ function parseSelection(data: Selection) {
     ? (data!.planId as PlanId)
     : "starter";
   const billingPeriod: BillingPeriod = data?.billingPeriod === "monthly" ? "monthly" : "yearly";
-  const currency: Currency = data?.currency === "TTD" ? "TTD" : "USD";
+  const currency: Currency = "USD";
   const addons: SelectedAddOn[] = (data?.addons ?? [])
     .filter((a) => (ADDON_IDS as string[]).includes(a?.id ?? ""))
     .map((a) => ({ id: a.id as AddOnId, quantity: Math.max(1, Math.min(50, Number(a.quantity) || 1)) }));
