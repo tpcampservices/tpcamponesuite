@@ -45,7 +45,12 @@ function DashboardPage() {
 
   const openApp = async (slug: string) => {
     setLaunching(slug);
-    const tab = window.open("", "_blank", "noopener,noreferrer");
+    // Open one placeholder tab synchronously (popup blockers require the
+    // window.open call to happen inside the click handler). No `noopener`
+    // here — it makes the browser return a null handle, leaving a stranded
+    // blank tab. We sever the opener reference manually right after.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
     try {
       const res = await launchApp({ data: { appSlug: slug } });
       if (res.url) {
