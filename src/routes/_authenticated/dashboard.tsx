@@ -1,25 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { toast } from "sonner";
-import { AlertTriangle, ArrowRight, CalendarClock, Lock, Receipt, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  Lock,
+  Receipt,
+  ShieldCheck,
+} from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
-import { plan, suiteApps, BETA_LABEL } from "@/lib/tiers";
-import { getMyAccount, startCheckout } from "@/lib/account.functions";
-import { cancelMySubscription } from "@/lib/paypal.functions";
+import { suiteApps, BETA_LABEL } from "@/lib/tiers";
+import { getMyAccount } from "@/lib/account.functions";
+import { getAccessState } from "@/lib/billing.functions";
+import { activeReminder, daysUntil, formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Your TP-CAMP OneSuite Dashboard — Subscription & Apps" },
+      { title: "Your TP-CAMP OneSuite Dashboard — Access & Apps" },
       {
         name: "description",
         content:
-          "Manage your TP-CAMP OneSuite subscription and open every application included in the suite.",
+          "Manage your TP-CAMP OneSuite access period, renew manually and open every application included in your plan.",
       },
       { property: "og:title", content: "TP-CAMP OneSuite Dashboard" },
-      { property: "og:description", content: "Subscription status, billing history and app links." },
+      { property: "og:description", content: "Access status, billing history and app links." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -27,126 +33,37 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
+const formatDate = (value: string | number) =>
+  new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
 function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
-  const checkout = useServerFn(startCheckout);
-  const cancelSub = useServerFn(cancelMySubscription);
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [yearly, setYearly] = useState(true);
+  const fetchAccess = useServerFn(getAccessState);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["account"],
-    queryFn: () => fetchAccount(),
-  });
+  const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
+  const { data, isLoading } = useQuery({ queryKey: ["access-state"], queryFn: () => fetchAccess({}) });
 
-  async function handleCheckout() {
-    setBusy(true);
-    try {
-      const result = await checkout({
-        data: {
-          cycle: yearly ? "yearly" : "monthly",
-          currency: "USD",
-          returnUrl: window.location.href,
-        },
-      });
-      if (result.configured && result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
-        return;
-      }
-      toast.success(
-        `Order created (ref ${result.reference}). The payment portal isn't linked yet — access unlocks once payment is confirmed.`,
-      );
-      queryClient.invalidateQueries({ queryKey: ["account"] });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Checkout failed");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const isSuperAdmin = Boolean(account?.isSuperAdmin);
+  const entitlement = data?.entitlement ?? null;
+  const orders = data?.orders ?? [];
+  const usage = data?.usage ?? [];
 
-  const subscriptions = data?.subscriptions ?? [];
-  const now = Date.now();
-  const activeSubs = subscriptions.filter(
-    (s) => s.status === "active" && (!s.expires_at || new Date(s.expires_at).getTime() > now),
-  );
-  const hasAccess = Boolean(data?.isSuperAdmin) || activeSubs.length > 0;
-  const pending = subscriptions.some((s) => s.status === "pending");
+  const hasAccess = isSuperAdmin || entitlement?.status === "active";
+  const expired = entitlement?.status === "expired";
+  const remaining = daysUntil(entitlement?.expiryDate);
+  const reminder =
+    entitlement?.billingPeriod && entitlement.status === "active"
+      ? activeReminder(entitlement.billingPeriod, entitlement.expiryDate)
+      : null;
 
-  const renewalDates = activeSubs
-    .map((s) => (s.expires_at ? new Date(s.expires_at).getTime() : null))
-    .filter((d): d is number => d !== null && d > now)
-    .sort((a, b) => a - b);
-  const nextBilling = renewalDates[0] ?? null;
-
-  const accessTier = data?.isSuperAdmin
-    ? 3
-    : activeSubs.length
-      ? Math.max(...activeSubs.map((s) => Number(s.tier)))
-      : 0;
-  const cancelledButActive = activeSubs.some((s) => s.status === "cancelled");
-  const statusLabel = data?.isSuperAdmin
+  const statusLabel = isSuperAdmin
     ? "Active (super admin)"
-    : hasAccess
-      ? cancelledButActive
-        ? "Cancelled — access until period end"
-        : "Active"
-      : pending
-        ? "Pending payment — access suspended"
-        : subscriptions.length
-          ? "Inactive"
-          : "No subscription";
-  const statusTone: "good" | "warn" | "muted" = hasAccess
-    ? "good"
-    : pending || subscriptions.length
-      ? "warn"
-      : "muted";
-
-
-
-  const formatDate = (value: string | number) =>
-    new Date(value).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  const formatAmount = (amount: number | null, currency: string) =>
-    amount === null ? "—" : `${currency} $${Number(amount).toLocaleString()}`;
-
-  const price = yearly ? plan.yearly : plan.monthly;
-
-  const paypalActive = activeSubs.find(
-    (s) => s.payment_provider === "paypal" && s.payment_reference,
-  );
-  const suspended = subscriptions.find(
-    (s) => s.payment_provider === "paypal" && s.status === "pending",
-  );
-  const lapsed = subscriptions.find(
-    (s) => s.status === "cancelled" || s.status === "expired",
-  );
-
-  async function handleCancel(reference: string) {
-    if (
-      !window.confirm(
-        "Cancel your TP-CAMP OneSuite subscription? Access stays open until the end of the paid period.",
-      )
-    )
-      return;
-    setBusy(true);
-    try {
-      const result = await cancelSub({ data: { subscriptionId: reference } });
-      toast.success(
-        result.accessUntil
-          ? `Subscription cancelled. Access remains until ${formatDate(result.accessUntil)}.`
-          : "Subscription cancelled.",
-      );
-      queryClient.invalidateQueries({ queryKey: ["account"] });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Cancellation failed");
-    } finally {
-      setBusy(false);
-    }
-  }
+    : entitlement?.status === "active"
+      ? "Active"
+      : expired
+        ? "Expired — renew to restore access"
+        : "No access period yet";
+  const statusTone: "good" | "warn" | "muted" = hasAccess ? "good" : expired ? "warn" : "muted";
 
   return (
     <div className="min-h-screen">
@@ -154,18 +71,18 @@ function DashboardPage() {
       <main className="mx-auto max-w-6xl px-5 pt-16 pb-16">
         <p className="eyebrow">{BETA_LABEL} · Your account</p>
         <h1 className="mt-4 text-4xl font-semibold">Dashboard</h1>
-        {data?.isSuperAdmin && (
+        {isSuperAdmin && (
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent/50 px-4 py-1.5 text-sm text-accent">
             <ShieldCheck className="h-4 w-4" /> Super admin — full suite unlocked
           </p>
         )}
 
-        {/* Access state strip — always visible so every app shows the same status */}
+        {/* Access state strip — the same status every suite app reads */}
         <div className="mt-6 flex flex-wrap items-center gap-2.5">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
-            <span className="text-muted-foreground">Tier</span>
+            <span className="text-muted-foreground">Plan</span>
             <strong className="font-medium">
-              {data?.isSuperAdmin ? "Super admin — Tier 3" : accessTier ? `Tier ${accessTier}` : "None"}
+              {isSuperAdmin ? "All plans" : (entitlement?.planName ?? "None")}
             </strong>
           </span>
           <span
@@ -182,10 +99,12 @@ function DashboardPage() {
           </span>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
             <CalendarClock className="h-4 w-4 text-accent" />
-            <span className="text-muted-foreground">Next billing</span>
-            <strong className="font-medium">{nextBilling ? formatDate(nextBilling) : "—"}</strong>
+            <span className="text-muted-foreground">Access expires</span>
+            <strong className="font-medium">
+              {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
+            </strong>
           </span>
-          {data?.isSuperAdmin && (
+          {isSuperAdmin && (
             <>
               <Link
                 to="/admin/settings"
@@ -205,68 +124,119 @@ function DashboardPage() {
 
         {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading your access…</p>}
 
+        {reminder && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+            <p className="inline-flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 shrink-0 text-accent" />
+              {reminder}
+            </p>
+            <Link
+              to="/pricing"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Renew now
+            </Link>
+          </div>
+        )}
+
+        {expired && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
+            <p className="inline-flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+              Your access period ended{" "}
+              {entitlement?.expiryDate ? `on ${formatDate(entitlement.expiryDate)}` : ""}. Your data
+              is safe — renew to unlock the apps again.
+            </p>
+            <Link
+              to="/pricing"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Renew access
+            </Link>
+          </div>
+        )}
 
         <section className="panel mt-8 p-7">
-          <h2 className="text-lg font-semibold">Billing &amp; subscription</h2>
+          <h2 className="text-lg font-semibold">Access &amp; billing</h2>
 
-          <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          <div className="mt-5 grid gap-5 sm:grid-cols-4">
             <div className="rounded-lg border border-border bg-surface p-5">
-              <p className="eyebrow">Subscription status</p>
+              <p className="eyebrow">Access status</p>
+              <p className="mt-2 text-sm">{statusLabel}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <p className="eyebrow">Access period</p>
               <p className="mt-2 text-sm">
-                {data?.isSuperAdmin
-                  ? "Active (super admin)"
-                  : hasAccess
-                    ? `${plan.name} — active`
-                    : pending
-                      ? "Awaiting payment confirmation"
-                      : "No active subscription yet"}
+                {entitlement?.startDate ? formatDate(entitlement.startDate) : "—"} →{" "}
+                {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
-              <p className="eyebrow">Next billing date</p>
-              <p className="mt-2 inline-flex items-center gap-2 text-sm">
-                <CalendarClock className="h-4 w-4 text-accent" />
-                {nextBilling ? formatDate(nextBilling) : "—"}
+              <p className="eyebrow">Days remaining</p>
+              <p className="mt-2 text-sm">
+                {remaining !== null && remaining > 0 ? `${remaining} days` : hasAccess ? "—" : "0"}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
               <p className="eyebrow">Apps unlocked</p>
-              <p className="mt-2 text-sm">
-                {hasAccess ? `All ${suiteApps.length} apps` : "None yet"}
-              </p>
+              <p className="mt-2 text-sm">{hasAccess ? `All ${suiteApps.length} apps` : "None yet"}</p>
             </div>
           </div>
+
+          {entitlement?.planId && (
+            <>
+              <h3 className="mt-8 text-sm font-semibold">Plan allowances</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {usage.map((u) => (
+                  <div key={u.metric} className="rounded-lg border border-border bg-surface p-4">
+                    <p className="text-xs text-muted-foreground">{u.label}</p>
+                    <p className="mt-1 text-sm">
+                      <strong>{u.used.toLocaleString()}</strong> / {u.limit.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <h3 className="mt-8 inline-flex items-center gap-2 text-sm font-semibold">
             <Receipt className="h-4 w-4 text-accent" /> Payment history &amp; receipts
           </h3>
-          {subscriptions.length === 0 ? (
+          {orders.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              No payments yet. Start your subscription below.
+              No payments yet. Choose a plan to activate your first access period.
             </p>
           ) : (
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-sm">
+              <table className="w-full min-w-[680px] text-left text-sm">
                 <thead className="text-xs text-muted-foreground uppercase">
                   <tr>
                     <th className="py-2 pr-4 font-medium">Date</th>
+                    <th className="py-2 pr-4 font-medium">Plan</th>
                     <th className="py-2 pr-4 font-medium">Amount</th>
                     <th className="py-2 pr-4 font-medium">Status</th>
-                    <th className="py-2 pr-4 font-medium">Renews / expires</th>
+                    <th className="py-2 pr-4 font-medium">Access period</th>
                     <th className="py-2 font-medium">Reference</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {subscriptions.map((s) => (
-                    <tr key={s.id} className="border-t border-border/70">
-                      <td className="py-2.5 pr-4">{formatDate(s.created_at)}</td>
-                      <td className="py-2.5 pr-4">
-                        {formatAmount(s.amount as number | null, s.currency)}
+                  {orders.map((o) => (
+                    <tr key={o.id} className="border-t border-border/70">
+                      <td className="py-2.5 pr-4">{formatDate(o.paidAt ?? o.createdAt)}</td>
+                      <td className="py-2.5 pr-4 capitalize">
+                        {o.planId} · {o.billingPeriod === "monthly" ? "1 month" : "12 months"}
                       </td>
-                      <td className="py-2.5 pr-4 capitalize">{s.status}</td>
-                      <td className="py-2.5 pr-4">{s.expires_at ? formatDate(s.expires_at) : "—"}</td>
-                      <td className="py-2.5 font-mono text-xs text-muted-foreground">
-                        {s.payment_reference ?? "—"}
+                      <td className="py-2.5 pr-4">
+                        {formatMoney(o.currency as Currency, o.total)}
+                      </td>
+                      <td className="py-2.5 pr-4 capitalize">{o.status}</td>
+                      <td className="py-2.5 pr-4">
+                        {o.accessStart && o.accessExpiry
+                          ? `${formatDate(o.accessStart)} → ${formatDate(o.accessExpiry)}`
+                          : "—"}
+                      </td>
+                      <td className="py-2.5 font-mono text-xs break-all text-muted-foreground">
+                        {o.reference ?? "—"}
                       </td>
                     </tr>
                   ))}
@@ -274,78 +244,20 @@ function DashboardPage() {
               </table>
             </div>
           )}
-          {(suspended || (!hasAccess && lapsed)) && (
-            <div className="mt-6 flex gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <p>
-                {suspended
-                  ? "A PayPal payment for your subscription hasn't cleared. Your suite access is suspended until PayPal confirms the payment — update your payment method in PayPal, or resubscribe below."
-                  : "Your subscription is no longer active, so the suite apps are locked. Resubscribe below to restore access."}
-              </p>
-            </div>
-          )}
 
-          {paypalActive?.payment_reference && (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-4">
-              <p className="text-sm text-muted-foreground">
-                Cancel anytime — your access stays open until
-                {" "}
-                {paypalActive.expires_at ? formatDate(paypalActive.expires_at) : "the end of the paid period"}.
-              </p>
-              <button
-                onClick={() => handleCancel(paypalActive.payment_reference as string)}
-                disabled={busy}
-                className="rounded-lg border border-destructive/50 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
-              >
-                {busy ? "Working…" : "Cancel subscription"}
-              </button>
-            </div>
-          )}
-        </section>
-
-        {!hasAccess && (
-          <section className="panel-featured mt-8 p-7">
-            <h2 className="text-lg font-semibold">Start your {plan.name} subscription</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              One fee unlocks every tool in the suite. Choose monthly or yearly billing.
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-4">
+            <p className="text-sm text-muted-foreground">
+              TP-CAMP never charges you automatically. Renew early and any unused days are added on
+              top of your new period.
             </p>
-
-            <div className="mt-5 inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1">
-              <button
-                onClick={() => setYearly(false)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  !yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setYearly(true)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  yearly ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                Yearly
-              </button>
-            </div>
-
-            <p className="mt-5 font-display text-3xl font-semibold">
-              ${price.usd.toLocaleString()}
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                USD / {yearly ? "year" : "month"} · TTD ${price.ttd.toLocaleString()}
-              </span>
-            </p>
-
-            <button
-              onClick={handleCheckout}
-              disabled={busy}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+            <Link
+              to="/pricing"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-accent/60"
             >
-              {busy ? "Starting…" : pending ? "Awaiting payment — retry" : "Subscribe"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </section>
-        )}
+              {hasAccess ? "Renew or change plan" : "Choose a plan"}
+            </Link>
+          </div>
+        </section>
 
         <section className="panel mt-8 flex flex-wrap items-center justify-between gap-5 p-7">
           <div>
