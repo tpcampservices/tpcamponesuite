@@ -29,7 +29,6 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
 import { Route as ApiPublicSsoEntitlementRouteImport } from './routes/api/public/sso/entitlement'
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
-import { Route as ApiPublicSsoHealthRouteImport } from './routes/api/public/sso/health'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -136,11 +135,6 @@ const ApiPublicSsoExchangeRoute = ApiPublicSsoExchangeRouteImport.update({
   path: '/api/public/sso/exchange',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSsoHealthRoute = ApiPublicSsoHealthRouteImport.update({
-  id: '/api/public/sso/health',
-  path: '/api/public/sso/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -162,7 +156,6 @@ export interface FileRoutesByFullPath {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/health': typeof ApiPublicSsoHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -184,7 +177,6 @@ export interface FileRoutesByTo {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/health': typeof ApiPublicSsoHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -208,7 +200,6 @@ export interface FileRoutesById {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
-  '/api/public/sso/health': typeof ApiPublicSsoHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -232,7 +223,6 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
-    | '/api/public/sso/health'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,7 +244,6 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
-    | '/api/public/sso/health'
   id:
     | '__root__'
     | '/'
@@ -277,7 +266,6 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
-    | '/api/public/sso/health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -295,7 +283,6 @@ export interface RootRouteChildren {
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
   ApiPublicSsoEntitlementRoute: typeof ApiPublicSsoEntitlementRoute
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
-  ApiPublicSsoHealthRoute: typeof ApiPublicSsoHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -440,13 +427,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSsoExchangeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/sso/health': {
-      id: '/api/public/sso/health'
-      path: '/api/public/sso/health'
-      fullPath: '/api/public/sso/health'
-      preLoaderRoute: typeof ApiPublicSsoHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -486,7 +466,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
   ApiPublicSsoEntitlementRoute: ApiPublicSsoEntitlementRoute,
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
-  ApiPublicSsoHealthRoute: ApiPublicSsoHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
