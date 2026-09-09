@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_entitlements: {
+        Row: {
+          access_expiry_date: string | null
+          access_start_date: string | null
+          access_status: string
+          addons: Json
+          billing_period: string | null
+          created_at: string
+          currency: string
+          plan_id: string | null
+          seats_extra: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_expiry_date?: string | null
+          access_start_date?: string | null
+          access_status?: string
+          addons?: Json
+          billing_period?: string | null
+          created_at?: string
+          currency?: string
+          plan_id?: string | null
+          seats_extra?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_expiry_date?: string | null
+          access_start_date?: string | null
+          access_status?: string
+          addons?: Json
+          billing_period?: string | null
+          created_at?: string
+          currency?: string
+          plan_id?: string | null
+          seats_extra?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_profiles: {
         Row: {
           address: string | null
@@ -242,6 +284,102 @@ export type Database = {
           resource_id?: string | null
           subscription_reference?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      plan_limit_usage: {
+        Row: {
+          id: string
+          metric: string
+          period_key: string
+          updated_at: string
+          used: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          metric: string
+          period_key: string
+          updated_at?: string
+          used?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          metric?: string
+          period_key?: string
+          updated_at?: string
+          used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plan_orders: {
+        Row: {
+          access_expiry_date: string | null
+          access_start_date: string | null
+          add_on_total: number
+          addons: Json
+          base_price: number
+          billing_period: string
+          created_at: string
+          currency: string
+          id: string
+          onboarding_fee: number
+          organization_id: string | null
+          paid_at: string | null
+          payment_provider: string
+          payment_status: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          plan_id: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_expiry_date?: string | null
+          access_start_date?: string | null
+          add_on_total?: number
+          addons?: Json
+          base_price?: number
+          billing_period: string
+          created_at?: string
+          currency: string
+          id?: string
+          onboarding_fee?: number
+          organization_id?: string | null
+          paid_at?: string | null
+          payment_provider?: string
+          payment_status?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          plan_id: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_expiry_date?: string | null
+          access_start_date?: string | null
+          add_on_total?: number
+          addons?: Json
+          base_price?: number
+          billing_period?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          onboarding_fee?: number
+          organization_id?: string | null
+          paid_at?: string | null
+          payment_provider?: string
+          payment_status?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          plan_id?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
