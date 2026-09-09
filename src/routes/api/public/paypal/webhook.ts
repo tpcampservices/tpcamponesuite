@@ -117,6 +117,79 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
             .eq("event_id", eventId);
         };
 
+        // ---- One-time Orders API events (fixed-term manual-renewal access) ----
+        if (
+          type === "PAYMENT.CAPTURE.COMPLETED" ||
+          type === "CHECKOUT.ORDER.APPROVED" ||
+          type === "PAYMENT.CAPTURE.DENIED" ||
+          type === "PAYMENT.CAPTURE.REFUNDED"
+        ) {
+          const resource = (JSON.parse(body) as any).resource ?? {};
+          const paypalOrderId: string | null =
+            resource?.supplementary_data?.related_ids?.order_id ??
+            (type === "CHECKOUT.ORDER.APPROVED" ? resource?.id : null);
+
+          const { data: orderRow } = paypalOrderId
+            ? await supabaseAdmin
+                .from("plan_orders")
+                .select("id, user_id, payment_status")
+                .eq("paypal_order_id", paypalOrderId)
+                .maybeSingle()
+            : { data: null as null };
+
+          if (!orderRow) {
+            await finish({ applied: false, note: `No local order matched ${paypalOrderId ?? "n/a"}` });
+            return Response.json({ ok: true, event: type, matched: false });
+          }
+
+          if (type === "PAYMENT.CAPTURE.DENIED") {
+            await supabaseAdmin
+              .from("plan_orders")
+              .update({ payment_status: "failed" })
+              .eq("id", orderRow.id);
+            await finish({ applied: true, user_id: orderRow.user_id, new_status: "failed" });
+            return Response.json({ ok: true, event: type, status: "failed" });
+          }
+
+          if (type === "PAYMENT.CAPTURE.REFUNDED") {
+            await supabaseAdmin
+              .from("plan_orders")
+              .update({ payment_status: "refunded" })
+              .eq("id", orderRow.id);
+            await finish({ applied: true, user_id: orderRow.user_id, new_status: "refunded" });
+            return Response.json({ ok: true, event: type, status: "refunded" });
+          }
+
+          if (type === "CHECKOUT.ORDER.APPROVED") {
+            await finish({
+              applied: false,
+              user_id: orderRow.user_id,
+              note: "Order approved — awaiting capture",
+            });
+            return Response.json({ ok: true, event: type });
+          }
+
+          // PAYMENT.CAPTURE.COMPLETED — verify against PayPal, then activate/extend.
+          const { getPaypalOrder, applyPaidOrder } = await import("@/lib/access.server");
+          const live = await getPaypalOrder(paypalOrderId!);
+          if (live.status !== "COMPLETED") {
+            await finish({ applied: false, note: `PayPal order status ${live.status}` });
+            return Response.json({ ok: true, event: type, status: live.status });
+          }
+
+          const applied = await applyPaidOrder(orderRow.id, live.captureId ?? resource?.id ?? null);
+          await finish({
+            applied: applied.applied,
+            user_id: orderRow.user_id,
+            previous_status: orderRow.payment_status,
+            new_status: "paid",
+            note: applied.applied
+              ? `Access extended to ${applied.expiry}`
+              : "Already applied (duplicate payment event ignored)",
+          });
+          return Response.json({ ok: true, event: type, applied: applied.applied });
+        }
+
         if (!subscriptionId) {
           await finish({ applied: false, note: "No subscription reference on event" });
           return Response.json({ ok: true, ignored: type });
