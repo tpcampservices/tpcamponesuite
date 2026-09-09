@@ -52,8 +52,8 @@ function DashboardPage() {
   const expired = entitlement?.status === "expired";
   const remaining = daysUntil(entitlement?.expiryDate);
   const reminder =
-    entitlement?.billingPeriod && entitlement.status === "active"
-      ? activeReminder(entitlement.billingPeriod, entitlement.expiryDate)
+    entitlement?.status === "active"
+      ? activeReminder(entitlement.expiryDate, entitlement.billingPeriod)
       : null;
 
   const statusLabel = isSuperAdmin
