@@ -12,9 +12,12 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { childAppAuthorized, redeemTicket } = await import("@/lib/sso.server");
-        if (!childAppAuthorized(request)) {
-          return Response.json({ error: "unauthorized" }, { status: 401 });
+        const { childAppAuth, redeemTicket } = await import("@/lib/sso.server");
+        const auth = childAppAuth(request);
+        if (!auth.ok) {
+          return auth.reason === "not_configured"
+            ? Response.json({ error: "sso_key_not_configured" }, { status: 503 })
+            : Response.json({ error: "unauthorized" }, { status: 401 });
         }
 
         let body: { ticket?: unknown; app_slug?: unknown };
