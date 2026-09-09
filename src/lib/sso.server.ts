@@ -211,6 +211,14 @@ function clean(value: string) {
   return value.trim().replace(/^["']|["']$/g, "").trim();
 }
 
+function lengthRange(length: number) {
+  if (length === 0) return "0";
+  if (length < 32) return "1-31";
+  if (length < 64) return "32-63";
+  if (length < 128) return "64-127";
+  return "128+";
+}
+
 export function childAppAuth(request: Request): { ok: boolean; reason?: "not_configured" | "unauthorized" } {
   const key = clean(process.env["TPCAMP_SSO_KEY"] ?? "");
   const rawProvided =
@@ -223,7 +231,7 @@ export function childAppAuth(request: Request): { ok: boolean; reason?: "not_con
     console.warn("SSO authorization", {
       serverKeyConfigured: false,
       headerReceived: rawProvided.length > 0,
-      receivedLength: provided.length,
+      receivedLengthRange: lengthRange(provided.length),
       matched: false,
     });
     return { ok: false, reason: "not_configured" };
@@ -231,9 +239,9 @@ export function childAppAuth(request: Request): { ok: boolean; reason?: "not_con
   if (provided.length !== key.length) {
     console.warn("SSO authorization", {
       serverKeyConfigured: true,
-      serverKeyLength: key.length,
+      serverKeyLengthRange: lengthRange(key.length),
       headerReceived: rawProvided.length > 0,
-      receivedLength: provided.length,
+      receivedLengthRange: lengthRange(provided.length),
       matched: false,
     });
     return { ok: false, reason: "unauthorized" };
@@ -243,9 +251,9 @@ export function childAppAuth(request: Request): { ok: boolean; reason?: "not_con
   const matched = diff === 0;
   console.info("SSO authorization", {
     serverKeyConfigured: true,
-    serverKeyLength: key.length,
+    serverKeyLengthRange: lengthRange(key.length),
     headerReceived: rawProvided.length > 0,
-    receivedLength: provided.length,
+    receivedLengthRange: lengthRange(provided.length),
     matched,
   });
   return matched ? { ok: true } : { ok: false, reason: "unauthorized" };
