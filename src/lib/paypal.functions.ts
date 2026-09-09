@@ -10,7 +10,7 @@ type Cycle = "monthly" | "yearly";
  */
 export const recordPaypalSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { subscriptionId?: string; cycle?: Cycle; currency?: "USD" | "TTD" }) => {
+  .inputValidator((data: { subscriptionId?: string; cycle?: Cycle; currency?: "USD" }) => {
     const subscriptionId = typeof data?.subscriptionId === "string" ? data.subscriptionId.trim() : "";
     if (!subscriptionId || subscriptionId.length > 120) {
       throw new Error("Invalid PayPal subscription id");
@@ -18,7 +18,7 @@ export const recordPaypalSubscription = createServerFn({ method: "POST" })
     return {
       subscriptionId,
       cycle: (data?.cycle === "monthly" ? "monthly" : "yearly") as Cycle,
-      currency: (data?.currency === "TTD" ? "TTD" : "USD") as "USD" | "TTD",
+      currency: "USD" as const,
     };
   })
   .handler(async ({ data, context }) => {

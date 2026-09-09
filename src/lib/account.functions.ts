@@ -49,20 +49,20 @@ export const getMyAccount = createServerFn({ method: "GET" })
 export const startCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { cycle?: "monthly" | "yearly"; currency?: "USD" | "TTD"; returnUrl?: string }) => {
+    (data: { cycle?: "monthly" | "yearly"; currency?: "USD"; returnUrl?: string }) => {
       const cycle = data?.cycle === "monthly" ? "monthly" : "yearly";
-      const currency = data?.currency === "TTD" ? "TTD" : "USD";
+      const currency = "USD" as const;
       const returnUrl =
         typeof data?.returnUrl === "string" && data.returnUrl.startsWith("http")
           ? data.returnUrl.slice(0, 500)
           : undefined;
-      return { cycle: cycle as "monthly" | "yearly", currency: currency as "USD" | "TTD", returnUrl };
+      return { cycle: cycle as "monthly" | "yearly", currency, returnUrl };
     },
   )
   .handler(async ({ data, context }) => {
     const prices = {
-      monthly: { USD: 49, TTD: 350 },
-      yearly: { USD: 500, TTD: 3500 },
+      monthly: { USD: 49 },
+      yearly: { USD: 500 },
     } as const;
     const amount = prices[data.cycle][data.currency];
     const reference = `tpcamp-onesuite-${data.cycle}-${crypto.randomUUID()}`;

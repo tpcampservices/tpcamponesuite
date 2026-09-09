@@ -148,7 +148,7 @@ export const savePaypalPlan = createServerFn({ method: "POST" })
         planId,
         tier,
         cycle: data?.cycle === "monthly" ? "monthly" : "yearly",
-        currency: data?.currency === "TTD" ? "TTD" : "USD",
+        currency: "USD",
         amount: Number.isFinite(Number(data?.amount)) ? Number(data?.amount) : null,
         label: (data?.label ?? "").trim().slice(0, 160) || null,
         active: data?.active !== false,

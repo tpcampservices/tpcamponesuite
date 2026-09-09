@@ -28,7 +28,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "Choose Starter, Growth, Pro or Institutional access for TP-CAMP OneSuite. Separate TTD and USD prices, one-time PayPal payment, and you renew manually — never charged automatically.",
+          "Choose Starter, Growth, Pro or Institutional access for TP-CAMP OneSuite. Prices in USD, one-time PayPal payment, and you renew manually — never charged automatically.",
       },
       { property: "og:title", content: "TP-CAMP OneSuite Pricing" },
       {
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/pricing")({
 function PricingPage() {
   const { session } = useSession();
   const [period, setPeriod] = useState<BillingPeriod>("yearly");
-  const [currency, setCurrency] = useState<Currency>("TTD");
+  const currency: Currency = "USD";
   const [planId, setPlanId] = useState<PlanId>("starter");
   const [addonQty, setAddonQty] = useState<Record<AddOnId, number>>({
     team_add: 0,
@@ -106,19 +106,9 @@ function PricingPage() {
                 </button>
               ))}
             </div>
-            <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface p-1">
-              {(["TTD", "USD"] as Currency[]).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCurrency(c)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    currency === c ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+            <span className="inline-flex items-center rounded-full border border-border bg-surface px-4 py-1.5 text-sm text-muted-foreground">
+              Prices in USD
+            </span>
           </div>
         </section>
 

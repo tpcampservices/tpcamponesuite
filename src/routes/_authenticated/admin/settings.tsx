@@ -339,7 +339,6 @@ function AdminSettingsPage() {
               className="rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent/60"
             >
               <option value="USD">USD</option>
-              <option value="TTD">TTD</option>
             </select>
             <input
               value={planForm.amount}

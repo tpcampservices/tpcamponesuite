@@ -4,8 +4,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 export type SubStatus = "pending" | "active" | "cancelled" | "expired";
 
 export const PRICES = {
-  monthly: { USD: 49, TTD: 350 },
-  yearly: { USD: 500, TTD: 3500 },
+  monthly: { USD: 49 },
+  yearly: { USD: 500 },
 } as const;
 
 export const PAYPAL_SETTING_KEYS = [
