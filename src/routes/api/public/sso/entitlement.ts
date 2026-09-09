@@ -10,9 +10,12 @@ export const Route = createFileRoute("/api/public/sso/entitlement")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { childAppAuthorized, entitlementFor } = await import("@/lib/sso.server");
-        if (!childAppAuthorized(request)) {
-          return Response.json({ error: "unauthorized" }, { status: 401 });
+        const { childAppAuth, entitlementFor } = await import("@/lib/sso.server");
+        const auth = childAppAuth(request);
+        if (!auth.ok) {
+          return auth.reason === "not_configured"
+            ? Response.json({ error: "sso_key_not_configured" }, { status: 503 })
+            : Response.json({ error: "unauthorized" }, { status: 401 });
         }
 
         let body: { user_id?: unknown };
