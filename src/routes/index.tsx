@@ -131,8 +131,9 @@ function HomePage() {
                 </span>
               </p>
               <p className="mt-1 font-mono text-xs tracking-wide text-muted-foreground">
-                TTD ${price.ttd.toLocaleString()} / {yearly ? "year" : "month"}
+                Billed once — no automatic renewal
               </p>
+
               <Link
                 to="/pricing"
                 className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent"
