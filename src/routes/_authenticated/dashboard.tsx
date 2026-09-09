@@ -128,7 +128,7 @@ function DashboardPage() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
             <p className="inline-flex items-center gap-2">
               <CalendarClock className="h-4 w-4 shrink-0 text-accent" />
-              {reminder}
+              {reminder.message}
             </p>
             <Link
               to="/pricing"
