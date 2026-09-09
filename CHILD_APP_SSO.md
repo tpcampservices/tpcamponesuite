@@ -1,21 +1,40 @@
-# Connecting a TP-CAMP app to OneSuite
+# Connecting a TP-CAMP app to OneSuite (separate backends)
 
-OneSuite owns the account and the plan. Each app reads the plan and enforces its own limits.
+OneSuite owns the account, the plan and the payment. Each child app keeps its
+**own** Lovable Cloud backend and its own data, and maps every record to the
+canonical OneSuite user ID.
 
-## 1. Same backend
+Do **not** repoint your app at OneSuite's backend. Do **not** share auth.users.
 
-Each app must point at the **same** Lovable Cloud / Supabase project as OneSuite,
-so `auth.users` and profiles are shared. Remove the app's own sign-up screen.
+App slugs: `catalog`, `invoice`, `splits`, `operations`, `finance`.
 
-## 2. Shared secret
+## 1. Shared secret
 
-Each app needs the `TPCAMP_SSO_KEY` secret (server-side only).
+Add the `TPCAMP_SSO_KEY` secret to your project. Server-side only — it must
+never appear in browser code, a URL, or a client bundle. Use the same value
+OneSuite holds.
+
+## 2. Local shadow account
+
+Keep your existing users/data table. Add:
+
+```sql
+ALTER TABLE public.profiles
+  ADD COLUMN onesuite_user_id uuid;
+CREATE UNIQUE INDEX profiles_onesuite_user_id_key
+  ON public.profiles (onesuite_user_id);
+```
+
+One local account ↔ one canonical OneSuite user ID. For the existing owner
+account, backfill `onesuite_user_id = 'd881e786-b79a-4896-b3f1-a3a364c3ac38'`
+so all current Catalog data stays owned by the same person. Never delete local
+data when access expires.
 
 ## 3. Sign-in hand-off
 
-OneSuite's dashboard opens `https://<app>.tpcamponesuite.app/sso?ticket=…`.
+OneSuite opens `https://<app>.tpcamponesuite.app/sso?ticket=…`.
 
-The app's `/sso` route calls its own server, which POSTs:
+Your `/sso` route calls your **own server**, which POSTs:
 
 ```
 POST https://tpcamponesuite.app/api/public/sso/exchange
@@ -23,27 +42,55 @@ x-tpcamp-key: <TPCAMP_SSO_KEY>
 { "ticket": "<ticket>", "app_slug": "catalog" }
 ```
 
-Response: `{ token_hash, email, entitlement }`.
+Response:
 
-In the browser the app then runs:
-
-```ts
-await supabase.auth.verifyOtp({ token_hash, type: "email" });
+```json
+{
+  "canonical_user_id": "uuid",
+  "email": "user@example.com",
+  "name": "Full Name",
+  "app_slug": "catalog",
+  "entitlement": { "...": "see section 5" },
+  "issued_at": 1757000000,
+  "expires_at": 1757000120,
+  "jti": "…",
+  "assertion": "<header>.<payload>.<signature>"
+}
 ```
 
-That creates a normal session for the same OneSuite user. Tickets are
-single-use and expire after 2 minutes.
+Tickets are single-use, bound to the app slug, and expire after 2 minutes.
 
-App slugs: `catalog`, `invoice`, `splits`, `operations`, `finance`.
+## 4. Verify the assertion, then create a local session
 
-## 4. Reading the entitlement
+`assertion` is a compact **JWT, HS256, signed with `TPCAMP_SSO_KEY`**.
+
+Payload claims: `iss` (`tpcamp-onesuite`), `aud` and `app_slug` (your slug),
+`sub` (canonical user ID), `email`, `name`, `is_super_admin`, `has_access`,
+`plan_id`, `status`, `jti`, `iat`, `exp` (120s lifetime).
+
+On your server:
+
+1. Split on `.`, recompute the HMAC-SHA256 over `header.payload` with
+   `TPCAMP_SSO_KEY`, compare in constant time.
+2. Check `iss === "tpcamp-onesuite"`, `aud === "<your slug>"`, `exp > now`.
+3. Store the `jti` and reject any repeat — one assertion, one session.
+4. Find or create the local account where `onesuite_user_id = sub`; update its
+   email/name from the assertion.
+5. Create your **own** local session for that account (your backend's admin
+   client generating a session/magic-link for the shadow user is fine — it is
+   your backend, not OneSuite's).
+6. Redirect to your app's landing page (Catalog → Works).
+
+Never show a child-app login screen, sign-up form, or password field.
+
+## 5. Reading the entitlement
 
 Any time the app needs the current plan (page load, before creating a record):
 
 ```
 POST https://tpcamponesuite.app/api/public/sso/entitlement
 x-tpcamp-key: <TPCAMP_SSO_KEY>
-{ "user_id": "<supabase user id>" }
+{ "user_id": "<canonical_user_id>" }
 ```
 
 Response includes:
@@ -56,9 +103,18 @@ limits: [{ metric, label, limit }]
 
 Rules for the app:
 
-- `hasAccess === false` → show a read-only / "renew in OneSuite" state; never block data.
-- Never trust a plan value sent from the browser — always call this endpoint server-side.
-- Count the app's own records and compare against the matching `limit`
+- Always call this server-side. Never trust a plan, entitlement or user ID sent
+  from the browser.
+- `hasAccess === false` → read-only / "renew in OneSuite" state. Never delete
+  or hide the user's data.
+- Count your own records and compare against the matching `limit`
   (`catalogRecords`, `activeProjects`, `invoicesPerMonth`,
-  `financeTransactionsPerMonth`, `contractsPerMonth`, `splitSheetsPerMonth`, `seats`).
-- Monthly metrics reset on the first of each calendar month (UTC).
+  `financeTransactionsPerMonth`, `contractsPerMonth`, `splitSheetsPerMonth`,
+  `seats`). Monthly metrics reset on the first of each calendar month (UTC).
+
+## 6. Unauthenticated visitors and logout
+
+- Direct visitor with no local session → redirect to
+  `https://tpcamponesuite.app/auth`, not to a local login.
+- Logout → clear the local session, then redirect to
+  `https://tpcamponesuite.app/dashboard`.

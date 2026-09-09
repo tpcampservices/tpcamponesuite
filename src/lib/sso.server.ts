@@ -95,6 +95,41 @@ export async function entitlementFor(userId: string): Promise<EntitlementPayload
   };
 }
 
+const ASSERTION_TTL_SECONDS = 120;
+
+function b64url(bytes: Uint8Array | string) {
+  const raw =
+    typeof bytes === "string" ? bytes : String.fromCharCode(...Array.from(bytes));
+  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function ssoKey() {
+  const key = process.env["TPCAMP_SSO_KEY"];
+  if (!key) throw new Error("TPCAMP_SSO_KEY is not configured");
+  return key;
+}
+
+/**
+ * Short-lived HS256 JWT signed with the shared TPCAMP_SSO_KEY.
+ * Child apps verify it on their own server; nothing here ever reaches a browser.
+ */
+async function signAssertion(payload: Record<string, unknown>) {
+  const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = b64url(JSON.stringify(payload));
+  const data = `${header}.${body}`;
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(ssoKey()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(data)),
+  );
+  return `${data}.${b64url(sig)}`;
+}
+
 /**
  * Redeem a launch ticket. Single-use and expiry-checked in one guarded update,
  * so a replayed ticket can never produce a second session.
@@ -125,25 +160,46 @@ export async function redeemTicket(token: string, appSlug: string) {
   const entitlement = await entitlementFor(ticket.user_id);
   if (!entitlement.email) return { ok: false as const, reason: "no_email" as const };
 
-  // A magic-link token_hash the child app verifies with
-  // supabase.auth.verifyOtp({ token_hash, type: 'email' }) — same backend,
-  // same user account, no separate child login.
-  const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
-    type: "magiclink",
-    email: entitlement.email,
-  });
-  if (error || !link?.properties?.hashed_token) {
-    console.error("SSO link generation failed", error);
-    return { ok: false as const, reason: "link_failed" as const };
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const expiresAt = issuedAt + ASSERTION_TTL_SECONDS;
+  const jti = randomToken();
+
+  let assertion: string;
+  try {
+    assertion = await signAssertion({
+      iss: "tpcamp-onesuite",
+      aud: appSlug,
+      sub: ticket.user_id,
+      email: entitlement.email,
+      name: entitlement.fullName,
+      app_slug: appSlug,
+      is_super_admin: entitlement.isSuperAdmin,
+      has_access: entitlement.hasAccess,
+      plan_id: entitlement.planId,
+      status: entitlement.status,
+      jti,
+      iat: issuedAt,
+      exp: expiresAt,
+    });
+  } catch (err) {
+    console.error("SSO assertion signing failed", err);
+    return { ok: false as const, reason: "assertion_failed" as const };
   }
 
   return {
     ok: true as const,
-    tokenHash: link.properties.hashed_token,
+    canonicalUserId: ticket.user_id,
     email: entitlement.email,
+    name: entitlement.fullName,
+    appSlug,
+    assertion,
+    issuedAt,
+    expiresAt,
+    jti,
     entitlement,
   };
 }
+
 
 /** Shared secret guard for server-to-server calls from the child apps. */
 export function childAppAuthorized(request: Request) {
