@@ -33,23 +33,44 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettingsPage,
 });
 
+type Environment = "sandbox" | "live";
+
 const FIELDS = [
   {
-    key: "PAYPAL_CLIENT_ID" as const,
+    base: "PAYPAL_CLIENT_ID" as const,
     label: "PayPal Client ID",
-    hint: "Apps & Credentials → your live app → Client ID",
+    hint: "Apps & Credentials → the app for this environment → Client ID",
   },
   {
-    key: "PAYPAL_CLIENT_SECRET" as const,
+    base: "PAYPAL_CLIENT_SECRET" as const,
     label: "PayPal Client Secret",
     hint: "Same app → Secret. Stored server-side only; never shown again.",
   },
   {
-    key: "PAYPAL_WEBHOOK_ID" as const,
+    base: "PAYPAL_WEBHOOK_ID" as const,
     label: "PayPal Webhook ID",
-    hint: "Webhooks → the webhook pointing at the URL below.",
+    hint: "Webhooks → the webhook pointing at the URL below. Sandbox and Live webhooks are separate.",
   },
 ];
+
+const API_HOSTS: Record<Environment, string> = {
+  sandbox: "https://api-m.sandbox.paypal.com",
+  live: "https://api-m.paypal.com",
+};
+
+type TestResult = {
+  ok: boolean;
+  environment: string;
+  apiBase: string;
+  clientIdPresent: boolean;
+  clientSecretPresent: boolean;
+  webhookIdConfigured: boolean;
+  oauth: "passed" | "failed";
+  status: number | null;
+  error: string | null;
+  message: string | null;
+  debugId: string | null;
+};
 
 function AdminSettingsPage() {
   const fetchStatus = useServerFn(getIntegrationStatus);
