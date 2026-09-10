@@ -95,9 +95,8 @@ export function PaypalPayButton({ selection }: { selection: PaySelection }) {
             onApprove: async (data: { orderID: string }) => {
               try {
                 const result = await capture({ data: { orderId: data.orderID } });
-                if (!result.ok) {
-                  toast.error("PayPal did not complete the payment. Please try again.");
-                  return;
+                if (!result.ok && result.error) {
+                  toast.error(result.error);
                 }
                 navigate({ to: "/payment-success", search: { order: data.orderID } });
               } catch (err) {
