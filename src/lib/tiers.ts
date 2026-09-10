@@ -127,8 +127,8 @@ export const compareGroups: CompareGroup[] = [
     group: "Access",
     rows: [
       { feature: "Included applications", included: "All 5 apps" },
-      { feature: "Monthly price", included: "$49 USD" },
-      { feature: "Yearly price", included: "$500 USD" },
+      { feature: "Fixed-term payment", included: "One-time PayPal order" },
+      { feature: "Auto-renewal", included: "None — manual renewal" },
     ],
   },
 ];
