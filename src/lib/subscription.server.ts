@@ -173,7 +173,7 @@ export async function fetchPaypalSubscription(id: string): Promise<PaypalSubscri
   const token = await paypalAccessToken();
   if (!token) return null;
   const res = await fetch(
-    `${paypalApiBase()}/v1/billing/subscriptions/${encodeURIComponent(id)}`,
+    `${await paypalApiBase()}/v1/billing/subscriptions/${encodeURIComponent(id)}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
   if (!res.ok) {
@@ -187,7 +187,7 @@ export async function cancelPaypalSubscription(id: string, reason: string) {
   const token = await paypalAccessToken();
   if (!token) return { ok: false as const, reason: "not_configured" as const };
   const res = await fetch(
-    `${paypalApiBase()}/v1/billing/subscriptions/${encodeURIComponent(id)}/cancel`,
+    `${await paypalApiBase()}/v1/billing/subscriptions/${encodeURIComponent(id)}/cancel`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },

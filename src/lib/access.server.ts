@@ -24,20 +24,13 @@ export async function paypalOrdersConfigured() {
 }
 
 async function token(): Promise<string> {
-  const { clientId, clientSecret } = await getPaypalCredentials();
-  if (!clientId || !clientSecret) throw new Error("PayPal is not configured yet.");
-  const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) throw new Error(`PayPal auth failed (${res.status})`);
-  const json = (await res.json()) as { access_token?: string };
-  if (!json.access_token) throw new Error("PayPal auth failed");
-  return json.access_token;
+  const { requestPaypalToken } = await import("./subscription.server");
+  const result = await requestPaypalToken();
+  if (!result.ok) {
+    if (result.error === "missing_credentials") throw new Error("PayPal is not configured yet.");
+    throw new Error(`PayPal auth failed (${result.status ?? "unknown"})`);
+  }
+  return result.token;
 }
 
 /** Create a one-time PayPal order. No vaulting, no billing agreement, no plan id. */
