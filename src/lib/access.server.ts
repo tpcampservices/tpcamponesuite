@@ -80,7 +80,19 @@ export type CaptureResult = {
   captureId: string | null;
   amount: number | null;
   currency: string | null;
+  /** Populated only when PayPal refused the capture. Never contains secrets. */
+  error?: {
+    httpStatus: number;
+    name: string;
+    issue: string;
+    message: string;
+    debugId: string | null;
+  };
 };
+
+export function captureErrorText(error: NonNullable<CaptureResult["error"]>) {
+  return `PayPal ${error.httpStatus} ${error.name}/${error.issue}: ${error.message} (debug id ${error.debugId ?? "n/a"})`;
+}
 
 export async function capturePaypalOrder(orderId: string): Promise<CaptureResult> {
   const access = await token();
@@ -95,13 +107,21 @@ export async function capturePaypalOrder(orderId: string): Promise<CaptureResult
       },
     },
   );
-  const body = (await res.json()) as any;
+  const debugId = res.headers.get("paypal-debug-id");
+  const body = (await res.json().catch(() => ({}))) as any;
   // 422 ORDER_ALREADY_CAPTURED -> fall back to reading the order
   if (!res.ok) {
-    const issue = body?.details?.[0]?.issue;
+    const issue = body?.details?.[0]?.issue ?? "";
     if (issue === "ORDER_ALREADY_CAPTURED") return getPaypalOrder(orderId);
-    console.error("PayPal capture failed", res.status, JSON.stringify(body).slice(0, 500));
-    throw new Error("PayPal could not complete the payment.");
+    const error = {
+      httpStatus: res.status,
+      name: String(body?.name ?? "UNKNOWN"),
+      issue: String(issue || "UNKNOWN"),
+      message: String(body?.details?.[0]?.description ?? body?.message ?? "Capture rejected"),
+      debugId: body?.debug_id ?? debugId ?? null,
+    };
+    console.error("PayPal capture failed", error);
+    return { status: "FAILED", captureId: null, amount: null, currency: null, error };
   }
   const capture = body?.purchase_units?.[0]?.payments?.captures?.[0];
   return {

@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, ArrowRight, Clock } from "lucide-react";
+import { CheckCircle2, ArrowRight, Clock, AlertTriangle } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
-import { getAccessState } from "@/lib/billing.functions";
+import { getAccessState, reconcileOrder } from "@/lib/billing.functions";
 import { formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/payment-success")({
@@ -36,19 +36,29 @@ const formatDate = (value: string) =>
 function PaymentSuccessPage() {
   const { order } = Route.useSearch();
   const fetchState = useServerFn(getAccessState);
+  const reconcile = useServerFn(reconcileOrder);
+
+  // Keep retrying the server-side capture until the purchase is finalised.
+  const { data: reconciled } = useQuery({
+    queryKey: ["reconcile-order", order ?? "none"],
+    enabled: Boolean(order),
+    queryFn: () => reconcile({ data: { orderId: order! } }),
+    refetchInterval: (query) => (query.state.data?.ok ? false : 6000),
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["access-state", order ?? "latest"],
+    queryKey: ["access-state", order ?? "latest", reconciled?.ok ?? false],
     queryFn: () => fetchState({}),
     refetchInterval: (query) =>
       query.state.data?.entitlement?.status === "active" ? false : 5000,
   });
 
   const entitlement = data?.entitlement ?? null;
-  const active = entitlement?.status === "active";
   const paidOrder = order
     ? (data?.orders ?? []).find((o) => o.reference === order)
     : (data?.orders ?? []).find((o) => o.status === "paid");
+  const active = entitlement?.status === "active" && paidOrder?.status === "paid";
+  const failure = reconciled && !reconciled.ok ? (reconciled.error ?? null) : null;
 
   return (
     <div className="min-h-screen">
@@ -57,17 +67,30 @@ function PaymentSuccessPage() {
         <div className="panel-featured p-8 sm:p-10">
           {active ? (
             <CheckCircle2 className="h-10 w-10 text-accent" />
+          ) : failure ? (
+            <AlertTriangle className="h-10 w-10 text-destructive" />
           ) : (
             <Clock className="h-10 w-10 text-accent" />
           )}
           <h1 className="mt-5 text-3xl font-semibold sm:text-4xl">
-            {active ? "Payment confirmed" : "Payment received — confirming with PayPal"}
+            {active
+              ? "Payment confirmed"
+              : failure
+                ? "Payment could not be completed"
+                : "Payment received — confirming with PayPal"}
           </h1>
           <p className="mt-4 text-muted-foreground">
             {active
               ? "Thank you — your access period is verified and active. This is a one-time payment: PayPal will never charge you automatically. We'll remind you before your access period ends so you can renew when you're ready."
-              : "Thank you. We're verifying your payment with PayPal. Access unlocks automatically the moment it's confirmed — this page updates on its own."}
+              : failure
+                ? "PayPal declined to complete this payment, so nothing was charged and no access period was started. You can try again, or use a different PayPal account or card."
+                : "Thank you. We're verifying your payment with PayPal. Access unlocks automatically the moment it's confirmed — this page updates on its own."}
           </p>
+          {failure && (
+            <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              {failure}
+            </p>
+          )}
 
           <dl className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-border bg-surface p-5">

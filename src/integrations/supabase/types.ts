@@ -370,9 +370,14 @@ export type Database = {
           addons: Json
           base_price: number
           billing_period: string
+          capture_status: string | null
+          captured_amount: number | null
+          captured_at: string | null
+          captured_currency: string | null
           created_at: string
           currency: string
           id: string
+          last_error: string | null
           onboarding_fee: number
           organization_id: string | null
           paid_at: string | null
@@ -392,9 +397,14 @@ export type Database = {
           addons?: Json
           base_price?: number
           billing_period: string
+          capture_status?: string | null
+          captured_amount?: number | null
+          captured_at?: string | null
+          captured_currency?: string | null
           created_at?: string
           currency: string
           id?: string
+          last_error?: string | null
           onboarding_fee?: number
           organization_id?: string | null
           paid_at?: string | null
@@ -414,9 +424,14 @@ export type Database = {
           addons?: Json
           base_price?: number
           billing_period?: string
+          capture_status?: string | null
+          captured_amount?: number | null
+          captured_at?: string | null
+          captured_currency?: string | null
           created_at?: string
           currency?: string
           id?: string
+          last_error?: string | null
           onboarding_fee?: number
           organization_id?: string | null
           paid_at?: string | null

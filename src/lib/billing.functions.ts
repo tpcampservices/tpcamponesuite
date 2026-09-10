@@ -86,7 +86,103 @@ export const createOrder = createServerFn({ method: "POST" })
     return { orderId: paypalOrderId, orderRowId: row.id, total: price.total, currency: price.currency };
   });
 
-/** Server-side capture + access activation. Idempotent. */
+/**
+ * Server-side capture + fixed-term access activation. Idempotent: the stored
+ * purchase record is authoritative for plan, term, amount, currency and owner,
+ * and an order already marked `paid` is never captured or applied twice.
+ */
+async function finalizeOrder(userId: string, paypalOrderId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { capturePaypalOrder, getPaypalOrder, applyPaidOrder, captureErrorText } = await import(
+    "./access.server"
+  );
+
+  const { data: row } = await supabaseAdmin
+    .from("plan_orders")
+    .select("*")
+    .eq("paypal_order_id", paypalOrderId)
+    .maybeSingle();
+  if (!row || row.user_id !== userId) throw new Error("Order not found");
+
+  if (row.payment_status === "paid") {
+    return {
+      ok: true as const,
+      status: "paid" as const,
+      expiry: row.access_expiry_date,
+      error: null,
+    };
+  }
+
+  // Only capture an order PayPal itself reports as approved/completed.
+  const live = await getPaypalOrder(paypalOrderId);
+  const capture =
+    live.status === "COMPLETED" ? live : await capturePaypalOrder(paypalOrderId);
+
+  if (capture.status !== "COMPLETED") {
+    const message = capture.error
+      ? captureErrorText(capture.error)
+      : `PayPal order status ${capture.status}`;
+    await supabaseAdmin
+      .from("plan_orders")
+      .update({
+        capture_status: capture.status,
+        last_error: message,
+        // An approved-but-uncaptured order stays retryable; a refusal is a failure.
+        payment_status: capture.error ? "failed" : row.payment_status,
+      })
+      .eq("id", row.id);
+    return {
+      ok: false as const,
+      status: capture.status,
+      expiry: null,
+      error: capture.error
+        ? `${capture.error.name}: ${capture.error.message}`
+        : `PayPal reported the order as ${capture.status}.`,
+    };
+  }
+
+  // Guard the money: the server's own record decides what should have been paid.
+  const expected = Number(row.total_amount);
+  if (
+    capture.amount != null &&
+    (Math.abs(capture.amount - expected) > 0.009 || capture.currency !== row.currency)
+  ) {
+    const message = `Captured ${capture.currency} ${capture.amount} does not match expected ${row.currency} ${expected}`;
+    await supabaseAdmin
+      .from("plan_orders")
+      .update({
+        capture_status: "AMOUNT_MISMATCH",
+        captured_amount: capture.amount,
+        captured_currency: capture.currency,
+        paypal_capture_id: capture.captureId,
+        last_error: message,
+        payment_status: "review",
+      })
+      .eq("id", row.id);
+    console.error("PayPal capture amount mismatch", { orderId: paypalOrderId, message });
+    return { ok: false as const, status: "AMOUNT_MISMATCH", expiry: null, error: message };
+  }
+
+  await supabaseAdmin
+    .from("plan_orders")
+    .update({
+      capture_status: "COMPLETED",
+      captured_amount: capture.amount,
+      captured_currency: capture.currency,
+      captured_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq("id", row.id);
+
+  const applied = await applyPaidOrder(row.id, capture.captureId);
+  return {
+    ok: true as const,
+    status: "paid" as const,
+    expiry: applied.applied ? applied.expiry : (applied.order?.access_expiry_date ?? null),
+    error: null,
+  };
+}
+
 export const captureOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { orderId?: string }) => ({
@@ -94,35 +190,31 @@ export const captureOrder = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     if (!data.orderId) throw new Error("Missing PayPal order reference");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { capturePaypalOrder, applyPaidOrder } = await import("./access.server");
+    return finalizeOrder(context.userId, data.orderId);
+  });
 
-    const { data: row } = await supabaseAdmin
-      .from("plan_orders")
-      .select("id, user_id, payment_status, access_expiry_date")
-      .eq("paypal_order_id", data.orderId)
-      .maybeSingle();
-    if (!row || row.user_id !== context.userId) throw new Error("Order not found");
-
-    if (row.payment_status === "paid") {
-      return { ok: true as const, status: "paid" as const, expiry: row.access_expiry_date };
+/**
+ * Recovery path for the confirmation page: if the browser capture never
+ * completed (closed tab, network drop, transient PayPal refusal), this retries
+ * capture safely. Shares the same idempotent finalisation as the button.
+ */
+export const reconcileOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId?: string }) => ({
+    orderId: typeof data?.orderId === "string" ? data.orderId.trim().slice(0, 120) : "",
+  }))
+  .handler(async ({ data, context }) => {
+    if (!data.orderId) return { ok: false as const, status: "NO_ORDER", expiry: null, error: null };
+    try {
+      return await finalizeOrder(context.userId, data.orderId);
+    } catch (err) {
+      return {
+        ok: false as const,
+        status: "ERROR",
+        expiry: null,
+        error: err instanceof Error ? err.message : "Could not confirm this payment.",
+      };
     }
-
-    const capture = await capturePaypalOrder(data.orderId);
-    if (capture.status !== "COMPLETED") {
-      await supabaseAdmin
-        .from("plan_orders")
-        .update({ payment_status: capture.status.toLowerCase() })
-        .eq("id", row.id);
-      return { ok: false as const, status: capture.status };
-    }
-
-    const applied = await applyPaidOrder(row.id, capture.captureId);
-    return {
-      ok: true as const,
-      status: "paid" as const,
-      expiry: applied.applied ? applied.expiry : (applied.order?.access_expiry_date ?? null),
-    };
   });
 
 /** Marks an abandoned/cancelled checkout so the record is not left dangling. */
