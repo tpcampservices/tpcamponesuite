@@ -12,31 +12,105 @@ type WebhookEvent = {
   };
 };
 
+type DiagOutcome =
+  | "RECEIVED"
+  | "SIGNATURE_VERIFIED"
+  | "SIGNATURE_FAILED"
+  | "UNKNOWN_PURCHASE"
+  | "DUPLICATE_EVENT"
+  | "PROCESSED"
+  | "REJECTED";
 
+const TRANSMISSION_HEADERS = [
+  "paypal-auth-algo",
+  "paypal-cert-url",
+  "paypal-transmission-id",
+  "paypal-transmission-sig",
+  "paypal-transmission-time",
+] as const;
 
 export const Route = createFileRoute("/api/public/paypal/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { paypalAccessToken, paypalApiBase, getPaypalCredentials } = await import(
+        const { getPaypalCredentials, requestPaypalToken } = await import(
           "@/lib/subscription.server"
         );
-
-        const { clientId, clientSecret, webhookId } = await getPaypalCredentials();
-        if (!webhookId || !clientId || !clientSecret) {
-          console.error("PayPal webhook not configured");
-          return new Response("Webhook not configured", { status: 503 });
-        }
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const body = await request.text();
         const h = (name: string) => request.headers.get(name) ?? "";
 
-        const token = await paypalAccessToken();
-        if (!token) return new Response("Auth failed", { status: 500 });
+        // ---- Diagnostics: record the attempt BEFORE any verification. ----
+        // Never log secrets, access tokens or Authorization header values.
+        let parsed: WebhookEvent = {};
+        try {
+          parsed = JSON.parse(body) as WebhookEvent;
+        } catch {
+          parsed = {};
+        }
+        const headersPresent = Object.fromEntries(
+          TRANSMISSION_HEADERS.map((name) => [name, h(name).length > 0]),
+        );
+        const debugId = h("paypal-debug-id") || null;
+
+        const { clientId, clientSecret, webhookId, environment } = await getPaypalCredentials();
+
+        const { data: diag } = await supabaseAdmin
+          .from("paypal_webhook_diagnostics")
+          .insert({
+            event_id: parsed.id ?? null,
+            event_type: parsed.event_type ?? null,
+            environment,
+            headers_present: headersPresent,
+            outcome: "RECEIVED" as DiagOutcome,
+            paypal_debug_id: debugId,
+          })
+          .select("id")
+          .single();
+        const diagId = diag?.id as string | undefined;
+        const finishDiag = async (fields: {
+          outcome: DiagOutcome;
+          http_status: number;
+          signature_result?: string;
+          rejection_reason?: string | null;
+          note?: string | null;
+          paypal_debug_id?: string | null;
+        }) => {
+          if (!diagId) return;
+          await supabaseAdmin
+            .from("paypal_webhook_diagnostics")
+            .update(fields)
+            .eq("id", diagId);
+        };
+
+        if (!webhookId || !clientId || !clientSecret) {
+          console.error("PayPal webhook not configured", { environment });
+          await finishDiag({
+            outcome: "REJECTED",
+            http_status: 503,
+            rejection_reason: "webhook_not_configured",
+            note: `PayPal ${environment} credentials or webhook ID missing`,
+          });
+          return new Response("Webhook not configured", { status: 503 });
+        }
+
+        const tokenResult = await requestPaypalToken(environment);
+        if (!tokenResult.ok) {
+          await finishDiag({
+            outcome: "REJECTED",
+            http_status: 500,
+            rejection_reason: "paypal_auth_failed",
+            paypal_debug_id: tokenResult.debugId,
+            note: `OAuth failed (${tokenResult.status ?? "unknown"}): ${tokenResult.error ?? ""} ${tokenResult.message ?? ""}`.trim(),
+          });
+          return new Response("Auth failed", { status: 500 });
+        }
+        const token = tokenResult.token;
 
         // Verify the event signature with PayPal before trusting anything in it.
         const verifyRes = await fetch(
-          `${await paypalApiBase()}/v1/notifications/verify-webhook-signature`,
+          `${tokenResult.apiBase}/v1/notifications/verify-webhook-signature`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -51,21 +125,35 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
             }),
           },
         );
+        const verifyDebugId = verifyRes.headers.get("paypal-debug-id");
         const verification = (await verifyRes.json().catch(() => ({}))) as {
           verification_status?: string;
         };
         if (verification.verification_status !== "SUCCESS") {
-          console.error("PayPal webhook verification failed", verification.verification_status);
+          console.error("PayPal webhook verification failed", {
+            environment,
+            status: verification.verification_status,
+            debugId: verifyDebugId,
+            eventType: parsed.event_type,
+          });
+          await finishDiag({
+            outcome: "SIGNATURE_FAILED",
+            http_status: 401,
+            signature_result: verification.verification_status ?? "no_response",
+            rejection_reason: "signature_verification_failed",
+            paypal_debug_id: verifyDebugId ?? debugId,
+            note: "Includes PayPal Webhook Simulator events, which cannot be verified via the live verify-webhook-signature API",
+          });
           return new Response("Invalid signature", { status: 401 });
         }
+
+        await finishDiag({ outcome: "SIGNATURE_VERIFIED", http_status: 200, signature_result: "SUCCESS" });
 
         const event = JSON.parse(body) as WebhookEvent;
         const type = event.event_type ?? "";
         const eventId = event.id ?? `${type}:${event.resource?.id ?? "unknown"}`;
         const subscriptionId =
           event.resource?.id ?? event.resource?.billing_agreement_id ?? null;
-
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         // --- Idempotency: claim this event id first. A duplicate delivery loses the
         // race on the unique index and is logged without touching the subscription.
@@ -92,9 +180,22 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
               applied: false,
               note: "Duplicate delivery ignored (event already processed)",
             });
+            await finishDiag({
+              outcome: "DUPLICATE_EVENT",
+              http_status: 200,
+              signature_result: "SUCCESS",
+              note: "Duplicate delivery ignored",
+            });
             return Response.json({ ok: true, duplicate: true, event: type });
           }
           console.error("Webhook event log insert failed:", claimError.message);
+          await finishDiag({
+            outcome: "REJECTED",
+            http_status: 500,
+            signature_result: "SUCCESS",
+            rejection_reason: "event_log_insert_failed",
+            note: claimError.message,
+          });
           return new Response("Log failed", { status: 500 });
         }
 
@@ -134,6 +235,12 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
 
           if (!orderRow) {
             await finish({ applied: false, note: `No local order matched ${paypalOrderId ?? "n/a"}` });
+            await finishDiag({
+              outcome: "UNKNOWN_PURCHASE",
+              http_status: 200,
+              signature_result: "SUCCESS",
+              note: `No local order matched ${paypalOrderId ?? "n/a"}`,
+            });
             return Response.json({ ok: true, event: type, matched: false });
           }
 
@@ -143,6 +250,7 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
               .update({ payment_status: "failed" })
               .eq("id", orderRow.id);
             await finish({ applied: true, user_id: orderRow.user_id, new_status: "failed" });
+            await finishDiag({ outcome: "PROCESSED", http_status: 200, signature_result: "SUCCESS", note: "Capture denied — order marked failed" });
             return Response.json({ ok: true, event: type, status: "failed" });
           }
 
@@ -152,6 +260,7 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
               .update({ payment_status: "refunded" })
               .eq("id", orderRow.id);
             await finish({ applied: true, user_id: orderRow.user_id, new_status: "refunded" });
+            await finishDiag({ outcome: "PROCESSED", http_status: 200, signature_result: "SUCCESS", note: "Capture refunded — order marked refunded" });
             return Response.json({ ok: true, event: type, status: "refunded" });
           }
 
@@ -161,6 +270,7 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
               user_id: orderRow.user_id,
               note: "Order approved — awaiting capture",
             });
+            await finishDiag({ outcome: "PROCESSED", http_status: 200, signature_result: "SUCCESS", note: "Order approved — awaiting capture" });
             return Response.json({ ok: true, event: type });
           }
 
@@ -169,6 +279,13 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
           const live = await getPaypalOrder(paypalOrderId!);
           if (live.status !== "COMPLETED") {
             await finish({ applied: false, note: `PayPal order status ${live.status}` });
+            await finishDiag({
+              outcome: "REJECTED",
+              http_status: 200,
+              signature_result: "SUCCESS",
+              rejection_reason: "order_not_completed",
+              note: `PayPal order status ${live.status}`,
+            });
             return Response.json({ ok: true, event: type, status: live.status });
           }
 
@@ -182,6 +299,12 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
               ? `Access extended to ${applied.expiry}`
               : "Already applied (duplicate payment event ignored)",
           });
+          await finishDiag({
+            outcome: "PROCESSED",
+            http_status: 200,
+            signature_result: "SUCCESS",
+            note: applied.applied ? `Access extended to ${applied.expiry}` : "Already applied",
+          });
           return Response.json({ ok: true, event: type, applied: applied.applied });
         }
 
@@ -190,6 +313,12 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
         await finish({
           applied: false,
           note: "Recurring/subscription event ignored — TP-CAMP uses one-time fixed-term orders",
+        });
+        await finishDiag({
+          outcome: "PROCESSED",
+          http_status: 200,
+          signature_result: "SUCCESS",
+          note: `Event ${type} logged and ignored (not a fixed-term order event)`,
         });
         return Response.json({ ok: true, ignored: type });
       },
