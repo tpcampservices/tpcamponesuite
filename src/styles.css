@@ -191,3 +191,9 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .status-pulse::before {
+    animation: none;
+  }
+}
+
