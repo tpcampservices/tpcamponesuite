@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Check } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
@@ -77,12 +78,20 @@ function ComparePage() {
         </p>
 
         <div className="panel mt-10 overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
+            <colgroup>
+              <col className="w-[36%]" />
+              {PLANS.map((plan) => (
+                <col key={plan.id} className="w-[16%]" />
+              ))}
+            </colgroup>
             <thead>
               <tr className="border-b border-border">
-                <th className="w-[34%] p-5 text-left font-medium text-muted-foreground">Feature / limit</th>
+                <th scope="col" className="p-5 text-left font-medium text-muted-foreground">
+                  Feature / limit
+                </th>
                 {PLANS.map((p) => (
-                  <th key={p.id} className="p-5 text-center align-top">
+                  <th key={p.id} scope="col" className="p-5 text-center align-top">
                     <span className="block font-display text-base font-semibold">{p.name}</span>
                     <span className="mt-2 block font-mono text-xs text-accent">
                       USD ${p.price.yearly.USD.toLocaleString()} / yr
@@ -96,18 +105,21 @@ function ComparePage() {
             </thead>
             <tbody>
               {featureGroups.map((group) => (
-                <tbody key={group.group}>
+                <Fragment key={group.group}>
                   <tr className="bg-surface/60">
-                    <td
+                    <th
+                      scope="rowgroup"
                       colSpan={PLANS.length + 1}
-                      className="border-y border-border px-5 py-2.5 font-mono text-[0.7rem] tracking-[0.2em] text-accent uppercase"
+                      className="border-y border-border px-5 py-2.5 text-left font-mono text-[0.7rem] font-medium tracking-[0.2em] text-accent uppercase"
                     >
                       {group.group}
-                    </td>
+                    </th>
                   </tr>
                   {group.rows.map((row) => (
                     <tr key={row.label} className="border-b border-border/50">
-                      <td className="px-5 py-3.5">{row.label}</td>
+                      <th scope="row" className="px-5 py-3.5 text-left font-normal">
+                        {row.label}
+                      </th>
                       {PLANS.map((p) => (
                         <td key={p.id} className="px-5 py-3.5 text-center">
                           {row.key ? (
@@ -121,7 +133,7 @@ function ComparePage() {
                       ))}
                     </tr>
                   ))}
-                </tbody>
+                </Fragment>
               ))}
             </tbody>
           </table>
