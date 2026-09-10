@@ -170,9 +170,7 @@
 
 @utility status-pulse {
   position: relative;
-}
 
-@utility status-pulse {
   &::before {
     content: "";
     position: absolute;
