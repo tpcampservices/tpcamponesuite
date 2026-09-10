@@ -125,8 +125,8 @@ export function PaypalPayButton({ selection }: { selection: PaySelection }) {
       cancelled = true;
       if (node) node.innerHTML = "";
     };
-    // Buttons only need re-rendering when the currency (SDK instance) changes.
-  }, [selection.currency, navigate, create, capture, cancel]);
+    // Buttons only need re-rendering when the SDK instance (client id + currency) changes.
+  }, [clientId, selection.currency, navigate, create, capture, cancel]);
 
   return (
     <div className="w-full">
