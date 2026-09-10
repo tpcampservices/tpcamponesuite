@@ -207,15 +207,45 @@ function AdminSettingsPage() {
         </p>
 
         <section className="panel mt-8 p-7">
+          <h2 className="text-lg font-semibold">PayPal environment</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sandbox is the safe testing environment. Switch to Live only when you're ready to take
+            real payments. Each environment keeps its own Client ID, Secret and Webhook ID.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {(["sandbox", "live"] as Environment[]).map((env) => (
+              <button
+                key={env}
+                type="button"
+                disabled={busy}
+                onClick={() => handleEnvironmentChange(env)}
+                className={`rounded-lg border px-5 py-3 text-sm font-medium transition-colors disabled:opacity-60 ${
+                  environment === env
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border hover:border-accent/60"
+                }`}
+              >
+                {env === "sandbox" ? "Sandbox (testing)" : "Live (real payments)"}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 font-mono text-xs break-all text-muted-foreground">
+            {API_HOSTS[environment]}
+          </p>
+        </section>
+
+        <section className="panel mt-8 p-7">
           <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
-            <KeyRound className="h-4 w-4 text-accent" /> API credentials
+            <KeyRound className="h-4 w-4 text-accent" /> API credentials —{" "}
+            {environment === "live" ? "Live" : "Sandbox"}
           </h2>
 
           <div className="mt-6 space-y-6">
             {FIELDS.map((field) => {
-              const current = status.data?.settings.find((s) => s.key === field.key);
+              const key = `${field.base}_${suffix}`;
+              const current = status.data?.settings.find((s) => s.key === key);
               return (
-                <div key={field.key}>
+                <div key={key}>
                   <label className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     {field.label}
                     {current?.source === "environment" && (
@@ -239,8 +269,8 @@ function AdminSettingsPage() {
                       type="password"
                       autoComplete="new-password"
                       spellCheck={false}
-                      value={values[field.key] ?? ""}
-                      onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                      value={values[key] ?? ""}
+                      onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
                       placeholder={current?.source === "missing" ? "Paste value" : "Replace value"}
                       className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent/60"
                     />
@@ -249,7 +279,7 @@ function AdminSettingsPage() {
                         type="button"
                         disabled={busy}
                         onClick={async () => {
-                          await removeSetting({ data: { key: field.key } });
+                          await removeSetting({ data: { key } });
                           queryClient.invalidateQueries({ queryKey: ["integration-status"] });
                           toast.success("Removed.");
                         }}
