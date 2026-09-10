@@ -236,6 +236,54 @@ export type Database = {
         }
         Relationships: []
       }
+      paypal_webhook_diagnostics: {
+        Row: {
+          created_at: string
+          environment: string | null
+          event_id: string | null
+          event_type: string | null
+          headers_present: Json | null
+          http_status: number | null
+          id: string
+          note: string | null
+          outcome: string
+          paypal_debug_id: string | null
+          received_at: string
+          rejection_reason: string | null
+          signature_result: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          headers_present?: Json | null
+          http_status?: number | null
+          id?: string
+          note?: string | null
+          outcome?: string
+          paypal_debug_id?: string | null
+          received_at?: string
+          rejection_reason?: string | null
+          signature_result?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string | null
+          event_id?: string | null
+          event_type?: string | null
+          headers_present?: Json | null
+          http_status?: number | null
+          id?: string
+          note?: string | null
+          outcome?: string
+          paypal_debug_id?: string | null
+          received_at?: string
+          rejection_reason?: string | null
+          signature_result?: string | null
+        }
+        Relationships: []
+      }
       paypal_webhook_events: {
         Row: {
           applied: boolean
