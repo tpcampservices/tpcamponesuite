@@ -51,20 +51,36 @@ export function PaypalPayButton({ selection }: { selection: PaySelection }) {
   const create = useServerFn(createOrder);
   const capture = useServerFn(captureOrder);
   const cancel = useServerFn(cancelOrder);
+  const clientConfig = useServerFn(getPaypalClientConfig);
   const [error, setError] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   // Keep the latest selection available to PayPal callbacks without re-rendering buttons.
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
 
   useEffect(() => {
+    let active = true;
+    clientConfig()
+      .then((cfg) => {
+        if (!active) return;
+        if (!cfg.clientId) setError("PayPal is not configured yet. Please contact support.");
+        else setClientId(cfg.clientId);
+      })
+      .catch(() => active && setError("PayPal could not be loaded. Please try again."));
+    return () => {
+      active = false;
+    };
+  }, [clientConfig]);
+
+  useEffect(() => {
     let cancelled = false;
     const node = containerRef.current;
-    if (!node) return;
+    if (!node || !clientId) return;
     node.innerHTML = "";
     setError(null);
 
-    loadPaypalSdk(selection.currency)
+    loadPaypalSdk(clientId, selection.currency)
       .then(() => {
         if (cancelled || !containerRef.current) return;
         const paypal = (window as any).paypal;
