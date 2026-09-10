@@ -10,6 +10,7 @@ import {
   saveIntegrationSettings,
   deleteIntegrationSetting,
   testPaypalConnection,
+  setPaypalEnvironment,
   listPaypalPlans,
   savePaypalPlan,
   deletePaypalPlan,
