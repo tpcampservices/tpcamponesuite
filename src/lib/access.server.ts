@@ -24,20 +24,13 @@ export async function paypalOrdersConfigured() {
 }
 
 async function token(): Promise<string> {
-  const { clientId, clientSecret } = await getPaypalCredentials();
-  if (!clientId || !clientSecret) throw new Error("PayPal is not configured yet.");
-  const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) throw new Error(`PayPal auth failed (${res.status})`);
-  const json = (await res.json()) as { access_token?: string };
-  if (!json.access_token) throw new Error("PayPal auth failed");
-  return json.access_token;
+  const { requestPaypalToken } = await import("./subscription.server");
+  const result = await requestPaypalToken();
+  if (!result.ok) {
+    if (result.error === "missing_credentials") throw new Error("PayPal is not configured yet.");
+    throw new Error(`PayPal auth failed (${result.status ?? "unknown"})`);
+  }
+  return result.token;
 }
 
 /** Create a one-time PayPal order. No vaulting, no billing agreement, no plan id. */
@@ -48,7 +41,7 @@ export async function createPaypalOrder(args: {
   reference: string;
 }) {
   const access = await token();
-  const res = await fetch(`${paypalApiBase()}/v2/checkout/orders`, {
+  const res = await fetch(`${await paypalApiBase()}/v2/checkout/orders`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${access}`,
@@ -92,7 +85,7 @@ export type CaptureResult = {
 export async function capturePaypalOrder(orderId: string): Promise<CaptureResult> {
   const access = await token();
   const res = await fetch(
-    `${paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+    `${await paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
     {
       method: "POST",
       headers: {
@@ -122,7 +115,7 @@ export async function capturePaypalOrder(orderId: string): Promise<CaptureResult
 export async function getPaypalOrder(orderId: string): Promise<CaptureResult> {
   const access = await token();
   const res = await fetch(
-    `${paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+    `${await paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
     { headers: { Authorization: `Bearer ${access}` } },
   );
   const body = (await res.json()) as any;

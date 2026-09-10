@@ -2,22 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { cancelOrder, captureOrder, createOrder } from "@/lib/billing.functions";
+import {
+  cancelOrder,
+  captureOrder,
+  createOrder,
+  getPaypalClientConfig,
+} from "@/lib/billing.functions";
 import type { AddOnId, BillingPeriod, Currency, PlanId } from "@/lib/plans";
-
-/** Live PayPal client id (publishable — safe in the browser). The secret stays server-side. */
-const PAYPAL_CLIENT_ID =
-  "BAA1-dCj1JNNnjkGzwBjpSccQtPofb-B13xUlG5PBocQ3drUXYr7oNuBQheOrsrNESa8F4UB4Fy54NIj3Q";
 
 const sdkPromises = new Map<string, Promise<void>>();
 
 /** One-time checkout SDK — no vault, no subscription intent. */
-function loadPaypalSdk(currency: Currency) {
+function loadPaypalSdk(clientId: string, currency: Currency) {
   if (typeof window === "undefined") return Promise.resolve();
-  const existingPromise = sdkPromises.get(currency);
+  const cacheKey = `${clientId}:${currency}`;
+  const existingPromise = sdkPromises.get(cacheKey);
   if (existingPromise) return existingPromise;
   const promise = new Promise<void>((resolve, reject) => {
-    const src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=${currency}&intent=capture&components=buttons&disable-funding=credit`;
+    const src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=${currency}&intent=capture&components=buttons&disable-funding=credit`;
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
     if (existing) {
       if ((window as any).paypal) resolve();
@@ -32,7 +34,7 @@ function loadPaypalSdk(currency: Currency) {
     script.onerror = () => reject(new Error("PayPal SDK failed to load"));
     document.body.appendChild(script);
   });
-  sdkPromises.set(currency, promise);
+  sdkPromises.set(cacheKey, promise);
   return promise;
 }
 
@@ -49,20 +51,36 @@ export function PaypalPayButton({ selection }: { selection: PaySelection }) {
   const create = useServerFn(createOrder);
   const capture = useServerFn(captureOrder);
   const cancel = useServerFn(cancelOrder);
+  const clientConfig = useServerFn(getPaypalClientConfig);
   const [error, setError] = useState<string | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   // Keep the latest selection available to PayPal callbacks without re-rendering buttons.
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
 
   useEffect(() => {
+    let active = true;
+    clientConfig()
+      .then((cfg) => {
+        if (!active) return;
+        if (!cfg.clientId) setError("PayPal is not configured yet. Please contact support.");
+        else setClientId(cfg.clientId);
+      })
+      .catch(() => active && setError("PayPal could not be loaded. Please try again."));
+    return () => {
+      active = false;
+    };
+  }, [clientConfig]);
+
+  useEffect(() => {
     let cancelled = false;
     const node = containerRef.current;
-    if (!node) return;
+    if (!node || !clientId) return;
     node.innerHTML = "";
     setError(null);
 
-    loadPaypalSdk(selection.currency)
+    loadPaypalSdk(clientId, selection.currency)
       .then(() => {
         if (cancelled || !containerRef.current) return;
         const paypal = (window as any).paypal;
@@ -107,8 +125,8 @@ export function PaypalPayButton({ selection }: { selection: PaySelection }) {
       cancelled = true;
       if (node) node.innerHTML = "";
     };
-    // Buttons only need re-rendering when the currency (SDK instance) changes.
-  }, [selection.currency, navigate, create, capture, cancel]);
+    // Buttons only need re-rendering when the SDK instance (client id + currency) changes.
+  }, [clientId, selection.currency, navigate, create, capture, cancel]);
 
   return (
     <div className="w-full">

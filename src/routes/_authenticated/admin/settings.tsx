@@ -10,6 +10,7 @@ import {
   saveIntegrationSettings,
   deleteIntegrationSetting,
   testPaypalConnection,
+  setPaypalEnvironment,
   listPaypalPlans,
   savePaypalPlan,
   deletePaypalPlan,
@@ -33,29 +34,51 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettingsPage,
 });
 
+type Environment = "sandbox" | "live";
+
 const FIELDS = [
   {
-    key: "PAYPAL_CLIENT_ID" as const,
+    base: "PAYPAL_CLIENT_ID" as const,
     label: "PayPal Client ID",
-    hint: "Apps & Credentials → your live app → Client ID",
+    hint: "Apps & Credentials → the app for this environment → Client ID",
   },
   {
-    key: "PAYPAL_CLIENT_SECRET" as const,
+    base: "PAYPAL_CLIENT_SECRET" as const,
     label: "PayPal Client Secret",
     hint: "Same app → Secret. Stored server-side only; never shown again.",
   },
   {
-    key: "PAYPAL_WEBHOOK_ID" as const,
+    base: "PAYPAL_WEBHOOK_ID" as const,
     label: "PayPal Webhook ID",
-    hint: "Webhooks → the webhook pointing at the URL below.",
+    hint: "Webhooks → the webhook pointing at the URL below. Sandbox and Live webhooks are separate.",
   },
 ];
+
+const API_HOSTS: Record<Environment, string> = {
+  sandbox: "https://api-m.sandbox.paypal.com",
+  live: "https://api-m.paypal.com",
+};
+
+type TestResult = {
+  ok: boolean;
+  environment: string;
+  apiBase: string;
+  clientIdPresent: boolean;
+  clientSecretPresent: boolean;
+  webhookIdConfigured: boolean;
+  oauth: "passed" | "failed";
+  status: number | null;
+  error: string | null;
+  message: string | null;
+  debugId: string | null;
+};
 
 function AdminSettingsPage() {
   const fetchStatus = useServerFn(getIntegrationStatus);
   const save = useServerFn(saveIntegrationSettings);
   const removeSetting = useServerFn(deleteIntegrationSetting);
   const testConnection = useServerFn(testPaypalConnection);
+  const setEnvironment = useServerFn(setPaypalEnvironment);
   const fetchPlans = useServerFn(listPaypalPlans);
   const savePlan = useServerFn(savePaypalPlan);
   const removePlan = useServerFn(deletePaypalPlan);
@@ -63,6 +86,7 @@ function AdminSettingsPage() {
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [planForm, setPlanForm] = useState({
     planId: "",
     tier: 3,
@@ -75,8 +99,26 @@ function AdminSettingsPage() {
   const status = useQuery({ queryKey: ["integration-status"], queryFn: () => fetchStatus() });
   const plans = useQuery({ queryKey: ["paypal-plans"], queryFn: () => fetchPlans() });
 
+  const environment: Environment = (status.data?.environment as Environment) ?? "sandbox";
+  const suffix = environment.toUpperCase();
+
   const forbidden =
     status.error instanceof Error && status.error.message.includes("Forbidden");
+
+  async function handleEnvironmentChange(next: Environment) {
+    setBusy(true);
+    try {
+      await setEnvironment({ data: { environment: next } });
+      setValues({});
+      setTestResult(null);
+      toast.success(`PayPal environment set to ${next === "live" ? "Live" : "Sandbox"}.`);
+      queryClient.invalidateQueries({ queryKey: ["integration-status"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not switch environment");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleSave() {
     const payload = Object.fromEntries(
@@ -102,8 +144,9 @@ function AdminSettingsPage() {
   async function handleTest() {
     setBusy(true);
     try {
-      const result = await testConnection(undefined);
-      if (result.ok) toast.success("PayPal accepted these credentials.");
+      const result = (await testConnection({ data: { environment } })) as TestResult;
+      setTestResult(result);
+      if (result.ok) toast.success(`PayPal ${result.environment} credentials accepted.`);
       else toast.error("PayPal rejected the credentials or they're incomplete.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Test failed");
@@ -165,15 +208,45 @@ function AdminSettingsPage() {
         </p>
 
         <section className="panel mt-8 p-7">
+          <h2 className="text-lg font-semibold">PayPal environment</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sandbox is the safe testing environment. Switch to Live only when you're ready to take
+            real payments. Each environment keeps its own Client ID, Secret and Webhook ID.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {(["sandbox", "live"] as Environment[]).map((env) => (
+              <button
+                key={env}
+                type="button"
+                disabled={busy}
+                onClick={() => handleEnvironmentChange(env)}
+                className={`rounded-lg border px-5 py-3 text-sm font-medium transition-colors disabled:opacity-60 ${
+                  environment === env
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border hover:border-accent/60"
+                }`}
+              >
+                {env === "sandbox" ? "Sandbox (testing)" : "Live (real payments)"}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 font-mono text-xs break-all text-muted-foreground">
+            {API_HOSTS[environment]}
+          </p>
+        </section>
+
+        <section className="panel mt-8 p-7">
           <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
-            <KeyRound className="h-4 w-4 text-accent" /> API credentials
+            <KeyRound className="h-4 w-4 text-accent" /> API credentials —{" "}
+            {environment === "live" ? "Live" : "Sandbox"}
           </h2>
 
           <div className="mt-6 space-y-6">
             {FIELDS.map((field) => {
-              const current = status.data?.settings.find((s) => s.key === field.key);
+              const key = `${field.base}_${suffix}`;
+              const current = status.data?.settings.find((s) => s.key === key);
               return (
-                <div key={field.key}>
+                <div key={key}>
                   <label className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     {field.label}
                     {current?.source === "environment" && (
@@ -197,8 +270,8 @@ function AdminSettingsPage() {
                       type="password"
                       autoComplete="new-password"
                       spellCheck={false}
-                      value={values[field.key] ?? ""}
-                      onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                      value={values[key] ?? ""}
+                      onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
                       placeholder={current?.source === "missing" ? "Paste value" : "Replace value"}
                       className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-accent/60"
                     />
@@ -207,7 +280,7 @@ function AdminSettingsPage() {
                         type="button"
                         disabled={busy}
                         onClick={async () => {
-                          await removeSetting({ data: { key: field.key } });
+                          await removeSetting({ data: { key } });
                           queryClient.invalidateQueries({ queryKey: ["integration-status"] });
                           toast.success("Removed.");
                         }}
@@ -241,6 +314,47 @@ function AdminSettingsPage() {
             </button>
           </div>
 
+          {testResult && (
+            <div className="mt-6 rounded-lg border border-border bg-surface p-4 text-sm">
+              <p className="font-medium">Test result</p>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Environment tested</dt>
+                  <dd className="capitalize">{testResult.environment}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">API host tested</dt>
+                  <dd className="font-mono text-xs break-all">{testResult.apiBase}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Client ID present</dt>
+                  <dd>{testResult.clientIdPresent ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Client Secret present</dt>
+                  <dd>{testResult.clientSecretPresent ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">OAuth authentication</dt>
+                  <dd className={testResult.ok ? "text-accent" : "text-destructive"}>
+                    {testResult.ok ? "Passed" : "Failed"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Webhook ID configured</dt>
+                  <dd>{testResult.webhookIdConfigured ? "Yes" : "No"}</dd>
+                </div>
+              </dl>
+              {!testResult.ok && (
+                <p className="mt-3 text-xs text-destructive">
+                  {testResult.status ? `HTTP ${testResult.status}. ` : ""}
+                  {testResult.error ?? ""} {testResult.message ?? ""}
+                  {testResult.debugId ? ` (PayPal debug id ${testResult.debugId})` : ""}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 rounded-lg border border-border bg-surface p-4 text-sm">
             <p className="inline-flex items-center gap-2 font-medium">
               <ShieldCheck className="h-4 w-4 text-accent" /> Webhook URL
@@ -249,8 +363,9 @@ function AdminSettingsPage() {
               {status.data?.webhookUrl}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Subscribe it to the BILLING.SUBSCRIPTION.* and PAYMENT.SALE.* events, then paste the
-              webhook id above.
+              Create the webhook inside the {environment === "live" ? "Live" : "Sandbox"} PayPal app
+              pointing at this URL, subscribe it to the PAYMENT.CAPTURE.* events, then paste that
+              webhook id above. Sandbox and Live webhook ids are stored separately.
             </p>
           </div>
         </section>
