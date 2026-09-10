@@ -12,7 +12,7 @@ export const plan = {
   yearly: { usd: 500, ttd: 3500 },
   monthly: { usd: 49, ttd: 350 },
   summary:
-    "One subscription unlocks the entire TP-CAMP suite — catalogue and rights, split sheets, contracts, invoicing and payables, release operations and full double-entry label finance.",
+    "One fixed-term payment unlocks the entire TP-CAMP suite — catalogue and rights, split sheets, contracts, invoicing and payables, release operations and full double-entry label finance.",
   highlights: [
     "Works, Recordings & Releases with CSV bulk import and spreadsheet export",
     "Writer / composer / publisher and performer / producer / investor splits",
@@ -127,8 +127,8 @@ export const compareGroups: CompareGroup[] = [
     group: "Access",
     rows: [
       { feature: "Included applications", included: "All 5 apps" },
-      { feature: "Monthly price", included: "$49 USD" },
-      { feature: "Yearly price", included: "$500 USD" },
+      { feature: "Fixed-term payment", included: "One-time PayPal order" },
+      { feature: "Auto-renewal", included: "None — manual renewal" },
     ],
   },
 ];

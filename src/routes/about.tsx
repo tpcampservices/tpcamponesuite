@@ -39,7 +39,7 @@ const sections = [
   },
   {
     title: "Our approach",
-    body: "We combine catalogue and rights administration, distribution to DSPs, publishing support, release strategy, marketing, video monetisation and account management under one platform, with a creative team available for audio, video and artwork production.",
+    body: "We combine catalogue and rights administration, publishing support, release strategy and campaign management under one platform. TP-CAMP OneSuite is a software workspace for independent artists and labels — you control your data, your rights and your catalogue.",
   },
 ];
 
