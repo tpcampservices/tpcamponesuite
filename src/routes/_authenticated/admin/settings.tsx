@@ -77,6 +77,7 @@ function AdminSettingsPage() {
   const save = useServerFn(saveIntegrationSettings);
   const removeSetting = useServerFn(deleteIntegrationSetting);
   const testConnection = useServerFn(testPaypalConnection);
+  const setEnvironment = useServerFn(setPaypalEnvironment);
   const fetchPlans = useServerFn(listPaypalPlans);
   const savePlan = useServerFn(savePaypalPlan);
   const removePlan = useServerFn(deletePaypalPlan);
@@ -84,6 +85,7 @@ function AdminSettingsPage() {
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [planForm, setPlanForm] = useState({
     planId: "",
     tier: 3,
@@ -96,8 +98,26 @@ function AdminSettingsPage() {
   const status = useQuery({ queryKey: ["integration-status"], queryFn: () => fetchStatus() });
   const plans = useQuery({ queryKey: ["paypal-plans"], queryFn: () => fetchPlans() });
 
+  const environment: Environment = (status.data?.environment as Environment) ?? "sandbox";
+  const suffix = environment.toUpperCase();
+
   const forbidden =
     status.error instanceof Error && status.error.message.includes("Forbidden");
+
+  async function handleEnvironmentChange(next: Environment) {
+    setBusy(true);
+    try {
+      await setEnvironment({ data: { environment: next } });
+      setValues({});
+      setTestResult(null);
+      toast.success(`PayPal environment set to ${next === "live" ? "Live" : "Sandbox"}.`);
+      queryClient.invalidateQueries({ queryKey: ["integration-status"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not switch environment");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleSave() {
     const payload = Object.fromEntries(
@@ -123,8 +143,9 @@ function AdminSettingsPage() {
   async function handleTest() {
     setBusy(true);
     try {
-      const result = await testConnection(undefined);
-      if (result.ok) toast.success("PayPal accepted these credentials.");
+      const result = (await testConnection({ data: { environment } })) as TestResult;
+      setTestResult(result);
+      if (result.ok) toast.success(`PayPal ${result.environment} credentials accepted.`);
       else toast.error("PayPal rejected the credentials or they're incomplete.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Test failed");
