@@ -12,20 +12,15 @@ type WebhookEvent = {
   };
 };
 
-type SubStatus = "pending" | "active" | "cancelled" | "expired";
+
 
 export const Route = createFileRoute("/api/public/paypal/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const {
-          paypalAccessToken,
-          paypalApiBase,
-          mapPaypalStatus,
-          getPaypalCredentials,
-          resolvePlanMapping,
-          fetchPaypalSubscription,
-        } = await import("@/lib/subscription.server");
+        const { paypalAccessToken, paypalApiBase, getPaypalCredentials } = await import(
+          "@/lib/subscription.server"
+        );
 
         const { clientId, clientSecret, webhookId } = await getPaypalCredentials();
         if (!webhookId || !clientId || !clientSecret) {
@@ -190,110 +185,13 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
           return Response.json({ ok: true, event: type, applied: applied.applied });
         }
 
-        if (!subscriptionId) {
-          await finish({ applied: false, note: "No subscription reference on event" });
-          return Response.json({ ok: true, ignored: type });
-        }
-
-        let status: SubStatus | null = null;
-        let nextBilling: string | null = event.resource?.billing_info?.next_billing_time ?? null;
-        let planId: string | null = event.resource?.plan_id ?? null;
-
-        switch (type) {
-          case "BILLING.SUBSCRIPTION.ACTIVATED":
-          case "BILLING.SUBSCRIPTION.RE-ACTIVATED":
-          case "PAYMENT.SALE.COMPLETED":
-            status = "active";
-            break;
-          case "BILLING.SUBSCRIPTION.CANCELLED":
-            status = "cancelled";
-            break;
-          case "BILLING.SUBSCRIPTION.SUSPENDED":
-          case "BILLING.SUBSCRIPTION.PAYMENT.FAILED":
-          case "PAYMENT.SALE.DENIED":
-            status = "pending"; // access suspended until payment succeeds
-            break;
-          case "BILLING.SUBSCRIPTION.EXPIRED":
-            status = "expired";
-            break;
-          case "BILLING.SUBSCRIPTION.UPDATED":
-            status = mapPaypalStatus(event.resource?.status);
-            break;
-          default:
-            await finish({ applied: false, note: `Event type not handled: ${type}` });
-            return Response.json({ ok: true, ignored: type });
-        }
-
-        // For payment events (and whenever the plan is unknown) re-read the live
-        // subscription so status, plan and next billing date are authoritative.
-        if (type.startsWith("PAYMENT.SALE") || !planId) {
-          const live = await fetchPaypalSubscription(subscriptionId);
-          if (live) {
-            status = mapPaypalStatus(live.status);
-            nextBilling = live.billing_info?.next_billing_time ?? nextBilling;
-            planId = live.plan_id ?? planId;
-          }
-        }
-
-        const mapping = await resolvePlanMapping(planId);
-
-        const { data: existing } = await supabaseAdmin
-          .from("subscriptions")
-          .select("id, user_id, status, tier")
-          .eq("payment_reference", subscriptionId)
-          .maybeSingle();
-
-        if (!existing) {
-          await finish({
-            applied: false,
-            new_status: status,
-            plan_id: planId,
-            note: "No local subscription row matched this PayPal reference",
-          });
-          return Response.json({ ok: true, event: type, matched: false });
-        }
-
-        const update: {
-          status: SubStatus;
-          tier: number;
-          started_at?: string;
-          expires_at?: string;
-        } = { status, tier: mapping.tier };
-
-        if (status === "active") {
-          update.started_at = new Date().toISOString();
-          if (nextBilling) update.expires_at = nextBilling;
-        } else if ((status === "expired" || status === "cancelled") && nextBilling) {
-          update.expires_at = nextBilling;
-        }
-
-        const { error } = await supabaseAdmin
-          .from("subscriptions")
-          .update(update)
-          .eq("id", existing.id);
-
-        if (error) {
-          console.error("PayPal webhook DB update failed:", error.message);
-          await finish({
-            applied: false,
-            previous_status: existing.status,
-            new_status: status,
-            plan_id: planId,
-            note: `Update failed: ${error.message}`,
-          });
-          return new Response("Update failed", { status: 500 });
-        }
-
+        // TP-CAMP no longer uses PayPal recurring billing or Billing Plan IDs.
+        // Any legacy subscription event is logged for the audit trail and ignored.
         await finish({
-          applied: true,
-          previous_status: existing.status,
-          new_status: status,
-          plan_id: planId,
-          user_id: existing.user_id,
-          note: `Tier ${existing.tier} → ${mapping.tier}${mapping.label ? ` (${mapping.label})` : ""}`,
+          applied: false,
+          note: "Recurring/subscription event ignored — TP-CAMP uses one-time fixed-term orders",
         });
-
-        return Response.json({ ok: true, event: type, status, tier: mapping.tier });
+        return Response.json({ ok: true, ignored: type });
       },
     },
   },
