@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/public/paypal/webhook")({
 
         // Verify the event signature with PayPal before trusting anything in it.
         const verifyRes = await fetch(
-          `${paypalApiBase()}/v1/notifications/verify-webhook-signature`,
+          `${await paypalApiBase()}/v1/notifications/verify-webhook-signature`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },

@@ -41,7 +41,7 @@ export async function createPaypalOrder(args: {
   reference: string;
 }) {
   const access = await token();
-  const res = await fetch(`${paypalApiBase()}/v2/checkout/orders`, {
+  const res = await fetch(`${await paypalApiBase()}/v2/checkout/orders`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${access}`,
@@ -85,7 +85,7 @@ export type CaptureResult = {
 export async function capturePaypalOrder(orderId: string): Promise<CaptureResult> {
   const access = await token();
   const res = await fetch(
-    `${paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+    `${await paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
     {
       method: "POST",
       headers: {
@@ -115,7 +115,7 @@ export async function capturePaypalOrder(orderId: string): Promise<CaptureResult
 export async function getPaypalOrder(orderId: string): Promise<CaptureResult> {
   const access = await token();
   const res = await fetch(
-    `${paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+    `${await paypalApiBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`,
     { headers: { Authorization: `Bearer ${access}` } },
   );
   const body = (await res.json()) as any;
