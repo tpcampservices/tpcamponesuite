@@ -12,7 +12,7 @@ export const plan = {
   yearly: { usd: 500, ttd: 3500 },
   monthly: { usd: 49, ttd: 350 },
   summary:
-    "One subscription unlocks the entire TP-CAMP suite — catalogue and rights, split sheets, contracts, invoicing and payables, release operations and full double-entry label finance.",
+    "One fixed-term payment unlocks the entire TP-CAMP suite — catalogue and rights, split sheets, contracts, invoicing and payables, release operations and full double-entry label finance.",
   highlights: [
     "Works, Recordings & Releases with CSV bulk import and spreadsheet export",
     "Writer / composer / publisher and performer / producer / investor splits",
