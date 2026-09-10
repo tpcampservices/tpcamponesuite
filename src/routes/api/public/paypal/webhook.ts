@@ -12,20 +12,15 @@ type WebhookEvent = {
   };
 };
 
-type SubStatus = "pending" | "active" | "cancelled" | "expired";
+
 
 export const Route = createFileRoute("/api/public/paypal/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const {
-          paypalAccessToken,
-          paypalApiBase,
-          mapPaypalStatus,
-          getPaypalCredentials,
-          resolvePlanMapping,
-          fetchPaypalSubscription,
-        } = await import("@/lib/subscription.server");
+        const { paypalAccessToken, paypalApiBase, getPaypalCredentials } = await import(
+          "@/lib/subscription.server"
+        );
 
         const { clientId, clientSecret, webhookId } = await getPaypalCredentials();
         if (!webhookId || !clientId || !clientSecret) {
