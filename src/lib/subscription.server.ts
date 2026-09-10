@@ -8,6 +8,14 @@ export const PRICES = {
   yearly: { USD: 500 },
 } as const;
 
+export type PaypalEnvironment = "sandbox" | "live";
+
+export const PAYPAL_API_HOSTS: Record<PaypalEnvironment, string> = {
+  sandbox: "https://api-m.sandbox.paypal.com",
+  live: "https://api-m.paypal.com",
+};
+
+/** Base credential names; each is stored per environment as `${base}_SANDBOX` / `${base}_LIVE`. */
 export const PAYPAL_SETTING_KEYS = [
   "PAYPAL_CLIENT_ID",
   "PAYPAL_CLIENT_SECRET",
@@ -15,18 +23,9 @@ export const PAYPAL_SETTING_KEYS = [
 ] as const;
 export type PaypalSettingKey = (typeof PAYPAL_SETTING_KEYS)[number];
 
-export function paypalApiBase() {
-  return process.env.PAYPAL_API_BASE ?? "https://api-m.paypal.com";
-}
+export const PAYPAL_ENVIRONMENT_KEY = "PAYPAL_ENVIRONMENT";
 
-/**
- * Credentials come from environment secrets first, then from the encrypted-at-rest
- * `integration_settings` table written by the admin settings screen. The table has
- * no anon/authenticated grants, so only server code can ever read these values.
- */
-export async function getPaypalCredential(key: PaypalSettingKey): Promise<string | null> {
-  const fromEnv = process.env[key];
-  if (fromEnv) return fromEnv;
+async function readSetting(key: string): Promise<string | null> {
   const { data } = await supabaseAdmin
     .from("integration_settings")
     .select("value")
@@ -36,13 +35,56 @@ export async function getPaypalCredential(key: PaypalSettingKey): Promise<string
   return value.length ? value : null;
 }
 
-export async function getPaypalCredentials() {
+/** Selected PayPal environment. Sandbox is the safe default until Live is chosen. */
+export async function getPaypalEnvironment(): Promise<PaypalEnvironment> {
+  const fromEnv = (process.env[PAYPAL_ENVIRONMENT_KEY] ?? "").trim().toLowerCase();
+  if (fromEnv === "live" || fromEnv === "sandbox") return fromEnv;
+  const stored = (await readSetting(PAYPAL_ENVIRONMENT_KEY))?.toLowerCase();
+  return stored === "live" ? "live" : "sandbox";
+}
+
+export function paypalApiBaseFor(env: PaypalEnvironment) {
+  return PAYPAL_API_HOSTS[env];
+}
+
+/** API host for the currently selected environment. */
+export async function paypalApiBase() {
+  return paypalApiBaseFor(await getPaypalEnvironment());
+}
+
+export function scopedKey(key: PaypalSettingKey, env: PaypalEnvironment) {
+  return `${key}_${env.toUpperCase()}`;
+}
+
+/**
+ * Credentials come from environment secrets first, then from the encrypted-at-rest
+ * `integration_settings` table written by the admin settings screen. The table has
+ * no anon/authenticated grants, so only server code can ever read these values.
+ * Sandbox and Live values are stored under separate keys and never mixed. Legacy
+ * unscoped values are still honoured, but only for the Live environment.
+ */
+export async function getPaypalCredential(
+  key: PaypalSettingKey,
+  env: PaypalEnvironment,
+): Promise<string | null> {
+  const scoped = scopedKey(key, env);
+  const fromEnvScoped = process.env[scoped];
+  if (fromEnvScoped) return fromEnvScoped.trim();
+  if (env === "live" && process.env[key]) return (process.env[key] as string).trim();
+  const stored = await readSetting(scoped);
+  if (stored) return stored;
+  if (env === "live") return readSetting(key);
+  return null;
+}
+
+export async function getPaypalCredentials(env?: PaypalEnvironment) {
+  const environment = env ?? (await getPaypalEnvironment());
   const [clientId, clientSecret, webhookId] = await Promise.all([
-    getPaypalCredential("PAYPAL_CLIENT_ID"),
-    getPaypalCredential("PAYPAL_CLIENT_SECRET"),
-    getPaypalCredential("PAYPAL_WEBHOOK_ID"),
+    getPaypalCredential("PAYPAL_CLIENT_ID", environment),
+    getPaypalCredential("PAYPAL_CLIENT_SECRET", environment),
+    getPaypalCredential("PAYPAL_WEBHOOK_ID", environment),
   ]);
-  return { clientId, clientSecret, webhookId };
+  return { clientId, clientSecret, webhookId, environment, apiBase: paypalApiBaseFor(environment) };
 }
 
 export async function paypalConfigured() {
@@ -50,10 +92,33 @@ export async function paypalConfigured() {
   return Boolean(clientId && clientSecret);
 }
 
-export async function paypalAccessToken(): Promise<string | null> {
-  const { clientId, clientSecret } = await getPaypalCredentials();
-  if (!clientId || !clientSecret) return null;
-  const res = await fetch(`${paypalApiBase()}/v1/oauth2/token`, {
+export type PaypalTokenResult =
+  | { ok: true; token: string; environment: PaypalEnvironment; apiBase: string }
+  | {
+      ok: false;
+      environment: PaypalEnvironment;
+      apiBase: string;
+      status: number | null;
+      error: string | null;
+      message: string | null;
+      debugId: string | null;
+    };
+
+/** Requests an OAuth2 client-credentials token from the selected environment's host. */
+export async function requestPaypalToken(env?: PaypalEnvironment): Promise<PaypalTokenResult> {
+  const { clientId, clientSecret, environment, apiBase } = await getPaypalCredentials(env);
+  if (!clientId || !clientSecret) {
+    return {
+      ok: false,
+      environment,
+      apiBase,
+      status: null,
+      error: "missing_credentials",
+      message: "Client ID or Client Secret is not set for this environment.",
+      debugId: null,
+    };
+  }
+  const res = await fetch(`${apiBase}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
@@ -61,12 +126,40 @@ export async function paypalAccessToken(): Promise<string | null> {
     },
     body: "grant_type=client_credentials",
   });
-  if (!res.ok) {
-    console.error("PayPal token request failed", res.status);
-    return null;
+  const body = (await res.json().catch(() => ({}))) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+    message?: string;
+    debug_id?: string;
+  };
+  if (!res.ok || !body.access_token) {
+    const failure = {
+      ok: false as const,
+      environment,
+      apiBase,
+      status: res.status,
+      error: body.error ?? null,
+      message: body.error_description ?? body.message ?? null,
+      debugId: body.debug_id ?? res.headers.get("paypal-debug-id"),
+    };
+    // Server-side troubleshooting log — never includes credential values.
+    console.error("PayPal OAuth failed", {
+      environment,
+      apiBase,
+      status: failure.status,
+      error: failure.error,
+      message: failure.message,
+      debugId: failure.debugId,
+    });
+    return failure;
   }
-  const json = (await res.json()) as { access_token?: string };
-  return json.access_token ?? null;
+  return { ok: true, token: body.access_token, environment, apiBase };
+}
+
+export async function paypalAccessToken(): Promise<string | null> {
+  const result = await requestPaypalToken();
+  return result.ok ? result.token : null;
 }
 
 export type PaypalSubscription = {
