@@ -264,3 +264,15 @@ export const consumeLimit = createServerFn({ method: "POST" })
 
     return { allowed: true as const, used: used + data.amount, limit };
   });
+
+/**
+ * Publishable PayPal client id + environment for the browser SDK.
+ * The client id is public by design; the secret never leaves the server.
+ */
+export const getPaypalClientConfig = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { getPaypalCredentials } = await import("./subscription.server");
+    const { clientId, environment } = await getPaypalCredentials();
+    return { clientId: clientId ?? null, environment };
+  });
