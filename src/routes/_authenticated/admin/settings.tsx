@@ -314,6 +314,47 @@ function AdminSettingsPage() {
             </button>
           </div>
 
+          {testResult && (
+            <div className="mt-6 rounded-lg border border-border bg-surface p-4 text-sm">
+              <p className="font-medium">Test result</p>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Environment tested</dt>
+                  <dd className="capitalize">{testResult.environment}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">API host tested</dt>
+                  <dd className="font-mono text-xs break-all">{testResult.apiBase}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Client ID present</dt>
+                  <dd>{testResult.clientIdPresent ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Client Secret present</dt>
+                  <dd>{testResult.clientSecretPresent ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">OAuth authentication</dt>
+                  <dd className={testResult.ok ? "text-accent" : "text-destructive"}>
+                    {testResult.ok ? "Passed" : "Failed"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Webhook ID configured</dt>
+                  <dd>{testResult.webhookIdConfigured ? "Yes" : "No"}</dd>
+                </div>
+              </dl>
+              {!testResult.ok && (
+                <p className="mt-3 text-xs text-destructive">
+                  {testResult.status ? `HTTP ${testResult.status}. ` : ""}
+                  {testResult.error ?? ""} {testResult.message ?? ""}
+                  {testResult.debugId ? ` (PayPal debug id ${testResult.debugId})` : ""}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 rounded-lg border border-border bg-surface p-4 text-sm">
             <p className="inline-flex items-center gap-2 font-medium">
               <ShieldCheck className="h-4 w-4 text-accent" /> Webhook URL
@@ -322,8 +363,9 @@ function AdminSettingsPage() {
               {status.data?.webhookUrl}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Subscribe it to the BILLING.SUBSCRIPTION.* and PAYMENT.SALE.* events, then paste the
-              webhook id above.
+              Create the webhook inside the {environment === "live" ? "Live" : "Sandbox"} PayPal app
+              pointing at this URL, subscribe it to the PAYMENT.CAPTURE.* events, then paste that
+              webhook id above. Sandbox and Live webhook ids are stored separately.
             </p>
           </div>
         </section>
