@@ -63,7 +63,7 @@ type GrantForm = {
   status: string;
   subscriptionSource: string;
   paymentStatus: string;
-  billingPeriod: "monthly" | "yearly";
+  billingPeriod: "monthly" | "yearly" | "none";
   startDate: string;
   expiryDate: string;
   seatsLimit: string;
@@ -134,7 +134,11 @@ function AdminUsersPage() {
       subscriptionSource:
         ent && ent.subscriptionSource !== "paypal" ? ent.subscriptionSource : "manual_admin",
       paymentStatus: ent?.paymentStatus === "paid" ? "not_required" : (ent?.paymentStatus ?? "not_required"),
-      billingPeriod: (ent?.billingPeriod === "monthly" ? "monthly" : "yearly") as "monthly" | "yearly",
+      billingPeriod: (ent?.billingPeriod === "monthly"
+        ? "monthly"
+        : ent?.billingPeriod === "none"
+          ? "none"
+          : "yearly") as "monthly" | "yearly" | "none",
       startDate: ent?.startDate ? ent.startDate.slice(0, 10) : todayIso(),
       expiryDate: ent?.expiryDate ? ent.expiryDate.slice(0, 10) : "",
       seatsLimit: ent?.seatsLimit ? String(ent.seatsLimit) : "",
@@ -448,9 +452,27 @@ function AdminUsersPage() {
                     label="Payment status"
                     value={PAYMENT_STATUS_LABELS[form.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS]}
                   />
-                  <Summary label="Term" value={form.billingPeriod === "monthly" ? "1 month" : "12 months"} />
+                  <Summary
+                    label="Term"
+                    value={
+                      form.billingPeriod === "monthly"
+                        ? "1 month"
+                        : form.billingPeriod === "none"
+                          ? "No expiry"
+                          : "12 months"
+                    }
+                  />
                   <Summary label="Start" value={fmt(form.startDate)} />
-                  <Summary label="Expiry" value={form.expiryDate ? fmt(form.expiryDate) : "None (open-ended)"} />
+                  <Summary
+                    label="Expiry"
+                    value={
+                      form.expiryDate
+                        ? fmt(form.expiryDate)
+                        : form.billingPeriod === "none"
+                          ? "None (open-ended)"
+                          : `Calculated from the term (${form.billingPeriod === "monthly" ? "1 month" : "12 months"} from start)`
+                    }
+                  />
                   <Summary label="Seat limit" value={form.seatsLimit || "Plan default"} />
                   <Summary
                     label="Apps"
@@ -510,10 +532,13 @@ function AdminUsersPage() {
                   <Select
                     label="Term"
                     value={form.billingPeriod}
-                    onChange={(v) => setForm({ ...form, billingPeriod: v as "monthly" | "yearly" })}
+                    onChange={(v) =>
+                      setForm({ ...form, billingPeriod: v as "monthly" | "yearly" | "none" })
+                    }
                     options={[
                       { value: "monthly", label: "1 month" },
                       { value: "yearly", label: "12 months" },
+                      { value: "none", label: "No expiry (open-ended)" },
                     ]}
                   />
                   <Field
