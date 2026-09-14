@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { InvitationSummary } from "./invitations.server";
+import type { TeamMember } from "./members.server";
 
 /**
  * Workspace team invitations. The browser only ever submits an email, a desired
