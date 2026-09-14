@@ -9,9 +9,18 @@
 export type AppSlug = "catalog" | "invoice" | "splits" | "operations" | "finance";
 
 export type AppDefinition = {
-  /** Stable key — matches `app_key` in the database permission catalogue. */
+  /**
+   * Canonical, stable technical slug. Persisted in `workspace_permissions.app_key`,
+   * `workspace_member_app_access.app_key`, `sso_tickets.app_slug`, entitlement
+   * `allowed_apps` and every child-app assertion (`aud`). NEVER rename.
+   */
   key: AppSlug;
   name: string;
+  /**
+   * Short user-facing label. Free to change — it is never persisted and never
+   * used as a key. `operations` is presented as "Workflow".
+   */
+  displayLabel: string;
   blurb: string;
   /** Launch target for the SSO hand-off. */
   url: string;
@@ -24,6 +33,7 @@ export type AppDefinition = {
 export const APPS: AppDefinition[] = [
   {
     key: "catalog",
+    displayLabel: "Catalog",
     name: "TP-CAMP Catalog",
     blurb: "Works, recordings, releases and splits",
     url: "https://catalog.tpcamponesuite.app",
@@ -32,6 +42,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "invoice",
+    displayLabel: "Invoice",
     name: "TP-CAMP Invoice",
     blurb: "Invoicing, receipts and supplier payables",
     url: "https://invoice.tpcamponesuite.app",
@@ -40,6 +51,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "splits",
+    displayLabel: "Split Sheets",
     name: "TP-CAMP Split Sheets",
     blurb: "Composition & master split sheet studio",
     url: "https://splits.tpcamponesuite.app",
@@ -48,6 +60,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "operations",
+    displayLabel: "Workflow",
     name: "TP-CAMP Operations Hub",
     blurb: "Release operations & campaign command centre",
     url: "https://operations.tpcamponesuite.app",
@@ -56,6 +69,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "finance",
+    displayLabel: "Finance",
     name: "TP-CAMP Finance",
     blurb: "Double-entry accounting, budgets and royalties",
     url: "https://finance.tpcamponesuite.app",
