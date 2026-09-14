@@ -93,9 +93,6 @@ function TeamPage() {
     setAppAccessDraft(Object.fromEntries(entitled.map((app) => [app, preset])));
   }, [roleKey, entitled, data?.workspace?.id]);
 
-  const mutate = <T,>(fn: (input: T) => Promise<unknown>, message: string) =>
-    useMutationLike(fn, message, refresh);
-
   const inviteMutation = useMutation({
     mutationFn: (input: { email: string; roleKey: string; displayName: string }) =>
       invite({
@@ -512,9 +509,4 @@ function TeamPage() {
       <SiteFooter />
     </div>
   );
-}
-
-/** Placeholder kept out of the render path; mutations above are explicit. */
-function useMutationLike<T>(_fn: (input: T) => Promise<unknown>, _message: string, _refresh: () => void) {
-  return null;
 }
