@@ -188,3 +188,70 @@ export const acceptWorkspaceInvitation = createServerFn({ method: "POST" })
     const { acceptInvitation } = await import("./invitations.server");
     return acceptInvitation({ rawToken: data.token, userId: context.userId, email });
   });
+
+/* --------------------------------------------------- existing member actions */
+
+/**
+ * Every action below resolves the acting user's workspace and permission from
+ * the verified session. The browser only names a membership inside that same
+ * workspace, an app key and a level — all validated server-side.
+ */
+
+export const updateMemberRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { membershipId?: string; roleKey?: string }) => ({
+    membershipId: String(data?.membershipId ?? "").trim(),
+    roleKey: String(data?.roleKey ?? "").trim(),
+  }))
+  .handler(async ({ data, context }) => {
+    const { resolveCurrentWorkspace } = await import("./workspace.server");
+    const { changeMemberRole } = await import("./members.server");
+    const workspace = await resolveCurrentWorkspace(context.userId);
+    if (!workspace) throw new Error("You do not have a workspace yet");
+    return changeMemberRole({
+      actorUserId: context.userId,
+      workspaceId: workspace.id,
+      membershipId: data.membershipId,
+      roleKey: data.roleKey,
+    });
+  });
+
+export const updateMemberAppAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { membershipId?: string; appKey?: string; level?: string }) => ({
+    membershipId: String(data?.membershipId ?? "").trim(),
+    appKey: String(data?.appKey ?? "").trim(),
+    level: String(data?.level ?? "").trim(),
+  }))
+  .handler(async ({ data, context }) => {
+    const { resolveCurrentWorkspace } = await import("./workspace.server");
+    const { setMemberAppAccess } = await import("./members.server");
+    const workspace = await resolveCurrentWorkspace(context.userId);
+    if (!workspace) throw new Error("You do not have a workspace yet");
+    return setMemberAppAccess({
+      actorUserId: context.userId,
+      workspaceId: workspace.id,
+      membershipId: data.membershipId,
+      appKey: data.appKey,
+      level: data.level,
+    });
+  });
+
+export const updateMemberStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { membershipId?: string; status?: string }) => ({
+    membershipId: String(data?.membershipId ?? "").trim(),
+    status: String(data?.status ?? "").trim(),
+  }))
+  .handler(async ({ data, context }) => {
+    const { resolveCurrentWorkspace } = await import("./workspace.server");
+    const { setMemberStatus } = await import("./members.server");
+    const workspace = await resolveCurrentWorkspace(context.userId);
+    if (!workspace) throw new Error("You do not have a workspace yet");
+    return setMemberStatus({
+      actorUserId: context.userId,
+      workspaceId: workspace.id,
+      membershipId: data.membershipId,
+      status: data.status,
+    });
+  });
