@@ -12,6 +12,12 @@ import {
   MONTHLY_METRICS,
   type PlanLimits,
 } from "./plans";
+import {
+  deriveAccess,
+  type EntitlementPaymentStatus,
+  type EntitlementStatus,
+  type SubscriptionSource,
+} from "./entitlement-model";
 import { getPaypalCredentials, paypalApiBase } from "./subscription.server";
 
 export type AccessStatus = "none" | "active" | "expired";
@@ -161,6 +167,14 @@ export type EntitlementRow = {
   access_status: AccessStatus;
   access_start_date: string | null;
   access_expiry_date: string | null;
+  status: EntitlementStatus;
+  subscription_source: SubscriptionSource;
+  payment_status: EntitlementPaymentStatus;
+  seats_limit: number | null;
+  allowed_apps: string[] | null;
+  admin_notes: string | null;
+  granted_by: string | null;
+  granted_at: string | null;
 };
 
 export async function readEntitlement(userId: string): Promise<EntitlementRow | null> {
@@ -170,30 +184,39 @@ export async function readEntitlement(userId: string): Promise<EntitlementRow | 
     .eq("user_id", userId)
     .maybeSingle();
   if (!data) return null;
+  const row = data as any;
   return {
-    ...(data as any),
-    addons: Array.isArray((data as any).addons) ? ((data as any).addons as SelectedAddOn[]) : [],
-    access_status: ((data as any).access_status ?? "none") as AccessStatus,
+    ...row,
+    addons: Array.isArray(row.addons) ? (row.addons as SelectedAddOn[]) : [],
+    access_status: (row.access_status ?? "none") as AccessStatus,
+    status: (row.status ?? "none") as EntitlementStatus,
+    subscription_source: (row.subscription_source ?? "paypal") as SubscriptionSource,
+    payment_status: (row.payment_status ?? "paid") as EntitlementPaymentStatus,
+    allowed_apps: Array.isArray(row.allowed_apps) ? (row.allowed_apps as string[]) : null,
   };
 }
 
-/** Expire an entitlement whose paid period has lapsed. Data is never deleted. */
+/**
+ * Single access decision point. Lapses an entitlement whose access period has
+ * ended and keeps the legacy `access_status` column (read by SSO and the suite
+ * apps) derived from the richer `status`. Data is never deleted.
+ */
 export async function refreshEntitlementStatus(userId: string) {
   const row = await readEntitlement(userId);
   if (!row) return null;
-  const expired =
-    row.access_expiry_date != null && new Date(row.access_expiry_date).getTime() <= Date.now();
-  const next: AccessStatus = row.plan_id
-    ? expired
-      ? "expired"
-      : "active"
-    : "none";
-  if (next !== row.access_status) {
+
+  const derived = deriveAccess({
+    planId: row.plan_id,
+    status: row.status,
+    expiryDate: row.access_expiry_date,
+  });
+
+  if (derived.status !== row.status || derived.accessStatus !== row.access_status) {
     await supabaseAdmin
       .from("access_entitlements")
-      .update({ access_status: next })
+      .update({ status: derived.status, access_status: derived.accessStatus })
       .eq("user_id", userId);
-    return { ...row, access_status: next };
+    return { ...row, status: derived.status, access_status: derived.accessStatus };
   }
   return row;
 }
