@@ -176,7 +176,7 @@ export async function redeemTicket(token: string, appSlug: string) {
   const { resolveAppAuthorization } = await import("./workspace.server");
   const authz = await resolveAppAuthorization(ticket.user_id, appSlug);
   if (!authz.authorized || authz.accessLevel === "no_access") {
-    return { ok: false as const, reason: (authz.reason ?? "no_access") as const };
+    return { ok: false as const, reason: authz.reason ?? ("no_access" as const) };
   }
 
   const issuedAt = Math.floor(Date.now() / 1000);
