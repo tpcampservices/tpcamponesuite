@@ -402,12 +402,12 @@ export async function resolveAuthorizedApps(userId: string): Promise<{
   isOwner: boolean;
   isPlatformSuperAdmin: boolean;
 }> {
-  const workspace = await resolveCurrentWorkspace(userId);
+  const superAdmin = await isPlatformSuperAdmin(userId);
+  const workspaces = await listActiveWorkspaces(userId);
 
-  if (!workspace) {
+  if (workspaces.length === 0) {
     // Legacy single-user account with no workspace yet: entitlement alone
     // decides, exactly as before, so nobody loses access during transition.
-    const superAdmin = await isPlatformSuperAdmin(userId);
     const registry = (APP_KEYS as AppSlug[]).filter((k) => {
       const app = APPS.find((a) => a.key === k);
       return app?.enabled && app.includedInSubscription;
@@ -421,45 +421,39 @@ export async function resolveAuthorizedApps(userId: string): Promise<{
     };
   }
 
-  const [access, entitled] = await Promise.all([
-    resolveWorkspaceAccess(userId, workspace.id),
-    entitledApps(workspace.id),
-  ]);
+  let fallback: Awaited<ReturnType<typeof resolveAuthorizedApps>> | null = null;
 
-  if (access.isPlatformSuperAdmin) {
-    return {
-      apps: entitled,
+  // A user can own an empty workspace and still be a member of the paying one,
+  // so every active workspace is considered and the first that actually grants
+  // applications wins.
+  for (const workspace of workspaces) {
+    const access = await resolveWorkspaceAccess(userId, workspace.id);
+    const covered = superAdmin || (await workspaceHasActiveEntitlement(workspace.id));
+    const entitled = covered ? await entitledApps(workspace.id) : [];
+
+    const apps =
+      access.membershipStatus !== "active"
+        ? []
+        : superAdmin || access.isOwner
+          ? entitled
+          : entitled.filter(
+              (app) =>
+                access.appAccess[app] !== "no_access" &&
+                access.permissions.includes(`${app}.access`),
+            );
+
+    const resolved = {
+      apps,
       workspaceId: workspace.id,
       roleKey: access.roleKey,
       isOwner: access.isOwner,
-      isPlatformSuperAdmin: true,
+      isPlatformSuperAdmin: superAdmin,
     };
+    if (apps.length > 0) return resolved;
+    fallback ??= resolved;
   }
 
-  if (access.membershipStatus !== "active") {
-    return {
-      apps: [],
-      workspaceId: workspace.id,
-      roleKey: access.roleKey,
-      isOwner: access.isOwner,
-      isPlatformSuperAdmin: false,
-    };
-  }
-
-  const apps = access.isOwner
-    ? entitled
-    : entitled.filter(
-        (app) =>
-          access.appAccess[app] !== "no_access" && access.permissions.includes(`${app}.access`),
-      );
-
-  return {
-    apps,
-    workspaceId: workspace.id,
-    roleKey: access.roleKey,
-    isOwner: access.isOwner,
-    isPlatformSuperAdmin: false,
-  };
+  return fallback!;
 }
 
 /** Apps the workspace subscription actually includes. */
