@@ -246,8 +246,28 @@ export type SeatAccounting = {
   extraSeats: number;
   totalSeats: number;
   usedSeats: number;
+  /** Valid pending invitations — each one holds a seat until it lapses. */
+  pendingInvitations: number;
+  /** active memberships + valid pending invitations */
+  reservedSeats: number;
   availableSeats: number;
 };
+
+/**
+ * The workspace a user owns, provisioning it if it somehow does not exist yet.
+ * Always server-resolved from a verified user id — never from the browser.
+ */
+export async function ensureUserWorkspaceId(userId: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.rpc("provision_user_workspace", {
+    _user_id: userId,
+  });
+  if (error) {
+    console.error("provision_user_workspace failed", error.message);
+    const existing = await resolveCurrentWorkspace(userId);
+    return existing?.id ?? null;
+  }
+  return (data as string | null) ?? null;
+}
 
 /**
  * Seat accounting reads the SAME entitlement record billing writes:
