@@ -222,10 +222,20 @@ export const grantAccess = createServerFn({ method: "POST" })
       .eq("id", data.userId)
       .maybeSingle();
 
+    // An explicit expiry date always wins. Otherwise the chosen term sets a
+    // fixed access period, using calendar-month arithmetic; "no expiry" keeps
+    // access open-ended (used for complimentary and internal accounts).
+    const { addPeriod } = await import("./plans");
+    const expiryDate =
+      data.expiryDate ??
+      (data.billingPeriod === "none"
+        ? null
+        : addPeriod(new Date(data.startDate), data.billingPeriod).toISOString());
+
     const derived = deriveAccess({
       planId: data.planId,
       status: data.status,
-      expiryDate: data.expiryDate,
+      expiryDate,
     });
 
     const { error } = await supabaseAdmin.from("access_entitlements").upsert(
