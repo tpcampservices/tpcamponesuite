@@ -86,7 +86,11 @@ function DashboardPage() {
   const orders = data?.orders ?? [];
   const usage = data?.usage ?? [];
 
-  const hasAccess = isSuperAdmin || entitlement?.status === "active";
+  // A team member is covered by their workspace's plan, so workspace-resolved
+  // application access also counts as access.
+  const workspaceApps = appAuth?.apps ?? [];
+  const hasAccess =
+    isSuperAdmin || entitlement?.status === "active" || workspaceApps.length > 0;
   const expired = entitlement?.status === "expired";
   const remaining = daysUntil(entitlement?.expiryDate);
   const reminder =
