@@ -465,17 +465,24 @@ export async function listInvitations(
 
   return (data ?? []).map((row: any) => {
     const lapsed = row.status === "pending" && new Date(row.expires_at).getTime() <= Date.now();
+    const roleKey = row.workspace_roles?.role_key ?? "";
+    const custom = sanitizeAppAccess(row.metadata?.app_access, entitled);
+    const appAccess = Object.fromEntries(
+      entitled.map((key) => [key, custom[key] ?? roleAppAccessPreset(roleKey)]),
+    ) as Record<string, AppAccessLevel>;
     return {
       id: row.id,
       email: row.email,
       displayName: row.display_name ?? null,
-      roleKey: row.workspace_roles?.role_key ?? "",
+      roleKey,
       roleName: row.workspace_roles?.name ?? "",
       status: lapsed ? "expired" : row.status,
       expiresAt: row.expires_at,
       lastSentAt: row.last_sent_at,
       resendCount: row.resend_count ?? 0,
       createdAt: row.created_at,
+      invitedByName: row.invited_by ? (inviters.get(row.invited_by) ?? null) : null,
+      appAccess,
     };
   });
 }
