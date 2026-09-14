@@ -370,7 +370,7 @@ function DashboardPage() {
         <h2 className="mt-10 text-lg font-semibold">Your applications</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {suiteApps.map((app) =>
-            hasAccess ? (
+            canOpen(app.slug) ? (
               <button
                 key={app.url}
                 type="button"
