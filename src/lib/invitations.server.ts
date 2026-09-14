@@ -48,7 +48,7 @@ const ROLE_RANK: Record<string, number> = {
   auditor: 4,
 };
 
-/** Temporary role → app-access preset. The Team & Access UI will refine this. */
+/** Role → default app-access level. The inviter may customise this per app. */
 const ROLE_APP_ACCESS: Record<InvitableRoleKey, AppAccessLevel> = {
   administrator: "manage",
   manager: "edit",
@@ -56,6 +56,30 @@ const ROLE_APP_ACCESS: Record<InvitableRoleKey, AppAccessLevel> = {
   viewer: "view",
   auditor: "view",
 };
+
+/** The default level a role starts from. Used by the invite UI and as fallback. */
+export function roleAppAccessPreset(roleKey: string): AppAccessLevel {
+  return ROLE_APP_ACCESS[roleKey as InvitableRoleKey] ?? "view";
+}
+
+/**
+ * Reduce a requested per-app configuration to what is actually allowed:
+ * recognised TP-CAMP apps, valid levels, and only apps the workspace's
+ * entitlement includes. Anything else is dropped, never upgraded.
+ */
+export function sanitizeAppAccess(
+  requested: Record<string, unknown> | null | undefined,
+  entitled: AppSlug[],
+): Record<string, AppAccessLevel> {
+  const out: Record<string, AppAccessLevel> = {};
+  if (!requested || typeof requested !== "object") return out;
+  for (const app of entitled) {
+    const level = (requested as Record<string, unknown>)[app];
+    if (isAppAccessLevel(level)) out[app] = level;
+  }
+  return out;
+}
+
 
 export function normalizeEmail(value: unknown): string {
   return String(value ?? "").trim().toLowerCase().slice(0, 255);
