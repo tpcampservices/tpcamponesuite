@@ -16,6 +16,7 @@ import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount } from "@/lib/account.functions";
 import { getAccessState } from "@/lib/billing.functions";
 import { createAppLaunch } from "@/lib/sso.functions";
+import { getMyAuthorizedApps } from "@/lib/workspace.functions";
 import { activeReminder, daysUntil, formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
