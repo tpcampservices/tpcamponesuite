@@ -9,20 +9,23 @@ export const createAppLaunch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { appSlug?: string }) => ({ appSlug: String(data?.appSlug ?? "") }))
   .handler(async ({ data, context }) => {
-    const { mintTicket, entitlementFor } = await import("@/lib/sso.server");
-    const { resolveAuthorizedApps } = await import("@/lib/workspace.server");
+    const { mintTicket } = await import("@/lib/sso.server");
+    const { resolveAppAuthorization } = await import("@/lib/workspace.server");
 
-    // Workspace entitlement ∩ member app access ∩ role permissions is the
-    // authoritative decision; a team member is covered by their workspace's plan.
-    const authorized = await resolveAuthorizedApps(context.userId);
-    if (!(authorized.apps as string[]).includes(data.appSlug)) {
-      const entitlement = await entitlementFor(context.userId);
-      return {
-        url: null as string | null,
-        reason: entitlement.hasAccess ? ("app_not_permitted" as const) : ("no_access" as const),
-      };
+    // Everything is resolved from the verified session user: canonical app slug,
+    // active membership, workspace entitlement, the app being in the plan, the
+    // member's app access level and the role's permissions. The browser only
+    // supplies the app slug, and an unknown slug is rejected outright.
+    const authz = await resolveAppAuthorization(context.userId, data.appSlug);
+    if (!authz.authorized || authz.accessLevel === "no_access") {
+      const reason =
+        authz.reason === "invalid_app"
+          ? ("invalid_app" as const)
+          : authz.reason === "no_entitlement" || authz.reason === "no_workspace"
+            ? ("no_access" as const)
+            : ("app_not_permitted" as const);
+      return { url: null as string | null, reason };
     }
-
 
     const ticket = await mintTicket(context.userId, data.appSlug);
     return { url: ticket.url, reason: null };
