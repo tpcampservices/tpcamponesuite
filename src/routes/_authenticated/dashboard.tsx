@@ -149,6 +149,12 @@ function DashboardPage() {
               >
                 Webhook log
               </Link>
+              <Link
+                to="/admin/users"
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
+              >
+                Customer accounts
+              </Link>
             </>
           )}
         </div>
