@@ -21,6 +21,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -94,6 +95,11 @@ const AuthenticatedBusinessProfileRoute =
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/team': typeof AuthenticatedTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/auth_/callback': typeof AuthCallbackRoute
   '/auth_/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/business-profile'
     | '/dashboard'
+    | '/team'
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/business-profile'
     | '/dashboard'
+    | '/team'
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
+    | '/_authenticated/team'
     | '/auth_/callback'
     | '/auth_/invite'
     | '/invite/$token'
@@ -448,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth_/callback': {
       id: '/auth_/callback'
       path: '/auth/callback'
@@ -552,6 +571,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
@@ -562,6 +582,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
