@@ -79,7 +79,7 @@ try {
       access_expiry_date: new Date(Date.now() + 3e10).toISOString(),
     },
     { onConflict: "user_id" },
-  );
+  ).then((r) => { if (r.error) out.push("ENT ERROR " + r.error.message); });
   let seats = await getSeatAccounting(ws);
   log("seat accounting reads plan seats", seats.totalSeats === 3 && seats.usedSeats === 1 && seats.availableSeats === 2,
     JSON.stringify(seats));
