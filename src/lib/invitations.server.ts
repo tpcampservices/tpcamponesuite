@@ -154,6 +154,9 @@ export type InvitationSummary = {
   lastSentAt: string;
   resendCount: number;
   createdAt: string;
+  invitedByName: string | null;
+  /** The per-app configuration this invitation will apply on acceptance. */
+  appAccess: Record<string, AppAccessLevel>;
 };
 
 function mapPgError(message: string) {
