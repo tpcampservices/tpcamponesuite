@@ -25,24 +25,24 @@ export const getMyAccount = createServerFn({ method: "GET" })
     ]);
 
     const roles = (rolesRes.data ?? []).map((r) => r.role as string);
+    // Kept for the payment history panel only — `subscriptions` is NO LONGER an
+    // access authority. `access_entitlements` is the single access decision.
     const subscriptions = subsRes.data ?? [];
     const isSuperAdmin = roles.includes("super_admin");
 
-    const now = Date.now();
-    const activeTiers = subscriptions
-      .filter(
-        (s) =>
-          s.status === "active" && (!s.expires_at || new Date(s.expires_at).getTime() > now),
-      )
-      .map((s) => s.tier as number);
-    const highestTier = activeTiers.length ? Math.max(...activeTiers) : 0;
+    const { refreshEntitlementStatus } = await import("./access.server");
+    const entitlement = await refreshEntitlementStatus(userId);
+    const hasAccess = isSuperAdmin || entitlement?.access_status === "active";
 
     return {
       profile: profileRes.data ?? null,
       roles,
       isSuperAdmin,
       subscriptions,
-      unlockedTier: isSuperAdmin ? 3 : highestTier,
+      hasAccess,
+      accessStatus: entitlement?.status ?? "none",
+      planId: entitlement?.plan_id ?? null,
+      unlockedTier: hasAccess ? 3 : 0,
     };
   });
 
