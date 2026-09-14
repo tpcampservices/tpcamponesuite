@@ -544,9 +544,14 @@ export async function resolveAppAuthorization(
   };
 
   if (!authorized.workspaceId) {
-    // Legacy account with no workspace yet: entitlement alone decides, exactly
-    // as the launcher already behaves. Nothing regresses.
-    const permitted = (authorized.apps as string[]).includes(slug);
+    // Legacy account with no workspace yet: the user's OWN entitlement decides,
+    // exactly as the launcher behaved before workspaces existed. Requiring the
+    // entitlement here means a member without a workspace can never fall through
+    // this branch into access.
+    const own = authorized.isPlatformSuperAdmin
+      ? true
+      : (await refreshEntitlementStatus(userId))?.access_status === "active";
+    const permitted = own && (authorized.apps as string[]).includes(slug);
     return {
       ...out,
       authorized: permitted,
