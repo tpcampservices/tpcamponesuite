@@ -257,9 +257,15 @@ export async function applyPaidOrder(orderRowId: string, captureId: string | nul
     .filter((a) => a.id === "team_add")
     .reduce((sum, a) => sum + (a.quantity ?? 0), 0);
 
+  // Every entitlement written from here on is linked to the buyer's workspace,
+  // resolved server-side from the canonical user id (never from the browser).
+  const { ensureUserWorkspaceId } = await import("./workspace.server");
+  const workspaceId = await ensureUserWorkspaceId(order.user_id);
+
   await supabaseAdmin.from("access_entitlements").upsert(
     {
       user_id: order.user_id,
+      workspace_id: workspaceId,
       plan_id: order.plan_id,
       billing_period: period,
       currency: order.currency,

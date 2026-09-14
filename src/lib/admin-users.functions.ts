@@ -241,9 +241,14 @@ export const grantAccess = createServerFn({ method: "POST" })
       expiryDate,
     });
 
+    // A manual grant links the same workspace as a paid purchase would.
+    const { ensureUserWorkspaceId } = await import("./workspace.server");
+    const workspaceId = await ensureUserWorkspaceId(data.userId);
+
     const { error } = await supabaseAdmin.from("access_entitlements").upsert(
       {
         user_id: data.userId,
+        workspace_id: workspaceId,
         plan_id: data.planId,
         billing_period: data.billingPeriod,
         currency: "USD",
