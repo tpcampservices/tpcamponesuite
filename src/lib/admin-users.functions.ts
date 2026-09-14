@@ -254,7 +254,7 @@ export const grantAccess = createServerFn({ method: "POST" })
         subscription_source: data.subscriptionSource,
         payment_status: data.paymentStatus,
         access_start_date: data.startDate,
-        access_expiry_date: data.expiryDate,
+        access_expiry_date: expiryDate,
         seats_limit: data.seatsLimit,
         allowed_apps: data.allowedApps as never,
         admin_notes: data.reason,
@@ -280,7 +280,7 @@ export const grantAccess = createServerFn({ method: "POST" })
       old_payment_status: before?.payment_status ?? null,
       new_payment_status: data.paymentStatus,
       old_expiry_date: before?.access_expiry_date ?? null,
-      new_expiry_date: data.expiryDate,
+      new_expiry_date: expiryDate,
       reason: data.reason,
       details: {
         billing_period: data.billingPeriod,
