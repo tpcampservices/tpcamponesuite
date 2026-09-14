@@ -288,8 +288,30 @@ function lengthRange(length: number) {
   return "128+";
 }
 
-export function childAppAuth(request: Request): { ok: boolean; reason?: "not_configured" | "unauthorized" } {
-  const key = clean(process.env["TPCAMP_SSO_KEY"] ?? "");
+/**
+ * Verifies the calling child application.
+ *
+ * `appSlug` binds the call to one application: when a per-app key
+ * `TPCAMP_SSO_KEY_<SLUG>` is configured it must be presented, otherwise the
+ * suite-wide `TPCAMP_SSO_KEY` is accepted (current deployments). When the caller
+ * sends `x-tpcamp-app` it must equal the requested slug, so an app can never act
+ * for another app.
+ */
+export function childAppAuth(
+  request: Request,
+  appSlug?: string,
+): { ok: boolean; reason?: "not_configured" | "unauthorized" | "app_mismatch" } {
+  const perApp = appSlug
+    ? clean(process.env[`TPCAMP_SSO_KEY_${appSlug.toUpperCase()}`] ?? "")
+    : "";
+  const key = perApp || clean(process.env["TPCAMP_SSO_KEY"] ?? "");
+
+  const declaredApp = clean(request.headers.get("x-tpcamp-app") ?? "");
+  if (appSlug && declaredApp && declaredApp !== appSlug) {
+    console.warn("SSO authorization", { appMismatch: true, matched: false });
+    return { ok: false, reason: "app_mismatch" };
+  }
+
   const rawProvided =
     request.headers.get("x-tpcamp-key") ??
       request.headers.get("X-TPCAMP-KEY") ??

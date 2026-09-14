@@ -13,12 +13,6 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
     handlers: {
       POST: async ({ request }) => {
         const { childAppAuth, redeemTicket } = await import("@/lib/sso.server");
-        const auth = childAppAuth(request);
-        if (!auth.ok) {
-          return auth.reason === "not_configured"
-            ? Response.json({ error: "sso_key_not_configured" }, { status: 503 })
-            : Response.json({ error: "unauthorized" }, { status: 401 });
-        }
 
         let body: { ticket?: unknown; app_slug?: unknown };
         try {
@@ -33,6 +27,16 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
           return Response.json({ error: "missing_fields" }, { status: 400 });
         }
 
+        // The caller is verified against the application it claims to be.
+        const auth = childAppAuth(request, appSlug);
+        if (!auth.ok) {
+          if (auth.reason === "not_configured") {
+            return Response.json({ error: "sso_key_not_configured" }, { status: 503 });
+          }
+          return Response.json({ error: auth.reason ?? "unauthorized" }, { status: 401 });
+        }
+
+
         const result = await redeemTicket(ticket, appSlug);
         if (!result.ok) {
           return Response.json({ error: result.reason }, { status: 400 });
@@ -44,6 +48,11 @@ export const Route = createFileRoute("/api/public/sso/exchange")({
             email: result.email,
             name: result.name,
             app_slug: result.appSlug,
+            workspace_id: result.workspaceId,
+            app_access: result.appAccess,
+            membership_status: result.membershipStatus,
+            role_key: result.roleKey,
+            role_name: result.roleName,
             entitlement: result.entitlement,
             issued_at: result.issuedAt,
             expires_at: result.expiresAt,
