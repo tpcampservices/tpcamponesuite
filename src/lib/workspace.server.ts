@@ -1,0 +1,302 @@
+/**
+ * Server-only central authorization layer for workspaces.
+ *
+ * ONE resolver decides workspace authorization; pages and server functions must
+ * never re-derive it. The caller's user id always comes from a verified session —
+ * ids supplied by the browser are never trusted as authorization facts.
+ *
+ * This phase is additive: nothing here removes or overrides existing entitlement,
+ * SSO, super-admin or child-app behaviour.
+ */
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { refreshEntitlementStatus } from "./access.server";
+import { getPlan } from "./plans";
+import { APP_KEYS, type AppSlug } from "./apps";
+import {
+  permissionsForRole,
+  type AppAccessLevel,
+  type MembershipStatus,
+  type PermissionKey,
+} from "./permissions";
+
+export type WorkspaceSummary = {
+  id: string;
+  name: string;
+  slug: string | null;
+  ownerUserId: string;
+  status: string;
+};
+
+export type WorkspaceMembership = {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  status: MembershipStatus;
+  roleKey: string;
+  roleName: string;
+  isSystemRole: boolean;
+  joinedAt: string | null;
+};
+
+export type WorkspaceAccess = {
+  workspace: WorkspaceSummary | null;
+  membership: WorkspaceMembership | null;
+  membershipStatus: MembershipStatus | "none";
+  roleKey: string | null;
+  isOwner: boolean;
+  /** Per-app access level; apps with no row resolve to `no_access`. */
+  appAccess: Record<AppSlug, AppAccessLevel>;
+  permissions: PermissionKey[];
+  /** Platform staff role — deliberately separate from workspace roles. */
+  isPlatformSuperAdmin: boolean;
+};
+
+const EMPTY_APP_ACCESS = () =>
+  Object.fromEntries((APP_KEYS as AppSlug[]).map((k) => [k, "no_access"])) as Record<
+    AppSlug,
+    AppAccessLevel
+  >;
+
+export function emptyWorkspaceAccess(isPlatformSuperAdmin = false): WorkspaceAccess {
+  return {
+    workspace: null,
+    membership: null,
+    membershipStatus: "none",
+    roleKey: null,
+    isOwner: false,
+    appAccess: EMPTY_APP_ACCESS(),
+    permissions: [],
+    isPlatformSuperAdmin,
+  };
+}
+
+async function isPlatformSuperAdmin(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "super_admin")
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/**
+ * The single authoritative workspace authorization resolution.
+ * `userId` MUST come from a verified server-side session.
+ */
+export async function resolveWorkspaceAccess(
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceAccess> {
+  const superAdmin = await isPlatformSuperAdmin(userId);
+  const base = emptyWorkspaceAccess(superAdmin);
+
+  const { data: membership } = await supabaseAdmin
+    .from("workspace_memberships")
+    .select(
+      "id, workspace_id, user_id, status, joined_at, role_id, workspace_roles(role_key, name, is_system), workspaces(id, name, slug, owner_user_id, status)",
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) return base;
+
+  const role = membership.workspace_roles as unknown as {
+    role_key: string;
+    name: string;
+    is_system: boolean;
+  } | null;
+  const ws = membership.workspaces as unknown as {
+    id: string;
+    name: string;
+    slug: string | null;
+    owner_user_id: string;
+    status: string;
+  } | null;
+
+  const status = membership.status as MembershipStatus;
+  const resolved: WorkspaceAccess = {
+    ...base,
+    workspace: ws
+      ? {
+          id: ws.id,
+          name: ws.name,
+          slug: ws.slug,
+          ownerUserId: ws.owner_user_id,
+          status: ws.status,
+        }
+      : null,
+    membership: {
+      id: membership.id,
+      workspaceId: membership.workspace_id,
+      userId: membership.user_id,
+      status,
+      roleKey: role?.role_key ?? "",
+      roleName: role?.name ?? "",
+      isSystemRole: role?.is_system ?? false,
+      joinedAt: membership.joined_at,
+    },
+    membershipStatus: status,
+    roleKey: role?.role_key ?? null,
+    isOwner: role?.role_key === "owner",
+  };
+
+  // Only an active membership carries authority.
+  if (status !== "active") return resolved;
+
+  const { data: appRows } = await supabaseAdmin
+    .from("workspace_member_app_access")
+    .select("app_key, access_level")
+    .eq("membership_id", membership.id);
+
+  const appAccess = EMPTY_APP_ACCESS();
+  for (const row of appRows ?? []) {
+    if ((APP_KEYS as string[]).includes(row.app_key)) {
+      appAccess[row.app_key as AppSlug] = row.access_level as AppAccessLevel;
+    }
+  }
+  // The Owner always retains full access to every app in the registry.
+  if (resolved.isOwner) for (const key of APP_KEYS as AppSlug[]) appAccess[key] = "manage";
+
+  // Role permissions come from the stored mapping, with the code catalogue as the
+  // fallback so a freshly seeded environment behaves identically.
+  let permissions: PermissionKey[] = [];
+  const { data: rolePerms } = await supabaseAdmin
+    .from("workspace_role_permissions")
+    .select("workspace_permissions(permission_key)")
+    .eq("role_id", membership.role_id);
+  permissions = (rolePerms ?? [])
+    .map((r) => (r.workspace_permissions as unknown as { permission_key: string } | null))
+    .filter((p): p is { permission_key: string } => Boolean(p))
+    .map((p) => p.permission_key);
+  if (permissions.length === 0 && role?.role_key) {
+    permissions = permissionsForRole(role.role_key);
+  }
+
+  // Per-member app access narrows the role: a member with no access to an app
+  // holds none of that app's permissions. (Override/group hooks land in Step 4+.)
+  const filtered = permissions.filter((key) => {
+    const app = key.split(".")[0] as AppSlug;
+    if (!(APP_KEYS as string[]).includes(app)) return true;
+    return appAccess[app] !== "no_access";
+  });
+
+  return { ...resolved, appAccess, permissions: filtered };
+}
+
+export async function hasWorkspacePermission(
+  userId: string,
+  workspaceId: string,
+  permissionKey: PermissionKey,
+): Promise<boolean> {
+  const access = await resolveWorkspaceAccess(userId, workspaceId);
+  if (access.membershipStatus !== "active") return false;
+  if (access.isOwner) return true;
+  return access.permissions.includes(permissionKey);
+}
+
+/**
+ * The user's current workspace. Multi-workspace ready: it picks the caller's
+ * active memberships, prefers a workspace they own, and validates membership
+ * server-side. Never derived from browser storage.
+ */
+export async function resolveCurrentWorkspace(
+  userId: string,
+  preferredWorkspaceId?: string | null,
+): Promise<WorkspaceSummary | null> {
+  const { data } = await supabaseAdmin
+    .from("workspace_memberships")
+    .select("workspace_id, workspaces(id, name, slug, owner_user_id, status)")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  const rows = (data ?? [])
+    .map((r) => r.workspaces as unknown as WorkspaceSummaryRow | null)
+    .filter((w): w is WorkspaceSummaryRow => Boolean(w) && w!.status === "active");
+
+  if (rows.length === 0) return null;
+
+  const chosen =
+    (preferredWorkspaceId ? rows.find((w) => w.id === preferredWorkspaceId) : undefined) ??
+    rows.find((w) => w.owner_user_id === userId) ??
+    rows[0]!;
+
+  return {
+    id: chosen.id,
+    name: chosen.name,
+    slug: chosen.slug,
+    ownerUserId: chosen.owner_user_id,
+    status: chosen.status,
+  };
+}
+
+type WorkspaceSummaryRow = {
+  id: string;
+  name: string;
+  slug: string | null;
+  owner_user_id: string;
+  status: string;
+};
+
+export type SeatAccounting = {
+  workspaceId: string;
+  planId: string | null;
+  includedSeats: number;
+  extraSeats: number;
+  totalSeats: number;
+  usedSeats: number;
+  availableSeats: number;
+};
+
+/**
+ * Seat accounting reads the SAME entitlement record billing writes:
+ * `seats_limit` (explicit override) or the plan's included seats, plus
+ * `seats_extra` from purchased Team Add seats. No second seat calculation exists,
+ * and nothing here writes to billing.
+ */
+export async function getSeatAccounting(workspaceId: string): Promise<SeatAccounting> {
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces")
+    .select("owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  const entitlement = ws?.owner_user_id
+    ? await refreshEntitlementStatus(ws.owner_user_id)
+    : null;
+
+  const plan = getPlan(entitlement?.plan_id ?? null);
+  const includedSeats =
+    entitlement?.seats_limit ?? plan?.features.includedSeats ?? plan?.limits.seats ?? 0;
+  const extraSeats = entitlement?.seats_extra ?? 0;
+  const totalSeats = includedSeats + extraSeats;
+
+  // Active memberships only — suspended and removed members free their seat.
+  const { count } = await supabaseAdmin
+    .from("workspace_memberships")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("status", "active");
+
+  const usedSeats = count ?? 0;
+
+  return {
+    workspaceId,
+    planId: entitlement?.plan_id ?? null,
+    includedSeats,
+    extraSeats,
+    totalSeats,
+    usedSeats,
+    availableSeats: Math.max(0, totalSeats - usedSeats),
+  };
+}
+
+/** Seat guard for the upcoming invitation workflow. Read-only, never billing. */
+export async function workspaceHasAvailableSeat(workspaceId: string): Promise<{
+  ok: boolean;
+  seats: SeatAccounting;
+}> {
+  const seats = await getSeatAccounting(workspaceId);
+  return { ok: seats.availableSeats > 0, seats };
+}

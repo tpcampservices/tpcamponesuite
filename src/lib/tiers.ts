@@ -31,38 +31,13 @@ export const plan = {
   ],
 };
 
-export const suiteApps: AppLink[] = [
-  {
-    slug: "catalog",
-    name: "TP-CAMP Catalog",
-    url: "https://catalog.tpcamponesuite.app",
-    blurb: "Works, recordings, releases and splits",
-  },
-  {
-    slug: "invoice",
-    name: "TP-CAMP Invoice",
-    url: "https://invoice.tpcamponesuite.app",
-    blurb: "Invoicing, receipts and supplier payables",
-  },
-  {
-    slug: "splits",
-    name: "TP-CAMP Split Sheets",
-    url: "https://splits.tpcamponesuite.app",
-    blurb: "Composition & master split sheet studio",
-  },
-  {
-    slug: "operations",
-    name: "TP-CAMP Operations Hub",
-    url: "https://operations.tpcamponesuite.app",
-    blurb: "Release operations & campaign command centre",
-  },
-  {
-    slug: "finance",
-    name: "TP-CAMP Finance",
-    url: "https://finance.tpcamponesuite.app",
-    blurb: "Double-entry accounting, budgets and royalties",
-  },
-];
+/** Derived from the central registry — do not add apps here. */
+export const suiteApps: AppLink[] = APPS.filter((a) => a.enabled).map((a) => ({
+  slug: a.key,
+  name: a.name,
+  url: a.url,
+  blurb: a.blurb,
+}));
 
 export type CompareRow = { feature: string; included: boolean | string };
 export type CompareGroup = { group: string; rows: CompareRow[] };
