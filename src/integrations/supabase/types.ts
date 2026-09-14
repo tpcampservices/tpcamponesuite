@@ -35,6 +35,7 @@ export type Database = {
           subscription_source: string
           updated_at: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           access_expiry_date?: string | null
@@ -56,6 +57,7 @@ export type Database = {
           subscription_source?: string
           updated_at?: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           access_expiry_date?: string | null
@@ -77,8 +79,17 @@ export type Database = {
           subscription_source?: string
           updated_at?: string
           user_id?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "access_entitlements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_access_audit: {
         Row: {
@@ -662,11 +673,238 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_member_app_access: {
+        Row: {
+          access_level: string
+          app_key: string
+          created_at: string
+          id: string
+          membership_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_level?: string
+          app_key: string
+          created_at?: string
+          id?: string
+          membership_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_level?: string
+          app_key?: string
+          created_at?: string
+          id?: string
+          membership_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_member_app_access_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string | null
+          role_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_memberships_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_memberships_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_permissions: {
+        Row: {
+          action_key: string
+          app_key: string
+          created_at: string
+          description: string | null
+          id: string
+          permission_key: string
+        }
+        Insert: {
+          action_key: string
+          app_key: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          permission_key: string
+        }
+        Update: {
+          action_key?: string
+          app_key?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          permission_key?: string
+        }
+        Relationships: []
+      }
+      workspace_role_permissions: {
+        Row: {
+          created_at: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_protected: boolean
+          is_system: boolean
+          name: string
+          rank: number
+          role_key: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_protected?: boolean
+          is_system?: boolean
+          name: string
+          rank?: number
+          role_key: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_protected?: boolean
+          is_system?: boolean
+          name?: string
+          rank?: number
+          role_key?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_roles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          slug: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_workspace_role: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -676,6 +914,22 @@ export type Database = {
       }
       has_tier_access: {
         Args: { _tier: number; _user_id: string }
+        Returns: boolean
+      }
+      has_workspace_permission: {
+        Args: {
+          _permission_key: string
+          _user_id: string
+          _workspace_id: string
+        }
+        Returns: boolean
+      }
+      is_active_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
     }

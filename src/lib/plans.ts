@@ -19,12 +19,28 @@ export type PlanLimits = {
   splitSheetsPerMonth: number;
 };
 
+/**
+ * Team & authorization capability flags per plan.
+ *
+ * `includedSeats` always mirrors `limits.seats` — it exists so the team layer has
+ * a named entitlement field and never re-derives seats from a second source.
+ * The remaining flags are declared now for the upcoming team features and are
+ * deliberately NOT enforced in this phase, so no existing customer is restricted.
+ */
+export type PlanFeatures = {
+  includedSeats: number;
+  maxCustomRoles: number;
+  permissionGroupsEnabled: boolean;
+  advancedPermissionsEnabled: boolean;
+};
+
 export type PlanDefinition = {
   id: PlanId;
   name: string;
   tagline: string;
   price: Record<BillingPeriod, Record<Currency, number>>;
   limits: PlanLimits;
+  features: PlanFeatures;
   highlight?: boolean;
 };
 
@@ -46,6 +62,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 5,
       splitSheetsPerMonth: 50,
     },
+    features: {
+      includedSeats: 1,
+      maxCustomRoles: 0,
+      permissionGroupsEnabled: false,
+      advancedPermissionsEnabled: false,
+    },
   },
   {
     id: "growth",
@@ -65,6 +87,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 10,
       splitSheetsPerMonth: 300,
     },
+    features: {
+      includedSeats: 3,
+      maxCustomRoles: 2,
+      permissionGroupsEnabled: false,
+      advancedPermissionsEnabled: false,
+    },
   },
   {
     id: "pro",
@@ -83,6 +111,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 50,
       splitSheetsPerMonth: 1000,
     },
+    features: {
+      includedSeats: 8,
+      maxCustomRoles: 5,
+      permissionGroupsEnabled: true,
+      advancedPermissionsEnabled: true,
+    },
   },
   {
     id: "institutional",
@@ -100,6 +134,12 @@ export const PLANS: PlanDefinition[] = [
       financeTransactionsPerMonth: 20000,
       contractsPerMonth: 250,
       splitSheetsPerMonth: 10000,
+    },
+    features: {
+      includedSeats: 25,
+      maxCustomRoles: 25,
+      permissionGroupsEnabled: true,
+      advancedPermissionsEnabled: true,
     },
   },
 ];
