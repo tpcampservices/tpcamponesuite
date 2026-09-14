@@ -293,13 +293,25 @@ export async function getSeatAccounting(workspaceId: string): Promise<SeatAccoun
   const totalSeats = includedSeats + extraSeats;
 
   // Active memberships only — suspended and removed members free their seat.
-  const { count } = await supabaseAdmin
-    .from("workspace_memberships")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
-    .eq("status", "active");
+  const [{ count }, { count: pendingCount }] = await Promise.all([
+    supabaseAdmin
+      .from("workspace_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active"),
+    // A pending invitation reserves a seat; cancelled, accepted and lapsed
+    // invitations release it (expiry is evaluated live, not by a background job).
+    supabaseAdmin
+      .from("workspace_invitations")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString()),
+  ]);
 
   const usedSeats = count ?? 0;
+  const pendingInvitations = pendingCount ?? 0;
+  const reservedSeats = usedSeats + pendingInvitations;
 
   return {
     workspaceId,
@@ -308,15 +320,36 @@ export async function getSeatAccounting(workspaceId: string): Promise<SeatAccoun
     extraSeats,
     totalSeats,
     usedSeats,
-    availableSeats: Math.max(0, totalSeats - usedSeats),
+    pendingInvitations,
+    reservedSeats,
+    availableSeats: Math.max(0, totalSeats - reservedSeats),
   };
 }
 
-/** Seat guard for the upcoming invitation workflow. Read-only, never billing. */
+/** Seat guard for the invitation workflow. Read-only, never billing. */
 export async function workspaceHasAvailableSeat(workspaceId: string): Promise<{
   ok: boolean;
   seats: SeatAccounting;
 }> {
   const seats = await getSeatAccounting(workspaceId);
   return { ok: seats.availableSeats > 0, seats };
+}
+
+/** Apps the workspace subscription actually includes. */
+export async function entitledApps(workspaceId: string): Promise<AppSlug[]> {
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces")
+    .select("owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  const entitlement = ws?.owner_user_id ? await refreshEntitlementStatus(ws.owner_user_id) : null;
+  const allowed = entitlement?.allowed_apps;
+  const registry = (APP_KEYS as AppSlug[]).filter((k) => {
+    const app = APPS.find((a) => a.key === k);
+    return app?.enabled && app.includedInSubscription;
+  });
+  if (Array.isArray(allowed) && allowed.length) {
+    return registry.filter((k) => allowed.includes(k));
+  }
+  return registry;
 }
