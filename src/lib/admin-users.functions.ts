@@ -230,7 +230,10 @@ export const grantAccess = createServerFn({ method: "POST" })
       data.expiryDate ??
       (data.billingPeriod === "none"
         ? null
-        : addPeriod(new Date(data.startDate), data.billingPeriod).toISOString());
+        : addPeriod(
+            new Date(data.startDate),
+            data.billingPeriod === "monthly" ? "monthly" : "yearly",
+          ).toISOString());
 
     const derived = deriveAccess({
       planId: data.planId,
