@@ -391,18 +391,23 @@ export async function acceptInvitation(args: {
 
   const { data: inv } = await supabaseAdmin
     .from("workspace_invitations")
-    .select("id, workspace_id, role_id, workspace_roles(role_key)")
+    .select("id, workspace_id, role_id, metadata, workspace_roles(role_key)")
     .eq("token_hash", tokenHash)
     .maybeSingle();
   if (!inv) return { ok: false, reason: "invalid" };
 
   const roleKey = (inv.workspace_roles as unknown as { role_key: string } | null)?.role_key ?? "";
-  const preset = ROLE_APP_ACCESS[roleKey as InvitableRoleKey] ?? "view";
+  const preset = roleAppAccessPreset(roleKey);
 
-  // Intersection of the workspace's entitled apps with the role preset — a role
-  // can never unlock an app the subscription does not include.
+  // Intersection of the workspace's entitled apps with either the inviter's
+  // custom configuration or the role preset — neither can ever unlock an app
+  // the subscription does not include.
   const apps = await entitledApps(inv.workspace_id);
-  const appAccess = Object.fromEntries(apps.map((key: AppSlug) => [key, preset]));
+  const requested = (inv.metadata as { app_access?: Record<string, unknown> } | null)?.app_access;
+  const custom = sanitizeAppAccess(requested, apps);
+  const appAccess = Object.fromEntries(
+    apps.map((key: AppSlug) => [key, custom[key] ?? preset]),
+  );
 
   const seats = await getSeatAccounting(inv.workspace_id);
 
