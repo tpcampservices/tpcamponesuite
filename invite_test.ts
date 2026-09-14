@@ -240,6 +240,8 @@ try {
     expires_at: new Date().toISOString(),
   } as never);
   log("anonymous cannot write invitations", Boolean(anonWrite.error));
+} catch (err) {
+  out.push("CRASH — " + (err as Error).message);
 } finally {
   for (const id of [owner, admin, staff, guest, extra]) {
     await supabaseAdmin.auth.admin.deleteUser(id).catch(() => {});
