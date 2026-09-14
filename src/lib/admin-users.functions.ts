@@ -172,7 +172,12 @@ function parseGrant(data: GrantInput) {
     status: data.status as EntitlementStatus,
     subscriptionSource: data.subscriptionSource as SubscriptionSource,
     paymentStatus: data.paymentStatus as EntitlementPaymentStatus,
-    billingPeriod: data?.billingPeriod === "monthly" ? "monthly" : "yearly",
+    billingPeriod:
+      data?.billingPeriod === "monthly"
+        ? "monthly"
+        : data?.billingPeriod === "none"
+          ? "none"
+          : "yearly",
     startDate: isoOrNull(data?.startDate) ?? new Date().toISOString(),
     expiryDate: isoOrNull(data?.expiryDate),
     seatsLimit:
@@ -217,10 +222,23 @@ export const grantAccess = createServerFn({ method: "POST" })
       .eq("id", data.userId)
       .maybeSingle();
 
+    // An explicit expiry date always wins. Otherwise the chosen term sets a
+    // fixed access period, using calendar-month arithmetic; "no expiry" keeps
+    // access open-ended (used for complimentary and internal accounts).
+    const { addPeriod } = await import("./plans");
+    const expiryDate =
+      data.expiryDate ??
+      (data.billingPeriod === "none"
+        ? null
+        : addPeriod(
+            new Date(data.startDate),
+            data.billingPeriod === "monthly" ? "monthly" : "yearly",
+          ).toISOString());
+
     const derived = deriveAccess({
       planId: data.planId,
       status: data.status,
-      expiryDate: data.expiryDate,
+      expiryDate,
     });
 
     const { error } = await supabaseAdmin.from("access_entitlements").upsert(
@@ -236,7 +254,7 @@ export const grantAccess = createServerFn({ method: "POST" })
         subscription_source: data.subscriptionSource,
         payment_status: data.paymentStatus,
         access_start_date: data.startDate,
-        access_expiry_date: data.expiryDate,
+        access_expiry_date: expiryDate,
         seats_limit: data.seatsLimit,
         allowed_apps: data.allowedApps as never,
         admin_notes: data.reason,
@@ -262,7 +280,7 @@ export const grantAccess = createServerFn({ method: "POST" })
       old_payment_status: before?.payment_status ?? null,
       new_payment_status: data.paymentStatus,
       old_expiry_date: before?.access_expiry_date ?? null,
-      new_expiry_date: data.expiryDate,
+      new_expiry_date: expiryDate,
       reason: data.reason,
       details: {
         billing_period: data.billingPeriod,

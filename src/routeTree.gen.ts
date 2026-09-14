@@ -24,6 +24,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
@@ -31,6 +32,8 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
 import { Route as ApiPublicSsoEntitlementRouteImport } from './routes/api/public/sso/entitlement'
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -108,6 +111,11 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminWebhooksRoute =
   AuthenticatedAdminWebhooksRouteImport.update({
     id: '/admin/webhooks',
@@ -147,6 +155,16 @@ const ApiPublicSsoExchangeRoute = ApiPublicSsoExchangeRouteImport.update({
   path: '/api/public/sso/exchange',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -163,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
@@ -170,6 +189,8 @@ export interface FileRoutesByFullPath {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -186,6 +207,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
@@ -193,6 +215,8 @@ export interface FileRoutesByTo {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -211,6 +235,7 @@ export interface FileRoutesById {
   '/auth_/callback': typeof AuthCallbackRoute
   '/auth_/invite': typeof AuthInviteRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
@@ -218,6 +243,8 @@ export interface FileRoutesById {
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -236,6 +263,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/invite'
     | '/admin/settings'
+    | '/admin/users'
     | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts/'
@@ -243,6 +271,8 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -259,6 +289,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/invite'
     | '/admin/settings'
+    | '/admin/users'
     | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts'
@@ -266,6 +297,8 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
   id:
     | '__root__'
     | '/'
@@ -283,6 +316,7 @@ export interface FileRouteTypes {
     | '/auth_/callback'
     | '/auth_/invite'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/users'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
     | '/_authenticated/contracts/'
@@ -290,6 +324,8 @@ export interface FileRouteTypes {
     | '/api/public/paypal/webhook'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -309,6 +345,8 @@ export interface RootRouteChildren {
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
   ApiPublicSsoEntitlementRoute: typeof ApiPublicSsoEntitlementRoute
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -418,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/webhooks': {
       id: '/_authenticated/admin/webhooks'
       path: '/admin/webhooks'
@@ -467,6 +512,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSsoExchangeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -474,6 +533,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
   AuthenticatedContractsContractIdRoute: typeof AuthenticatedContractsContractIdRoute
   AuthenticatedContractsIndexRoute: typeof AuthenticatedContractsIndexRoute
@@ -483,6 +543,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
   AuthenticatedContractsContractIdRoute: AuthenticatedContractsContractIdRoute,
   AuthenticatedContractsIndexRoute: AuthenticatedContractsIndexRoute,
@@ -508,6 +569,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
   ApiPublicSsoEntitlementRoute: ApiPublicSsoEntitlementRoute,
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -62,7 +62,8 @@ function AuthPage() {
         email: parsed.data.email,
         password: parsed.data.password,
         options: {
-          emailRedirectTo: window.location.origin,
+          // Confirmation returns into the app, not the marketing home page.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: String(formData.get("full_name") ?? "").slice(0, 100),
             organisation: String(formData.get("organisation") ?? "").slice(0, 100),
@@ -75,8 +76,16 @@ function AuthPage() {
         toast.error(error.message);
         return;
       }
-      toast.success("Account created. Check your inbox if confirmation is required.");
-      navigate({ to: "/dashboard" });
+      // With email confirmation on, there is no session yet — say so plainly
+      // instead of bouncing the person off a protected route.
+      const { data: session } = await supabase.auth.getSession();
+      if (session.session) {
+        toast.success("Account created.");
+        navigate({ to: "/dashboard" });
+      } else {
+        toast.success("Account created. Check your inbox to confirm your email address.");
+        setMode("signin");
+      }
       return;
     }
 
@@ -91,7 +100,7 @@ function AuthPage() {
 
   async function handleGoogle() {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth/callback`,
     });
     if (result.error) {
       toast.error("Google sign-in failed. Please try again.");

@@ -25,99 +25,30 @@ export const getMyAccount = createServerFn({ method: "GET" })
     ]);
 
     const roles = (rolesRes.data ?? []).map((r) => r.role as string);
+    // Kept for the payment history panel only — `subscriptions` is NO LONGER an
+    // access authority. `access_entitlements` is the single access decision.
     const subscriptions = subsRes.data ?? [];
     const isSuperAdmin = roles.includes("super_admin");
 
-    const now = Date.now();
-    const activeTiers = subscriptions
-      .filter(
-        (s) =>
-          s.status === "active" && (!s.expires_at || new Date(s.expires_at).getTime() > now),
-      )
-      .map((s) => s.tier as number);
-    const highestTier = activeTiers.length ? Math.max(...activeTiers) : 0;
+    const { refreshEntitlementStatus } = await import("./access.server");
+    const entitlement = await refreshEntitlementStatus(userId);
+    const hasAccess = isSuperAdmin || entitlement?.access_status === "active";
 
     return {
       profile: profileRes.data ?? null,
       roles,
       isSuperAdmin,
       subscriptions,
-      unlockedTier: isSuperAdmin ? 3 : highestTier,
+      hasAccess,
+      accessStatus: entitlement?.status ?? "none",
+      planId: entitlement?.plan_id ?? null,
+      unlockedTier: hasAccess ? 3 : 0,
     };
   });
 
-export const startCheckout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (data: { cycle?: "monthly" | "yearly"; currency?: "USD"; returnUrl?: string }) => {
-      const cycle = data?.cycle === "monthly" ? "monthly" : "yearly";
-      const currency = "USD" as const;
-      const returnUrl =
-        typeof data?.returnUrl === "string" && data.returnUrl.startsWith("http")
-          ? data.returnUrl.slice(0, 500)
-          : undefined;
-      return { cycle: cycle as "monthly" | "yearly", currency, returnUrl };
-    },
-  )
-  .handler(async ({ data, context }) => {
-    const prices = {
-      monthly: { USD: 49 },
-      yearly: { USD: 500 },
-    } as const;
-    const amount = prices[data.cycle][data.currency];
-    const reference = `tpcamp-onesuite-${data.cycle}-${crypto.randomUUID()}`;
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { error } = await supabaseAdmin.from("subscriptions").insert({
-      user_id: context.userId,
-      tier: 3,
-      status: "pending",
-      currency: data.currency,
-      amount,
-      payment_reference: reference,
-      payment_provider: "external",
-    });
-    if (error) throw new Error(error.message);
-
-
-
-    const apiUrl = process.env.PAYMENT_PORTAL_API_URL;
-    const apiKey = process.env.PAYMENT_PORTAL_API_KEY;
-
-    if (!apiUrl) {
-      return { configured: false as const, free: false, reference, amount, currency: data.currency };
-    }
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        reference,
-        plan: "onesuite",
-        cycle: data.cycle,
-        amount,
-        currency: data.currency,
-        customer_email: context.claims.email ?? null,
-        return_url: data.returnUrl,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      console.error(`Payment portal request failed [${response.status}]: ${body}`);
-      throw new Error(`Payment portal request failed [${response.status}]`);
-    }
-
-    const payload = (await response.json()) as {
-      checkout_url?: string;
-      url?: string;
-      redirect_url?: string;
-    };
-    const checkoutUrl = payload.checkout_url ?? payload.url ?? payload.redirect_url ?? null;
-
-    return { configured: true as const, reference, amount, currency: data.currency, checkoutUrl };
-  });
+/*
+ * The former `startCheckout` server function was removed: it wrote a pending
+ * row into the legacy `subscriptions` table, which is no longer an access
+ * authority. All purchasing now goes through `billing.functions.ts`
+ * (PayPal Orders) and writes into `access_entitlements`.
+ */
