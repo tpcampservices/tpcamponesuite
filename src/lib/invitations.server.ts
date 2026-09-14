@@ -177,6 +177,8 @@ export async function createInvitation(args: {
   email: string;
   roleKey: string;
   displayName?: string | null;
+  /** Optional per-app configuration. Validated and narrowed server-side. */
+  appAccess?: Record<string, unknown> | null;
 }): Promise<{ invitationId: string; token: string; expiresAt: string; seats: SeatAccounting }> {
   const access = await assertMayInvite(args.actorUserId, args.workspaceId);
   assertRoleAssignable(access.roleKey, access.isOwner, args.roleKey);
