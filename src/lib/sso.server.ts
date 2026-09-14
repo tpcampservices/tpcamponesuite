@@ -216,11 +216,56 @@ export async function redeemTicket(token: string, appSlug: string) {
     email: entitlement.email,
     name: entitlement.fullName,
     appSlug,
+    workspaceId: authz.workspaceId,
+    appAccess: authz.accessLevel,
+    membershipStatus: authz.membershipStatus,
+    roleKey: authz.roleKey,
+    roleName: authz.roleName,
     assertion,
     issuedAt,
     expiresAt,
     jti,
     entitlement,
+  };
+}
+
+export type AppAuthorizationResponse = {
+  authorized: boolean;
+  user_id: string;
+  workspace_id: string | null;
+  app_slug: string | null;
+  app_access: "no_access" | "view" | "edit" | "manage";
+  membership_status: string;
+  role_key: string | null;
+  role_name: string | null;
+  checked_at: string;
+  reason: string | null;
+};
+
+/**
+ * Minimal authorization answer for the server-to-server endpoint. It delegates
+ * entirely to the OneSuite resolver, so suspension, removal, level changes,
+ * role changes, entitlement expiry, plan changes and workspace status are all
+ * reflected on the very next call. No entitlement, billing, profile or
+ * permission detail is returned.
+ */
+export async function authorizationFor(
+  userId: string,
+  appSlug: string,
+): Promise<AppAuthorizationResponse> {
+  const { resolveAppAuthorization } = await import("./workspace.server");
+  const authz = await resolveAppAuthorization(userId, appSlug);
+  return {
+    authorized: authz.authorized,
+    user_id: userId,
+    workspace_id: authz.workspaceId,
+    app_slug: authz.appSlug,
+    app_access: authz.accessLevel,
+    membership_status: authz.membershipStatus,
+    role_key: authz.roleKey,
+    role_name: authz.roleName,
+    checked_at: new Date().toISOString(),
+    reason: authz.reason,
   };
 }
 
