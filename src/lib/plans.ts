@@ -19,12 +19,28 @@ export type PlanLimits = {
   splitSheetsPerMonth: number;
 };
 
+/**
+ * Team & authorization capability flags per plan.
+ *
+ * `includedSeats` always mirrors `limits.seats` — it exists so the team layer has
+ * a named entitlement field and never re-derives seats from a second source.
+ * The remaining flags are declared now for the upcoming team features and are
+ * deliberately NOT enforced in this phase, so no existing customer is restricted.
+ */
+export type PlanFeatures = {
+  includedSeats: number;
+  maxCustomRoles: number;
+  permissionGroupsEnabled: boolean;
+  advancedPermissionsEnabled: boolean;
+};
+
 export type PlanDefinition = {
   id: PlanId;
   name: string;
   tagline: string;
   price: Record<BillingPeriod, Record<Currency, number>>;
   limits: PlanLimits;
+  features: PlanFeatures;
   highlight?: boolean;
 };
 
