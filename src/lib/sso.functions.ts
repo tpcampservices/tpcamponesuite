@@ -12,16 +12,17 @@ export const createAppLaunch = createServerFn({ method: "POST" })
     const { mintTicket, entitlementFor } = await import("@/lib/sso.server");
     const { resolveAuthorizedApps } = await import("@/lib/workspace.server");
 
-    const entitlement = await entitlementFor(context.userId);
-    if (!entitlement.hasAccess) {
-      return { url: null as string | null, reason: "no_access" as const };
-    }
-
-    // Workspace entitlement ∩ member app access ∩ role permissions.
+    // Workspace entitlement ∩ member app access ∩ role permissions is the
+    // authoritative decision; a team member is covered by their workspace's plan.
     const authorized = await resolveAuthorizedApps(context.userId);
     if (!(authorized.apps as string[]).includes(data.appSlug)) {
-      return { url: null as string | null, reason: "app_not_permitted" as const };
+      const entitlement = await entitlementFor(context.userId);
+      return {
+        url: null as string | null,
+        reason: entitlement.hasAccess ? ("app_not_permitted" as const) : ("no_access" as const),
+      };
     }
+
 
     const ticket = await mintTicket(context.userId, data.appSlug);
     return { url: ticket.url, reason: null };
