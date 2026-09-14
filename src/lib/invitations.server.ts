@@ -170,7 +170,7 @@ export async function createInvitation(args: {
     _invited_by: args.actorUserId,
     _token_hash: await hashToken(token),
     _expires_at: expiresAt,
-    _display_name: args.displayName?.slice(0, 120) ?? null,
+    _display_name: (args.displayName?.slice(0, 120) ?? null) as never,
     _total_seats: seats.totalSeats,
   });
   if (error) throw new Error(mapPgError(error.message));
