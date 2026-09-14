@@ -59,11 +59,22 @@ export type EntitlementPayload = {
 
 /** The authoritative entitlement every child app reads. */
 export async function entitlementFor(userId: string): Promise<EntitlementPayload> {
-  const [{ data: profile }, { data: roles }, row] = await Promise.all([
+  const [{ data: profile }, { data: roles }, own] = await Promise.all([
     supabaseAdmin.from("profiles").select("email, full_name").eq("id", userId).maybeSingle(),
     supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
     refreshEntitlementStatus(userId),
   ]);
+
+  // A team member holds no entitlement of their own — they are covered by the
+  // workspace they belong to. The owner's record stays the single access record.
+  let row = own;
+  if (own?.access_status !== "active") {
+    const { resolveBackingWorkspace } = await import("./workspace.server");
+    const backing = await resolveBackingWorkspace(userId);
+    if (backing && backing.ownerUserId !== userId) {
+      row = await refreshEntitlementStatus(backing.ownerUserId);
+    }
+  }
 
   const isSuperAdmin = (roles ?? []).some((r) => r.role === "super_admin");
   const plan = getPlan(row?.plan_id ?? null);
