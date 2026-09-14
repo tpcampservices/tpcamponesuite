@@ -17,7 +17,12 @@ import {
   resolveWorkspaceAccess,
   type SeatAccounting,
 } from "./workspace.server";
-import { ROLE_LABELS, type AppAccessLevel, type SystemRoleKey } from "./permissions";
+import {
+  isAppAccessLevel,
+  ROLE_LABELS,
+  type AppAccessLevel,
+  type SystemRoleKey,
+} from "./permissions";
 import type { AppSlug } from "./apps";
 
 /** Invitation lifetime. */
@@ -43,7 +48,7 @@ const ROLE_RANK: Record<string, number> = {
   auditor: 4,
 };
 
-/** Temporary role → app-access preset. The Team & Access UI will refine this. */
+/** Role → default app-access level. The inviter may customise this per app. */
 const ROLE_APP_ACCESS: Record<InvitableRoleKey, AppAccessLevel> = {
   administrator: "manage",
   manager: "edit",
@@ -51,6 +56,30 @@ const ROLE_APP_ACCESS: Record<InvitableRoleKey, AppAccessLevel> = {
   viewer: "view",
   auditor: "view",
 };
+
+/** The default level a role starts from. Used by the invite UI and as fallback. */
+export function roleAppAccessPreset(roleKey: string): AppAccessLevel {
+  return ROLE_APP_ACCESS[roleKey as InvitableRoleKey] ?? "view";
+}
+
+/**
+ * Reduce a requested per-app configuration to what is actually allowed:
+ * recognised TP-CAMP apps, valid levels, and only apps the workspace's
+ * entitlement includes. Anything else is dropped, never upgraded.
+ */
+export function sanitizeAppAccess(
+  requested: Record<string, unknown> | null | undefined,
+  entitled: AppSlug[],
+): Record<string, AppAccessLevel> {
+  const out: Record<string, AppAccessLevel> = {};
+  if (!requested || typeof requested !== "object") return out;
+  for (const app of entitled) {
+    const level = (requested as Record<string, unknown>)[app];
+    if (isAppAccessLevel(level)) out[app] = level;
+  }
+  return out;
+}
+
 
 export function normalizeEmail(value: unknown): string {
   return String(value ?? "").trim().toLowerCase().slice(0, 255);
@@ -125,6 +154,9 @@ export type InvitationSummary = {
   lastSentAt: string;
   resendCount: number;
   createdAt: string;
+  invitedByName: string | null;
+  /** The per-app configuration this invitation will apply on acceptance. */
+  appAccess: Record<string, AppAccessLevel>;
 };
 
 function mapPgError(message: string) {
@@ -148,6 +180,8 @@ export async function createInvitation(args: {
   email: string;
   roleKey: string;
   displayName?: string | null;
+  /** Optional per-app configuration. Validated and narrowed server-side. */
+  appAccess?: Record<string, unknown> | null;
 }): Promise<{ invitationId: string; token: string; expiresAt: string; seats: SeatAccounting }> {
   const access = await assertMayInvite(args.actorUserId, args.workspaceId);
   assertRoleAssignable(access.roleKey, access.isOwner, args.roleKey);
@@ -176,13 +210,29 @@ export async function createInvitation(args: {
   if (error) throw new Error(mapPgError(error.message));
 
   const invitationId = String(data);
+
+  // A custom per-app configuration lives on the invitation's existing metadata
+  // field — narrowed first to the workspace's entitled apps and valid levels.
+  const entitled = await entitledApps(args.workspaceId);
+  const appAccess = sanitizeAppAccess(args.appAccess, entitled);
+  if (Object.keys(appAccess).length > 0) {
+    await supabaseAdmin
+      .from("workspace_invitations")
+      .update({ metadata: { app_access: appAccess } })
+      .eq("id", invitationId);
+  }
+
   await supabaseAdmin.from("team_audit_log").insert({
     workspace_id: args.workspaceId,
     actor_user_id: args.actorUserId,
     target_email: email,
     action: "invitation_created",
     role_key: args.roleKey,
-    details: { invitation_id: invitationId, expires_at: expiresAt },
+    details: {
+      invitation_id: invitationId,
+      expires_at: expiresAt,
+      app_access: Object.keys(appAccess).length ? appAccess : null,
+    },
   });
 
   return { invitationId, token, expiresAt, seats: await getSeatAccounting(args.workspaceId) };
@@ -344,18 +394,23 @@ export async function acceptInvitation(args: {
 
   const { data: inv } = await supabaseAdmin
     .from("workspace_invitations")
-    .select("id, workspace_id, role_id, workspace_roles(role_key)")
+    .select("id, workspace_id, role_id, metadata, workspace_roles(role_key)")
     .eq("token_hash", tokenHash)
     .maybeSingle();
   if (!inv) return { ok: false, reason: "invalid" };
 
   const roleKey = (inv.workspace_roles as unknown as { role_key: string } | null)?.role_key ?? "";
-  const preset = ROLE_APP_ACCESS[roleKey as InvitableRoleKey] ?? "view";
+  const preset = roleAppAccessPreset(roleKey);
 
-  // Intersection of the workspace's entitled apps with the role preset — a role
-  // can never unlock an app the subscription does not include.
+  // Intersection of the workspace's entitled apps with either the inviter's
+  // custom configuration or the role preset — neither can ever unlock an app
+  // the subscription does not include.
   const apps = await entitledApps(inv.workspace_id);
-  const appAccess = Object.fromEntries(apps.map((key: AppSlug) => [key, preset]));
+  const requested = (inv.metadata as { app_access?: Record<string, unknown> } | null)?.app_access;
+  const custom = sanitizeAppAccess(requested, apps);
+  const appAccess = Object.fromEntries(
+    apps.map((key: AppSlug) => [key, custom[key] ?? preset]),
+  );
 
   const seats = await getSeatAccounting(inv.workspace_id);
 
@@ -393,25 +448,44 @@ export async function listInvitations(
   const { data } = await supabaseAdmin
     .from("workspace_invitations")
     .select(
-      "id, email, display_name, status, expires_at, last_sent_at, resend_count, created_at, workspace_roles(role_key, name)",
+      "id, email, display_name, status, expires_at, last_sent_at, resend_count, created_at, invited_by, metadata, workspace_roles(role_key, name)",
     )
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false })
     .limit(200);
 
+  const inviterIds = [...new Set((data ?? []).map((r: any) => r.invited_by).filter(Boolean))];
+  const inviters = new Map<string, string>();
+  if (inviterIds.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", inviterIds as string[]);
+    for (const p of profiles ?? []) inviters.set(p.id, p.full_name ?? p.email ?? "");
+  }
+
+  const entitled = await entitledApps(workspaceId);
+
   return (data ?? []).map((row: any) => {
     const lapsed = row.status === "pending" && new Date(row.expires_at).getTime() <= Date.now();
+    const roleKey = row.workspace_roles?.role_key ?? "";
+    const custom = sanitizeAppAccess(row.metadata?.app_access, entitled);
+    const appAccess = Object.fromEntries(
+      entitled.map((key) => [key, custom[key] ?? roleAppAccessPreset(roleKey)]),
+    ) as Record<string, AppAccessLevel>;
     return {
       id: row.id,
       email: row.email,
       displayName: row.display_name ?? null,
-      roleKey: row.workspace_roles?.role_key ?? "",
+      roleKey,
       roleName: row.workspace_roles?.name ?? "",
       status: lapsed ? "expired" : row.status,
       expiresAt: row.expires_at,
       lastSentAt: row.last_sent_at,
       resendCount: row.resend_count ?? 0,
       createdAt: row.created_at,
+      invitedByName: row.invited_by ? (inviters.get(row.invited_by) ?? null) : null,
+      appAccess,
     };
   });
 }
