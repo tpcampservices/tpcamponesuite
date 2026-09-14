@@ -207,13 +207,29 @@ export async function createInvitation(args: {
   if (error) throw new Error(mapPgError(error.message));
 
   const invitationId = String(data);
+
+  // A custom per-app configuration lives on the invitation's existing metadata
+  // field — narrowed first to the workspace's entitled apps and valid levels.
+  const entitled = await entitledApps(args.workspaceId);
+  const appAccess = sanitizeAppAccess(args.appAccess, entitled);
+  if (Object.keys(appAccess).length > 0) {
+    await supabaseAdmin
+      .from("workspace_invitations")
+      .update({ metadata: { app_access: appAccess } })
+      .eq("id", invitationId);
+  }
+
   await supabaseAdmin.from("team_audit_log").insert({
     workspace_id: args.workspaceId,
     actor_user_id: args.actorUserId,
     target_email: email,
     action: "invitation_created",
     role_key: args.roleKey,
-    details: { invitation_id: invitationId, expires_at: expiresAt },
+    details: {
+      invitation_id: invitationId,
+      expires_at: expiresAt,
+      app_access: Object.keys(appAccess).length ? appAccess : null,
+    },
   });
 
   return { invitationId, token, expiresAt, seats: await getSeatAccounting(args.workspaceId) };
