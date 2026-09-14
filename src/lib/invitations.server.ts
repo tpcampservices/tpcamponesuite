@@ -445,11 +445,23 @@ export async function listInvitations(
   const { data } = await supabaseAdmin
     .from("workspace_invitations")
     .select(
-      "id, email, display_name, status, expires_at, last_sent_at, resend_count, created_at, workspace_roles(role_key, name)",
+      "id, email, display_name, status, expires_at, last_sent_at, resend_count, created_at, invited_by, metadata, workspace_roles(role_key, name)",
     )
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false })
     .limit(200);
+
+  const inviterIds = [...new Set((data ?? []).map((r: any) => r.invited_by).filter(Boolean))];
+  const inviters = new Map<string, string>();
+  if (inviterIds.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", inviterIds as string[]);
+    for (const p of profiles ?? []) inviters.set(p.id, p.full_name ?? p.email ?? "");
+  }
+
+  const entitled = await entitledApps(workspaceId);
 
   return (data ?? []).map((row: any) => {
     const lapsed = row.status === "pending" && new Date(row.expires_at).getTime() <= Date.now();
