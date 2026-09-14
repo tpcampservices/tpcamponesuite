@@ -32,6 +32,7 @@ import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
+import { Route as ApiPublicSsoAuthorizationRouteImport } from './routes/api/public/sso/authorization'
 import { Route as ApiPublicSsoEntitlementRouteImport } from './routes/api/public/sso/entitlement'
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -157,6 +158,12 @@ const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   path: '/api/public/paypal/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSsoAuthorizationRoute =
+  ApiPublicSsoAuthorizationRouteImport.update({
+    id: '/api/public/sso/authorization',
+    path: '/api/public/sso/authorization',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSsoEntitlementRoute = ApiPublicSsoEntitlementRouteImport.update({
   id: '/api/public/sso/entitlement',
   path: '/api/public/sso/entitlement',
@@ -201,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -229,6 +237,7 @@ export interface FileRoutesByTo {
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -259,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/contracts'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
@@ -346,6 +358,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contracts/'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
@@ -368,6 +381,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  ApiPublicSsoAuthorizationRoute: typeof ApiPublicSsoAuthorizationRoute
   ApiPublicSsoEntitlementRoute: typeof ApiPublicSsoEntitlementRoute
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -537,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/sso/authorization': {
+      id: '/api/public/sso/authorization'
+      path: '/api/public/sso/authorization'
+      fullPath: '/api/public/sso/authorization'
+      preLoaderRoute: typeof ApiPublicSsoAuthorizationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/sso/entitlement': {
       id: '/api/public/sso/entitlement'
       path: '/api/public/sso/entitlement'
@@ -609,6 +630,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  ApiPublicSsoAuthorizationRoute: ApiPublicSsoAuthorizationRoute,
   ApiPublicSsoEntitlementRoute: ApiPublicSsoEntitlementRoute,
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
