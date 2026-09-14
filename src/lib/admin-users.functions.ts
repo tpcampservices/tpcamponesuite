@@ -172,7 +172,12 @@ function parseGrant(data: GrantInput) {
     status: data.status as EntitlementStatus,
     subscriptionSource: data.subscriptionSource as SubscriptionSource,
     paymentStatus: data.paymentStatus as EntitlementPaymentStatus,
-    billingPeriod: data?.billingPeriod === "monthly" ? "monthly" : "yearly",
+    billingPeriod:
+      data?.billingPeriod === "monthly"
+        ? "monthly"
+        : data?.billingPeriod === "none"
+          ? "none"
+          : "yearly",
     startDate: isoOrNull(data?.startDate) ?? new Date().toISOString(),
     expiryDate: isoOrNull(data?.expiryDate),
     seatsLimit:
