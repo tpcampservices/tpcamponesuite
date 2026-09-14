@@ -20,11 +20,19 @@ export type Database = {
           access_start_date: string | null
           access_status: string
           addons: Json
+          admin_notes: string | null
+          allowed_apps: Json | null
           billing_period: string | null
           created_at: string
           currency: string
+          granted_at: string | null
+          granted_by: string | null
+          payment_status: string
           plan_id: string | null
           seats_extra: number
+          seats_limit: number | null
+          status: string
+          subscription_source: string
           updated_at: string
           user_id: string
         }
@@ -33,11 +41,19 @@ export type Database = {
           access_start_date?: string | null
           access_status?: string
           addons?: Json
+          admin_notes?: string | null
+          allowed_apps?: Json | null
           billing_period?: string | null
           created_at?: string
           currency?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          payment_status?: string
           plan_id?: string | null
           seats_extra?: number
+          seats_limit?: number | null
+          status?: string
+          subscription_source?: string
           updated_at?: string
           user_id: string
         }
@@ -46,13 +62,87 @@ export type Database = {
           access_start_date?: string | null
           access_status?: string
           addons?: Json
+          admin_notes?: string | null
+          allowed_apps?: Json | null
           billing_period?: string | null
           created_at?: string
           currency?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          payment_status?: string
           plan_id?: string | null
           seats_extra?: number
+          seats_limit?: number | null
+          status?: string
+          subscription_source?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      admin_access_audit: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          new_expiry_date: string | null
+          new_payment_status: string | null
+          new_plan_id: string | null
+          new_status: string | null
+          new_subscription_source: string | null
+          old_expiry_date: string | null
+          old_payment_status: string | null
+          old_plan_id: string | null
+          old_status: string | null
+          old_subscription_source: string | null
+          reason: string | null
+          target_user_id: string | null
+          target_workspace: string | null
+        }
+        Insert: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          new_expiry_date?: string | null
+          new_payment_status?: string | null
+          new_plan_id?: string | null
+          new_status?: string | null
+          new_subscription_source?: string | null
+          old_expiry_date?: string | null
+          old_payment_status?: string | null
+          old_plan_id?: string | null
+          old_status?: string | null
+          old_subscription_source?: string | null
+          reason?: string | null
+          target_user_id?: string | null
+          target_workspace?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          new_expiry_date?: string | null
+          new_payment_status?: string | null
+          new_plan_id?: string | null
+          new_status?: string | null
+          new_subscription_source?: string | null
+          old_expiry_date?: string | null
+          old_payment_status?: string | null
+          old_plan_id?: string | null
+          old_status?: string | null
+          old_subscription_source?: string | null
+          reason?: string | null
+          target_user_id?: string | null
+          target_workspace?: string | null
         }
         Relationships: []
       }
