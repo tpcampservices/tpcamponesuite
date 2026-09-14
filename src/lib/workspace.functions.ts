@@ -26,3 +26,16 @@ export const getMyWorkspaceAccess = createServerFn({ method: "GET" })
 
     return { workspace, access, seats };
   });
+
+/**
+ * The applications this signed-in user may actually see and launch:
+ * workspace entitlement ∩ member app access ∩ role permissions.
+ * The dashboard reads this instead of assuming an active plan unlocks all apps.
+ */
+export const getMyAuthorizedApps = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { resolveAuthorizedApps } = await import("./workspace.server");
+    const resolved = await resolveAuthorizedApps(context.userId);
+    return { ...resolved, apps: resolved.apps as string[] };
+  });
