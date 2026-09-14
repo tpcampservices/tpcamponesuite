@@ -153,6 +153,12 @@ function DashboardPage() {
               {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
             </strong>
           </span>
+          <Link
+            to="/team"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
+          >
+            Team &amp; access
+          </Link>
           {isSuperAdmin && (
             <>
               <Link
