@@ -74,7 +74,7 @@ try {
     {
       user_id: owner, workspace_id: ws, plan_id: "growth", billing_period: "yearly",
       currency: "USD", addons: [] as never, seats_extra: 0, status: "active",
-      access_status: "active", subscription_source: "manual", payment_status: "complimentary",
+      access_status: "active", subscription_source: "manual", payment_status: "paid",
       access_start_date: new Date().toISOString(),
       access_expiry_date: new Date(Date.now() + 3e10).toISOString(),
     },
