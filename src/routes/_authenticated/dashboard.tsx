@@ -103,6 +103,17 @@ function DashboardPage() {
         : "No access period yet";
   const statusTone: "good" | "warn" | "muted" = hasAccess ? "good" : expired ? "warn" : "muted";
 
+  // Application visibility follows the workspace resolver, not "the plan is
+  // active": entitlement ∩ member app access ∩ role permissions.
+  const allowedApps = appAuth?.apps;
+  const canOpen = (slug: string) =>
+    hasAccess && (allowedApps === undefined || allowedApps.includes(slug));
+  const unlockedCount = allowedApps
+    ? suiteApps.filter((a) => canOpen(a.slug)).length
+    : hasAccess
+      ? suiteApps.length
+      : 0;
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
