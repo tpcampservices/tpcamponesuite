@@ -474,3 +474,119 @@ export async function entitledApps(workspaceId: string): Promise<AppSlug[]> {
   }
   return registry;
 }
+
+/* ------------------------------------------------ per-application decision */
+
+export type AppAuthorization = {
+  authorized: boolean;
+  userId: string;
+  workspaceId: string | null;
+  appSlug: AppSlug | null;
+  accessLevel: AppAccessLevel;
+  membershipStatus: MembershipStatus | "none";
+  roleKey: string | null;
+  roleName: string | null;
+  isOwner: boolean;
+  isPlatformSuperAdmin: boolean;
+  /** Present only when `authorized` is false. */
+  reason:
+    | null
+    | "invalid_app"
+    | "no_workspace"
+    | "membership_inactive"
+    | "no_entitlement"
+    | "app_not_in_plan"
+    | "no_access";
+};
+
+/**
+ * THE single per-application authorization answer, for one user and one app.
+ *
+ * It adds no rules of its own: it calls `resolveAuthorizedApps` (entitlement ∩
+ * membership ∩ member app access ∩ role permissions) for the decision and
+ * `resolveWorkspaceAccess` for the level/role/status detail. Both the launch
+ * route and the server-to-server endpoint go through here, so there is exactly
+ * one implementation of the access model.
+ *
+ * `userId` MUST come from a verified session or a shared-key server call — never
+ * from browser-supplied data.
+ */
+export async function resolveAppAuthorization(
+  userId: string,
+  appSlug: string,
+): Promise<AppAuthorization> {
+  const base: AppAuthorization = {
+    authorized: false,
+    userId,
+    workspaceId: null,
+    appSlug: null,
+    accessLevel: "no_access",
+    membershipStatus: "none",
+    roleKey: null,
+    roleName: null,
+    isOwner: false,
+    isPlatformSuperAdmin: false,
+    reason: "invalid_app",
+  };
+
+  if (!(APP_KEYS as string[]).includes(appSlug)) return base;
+  const slug = appSlug as AppSlug;
+
+  const authorized = await resolveAuthorizedApps(userId);
+  const out: AppAuthorization = {
+    ...base,
+    appSlug: slug,
+    workspaceId: authorized.workspaceId,
+    roleKey: authorized.roleKey,
+    isOwner: authorized.isOwner,
+    isPlatformSuperAdmin: authorized.isPlatformSuperAdmin,
+    reason: null,
+  };
+
+  if (!authorized.workspaceId) {
+    // Legacy account with no workspace yet: entitlement alone decides, exactly
+    // as the launcher already behaves. Nothing regresses.
+    const permitted = (authorized.apps as string[]).includes(slug);
+    return {
+      ...out,
+      authorized: permitted,
+      accessLevel: permitted ? "manage" : "no_access",
+      membershipStatus: "none",
+      reason: permitted ? null : "no_workspace",
+    };
+  }
+
+  const access = await resolveWorkspaceAccess(userId, authorized.workspaceId);
+  const level: AppAccessLevel =
+    access.isOwner || access.isPlatformSuperAdmin
+      ? "manage"
+      : (access.appAccess[slug] ?? "no_access");
+
+  const detailed: AppAuthorization = {
+    ...out,
+    membershipStatus: access.membershipStatus,
+    roleKey: access.roleKey,
+    roleName: access.membership?.roleName ?? null,
+    isOwner: access.isOwner,
+    accessLevel: level,
+  };
+
+  if (access.membershipStatus !== "active") {
+    return { ...detailed, accessLevel: "no_access", reason: "membership_inactive" };
+  }
+
+  const covered =
+    access.isPlatformSuperAdmin || (await workspaceHasActiveEntitlement(authorized.workspaceId));
+  if (!covered) return { ...detailed, accessLevel: "no_access", reason: "no_entitlement" };
+
+  const entitled = await entitledApps(authorized.workspaceId);
+  if (!entitled.includes(slug)) {
+    return { ...detailed, accessLevel: "no_access", reason: "app_not_in_plan" };
+  }
+
+  if (!(authorized.apps as string[]).includes(slug) || level === "no_access") {
+    return { ...detailed, accessLevel: "no_access", reason: "no_access" };
+  }
+
+  return { ...detailed, authorized: true, reason: null };
+}
