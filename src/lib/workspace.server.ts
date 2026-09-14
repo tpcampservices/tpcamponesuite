@@ -11,7 +11,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { refreshEntitlementStatus } from "./access.server";
 import { getPlan } from "./plans";
-import { APP_KEYS, type AppSlug } from "./apps";
+import { APP_KEYS, APPS, type AppSlug } from "./apps";
 import {
   permissionsForRole,
   type AppAccessLevel,
