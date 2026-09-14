@@ -171,6 +171,14 @@ export async function redeemTicket(token: string, appSlug: string) {
   const entitlement = await entitlementFor(ticket.user_id);
   if (!entitlement.email) return { ok: false as const, reason: "no_email" as const };
 
+  // Re-resolve authorization at redemption time from the authoritative resolver.
+  // Nothing about workspace, access level or role is ever taken from the request.
+  const { resolveAppAuthorization } = await import("./workspace.server");
+  const authz = await resolveAppAuthorization(ticket.user_id, appSlug);
+  if (!authz.authorized || authz.accessLevel === "no_access") {
+    return { ok: false as const, reason: (authz.reason ?? "no_access") as const };
+  }
+
   const issuedAt = Math.floor(Date.now() / 1000);
   const expiresAt = issuedAt + ASSERTION_TTL_SECONDS;
   const jti = randomToken();
@@ -184,6 +192,11 @@ export async function redeemTicket(token: string, appSlug: string) {
       email: entitlement.email,
       name: entitlement.fullName,
       app_slug: appSlug,
+      workspace_id: authz.workspaceId,
+      app_access: authz.accessLevel,
+      membership_status: authz.membershipStatus,
+      role_key: authz.roleKey,
+      is_owner: authz.isOwner,
       is_super_admin: entitlement.isSuperAdmin,
       has_access: entitlement.hasAccess,
       plan_id: entitlement.planId,
