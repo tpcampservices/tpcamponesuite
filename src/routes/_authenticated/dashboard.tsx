@@ -193,6 +193,33 @@ function DashboardPage() {
           </div>
         )}
 
+        {/* A verified account with no access record yet — a calm, professional state. */}
+        {!isLoading && !hasAccess && !expired && (
+          <div className="mt-6 rounded-lg border border-border bg-surface p-5 text-sm">
+            <p className="font-medium">
+              Your OneSuite account has been created successfully.
+            </p>
+            <p className="mt-2 text-muted-foreground">
+              Access has not yet been activated. Please contact your administrator or complete your
+              subscription when payment becomes available.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                to="/pricing"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                See plans
+              </Link>
+              <Link
+                to="/contact"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-accent/60"
+              >
+                Contact TP-CAMP
+              </Link>
+            </div>
+          </div>
+        )}
+
         <section className="panel mt-8 p-7">
           <h2 className="text-lg font-semibold">Access &amp; billing</h2>
 
