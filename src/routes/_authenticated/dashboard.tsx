@@ -393,7 +393,9 @@ function DashboardPage() {
               >
                 <span>
                   <span className="block text-sm font-medium">{app.name}</span>
-                  <span className="block text-xs text-muted-foreground">{app.blurb}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {hasAccess ? "Not included in your access" : app.blurb}
+                  </span>
                 </span>
                 <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
               </div>
