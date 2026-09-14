@@ -11,7 +11,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { refreshEntitlementStatus } from "./access.server";
 import { getPlan } from "./plans";
-import { APP_KEYS, type AppSlug } from "./apps";
+import { APP_KEYS, APPS, type AppSlug } from "./apps";
 import {
   permissionsForRole,
   type AppAccessLevel,
@@ -246,8 +246,28 @@ export type SeatAccounting = {
   extraSeats: number;
   totalSeats: number;
   usedSeats: number;
+  /** Valid pending invitations — each one holds a seat until it lapses. */
+  pendingInvitations: number;
+  /** active memberships + valid pending invitations */
+  reservedSeats: number;
   availableSeats: number;
 };
+
+/**
+ * The workspace a user owns, provisioning it if it somehow does not exist yet.
+ * Always server-resolved from a verified user id — never from the browser.
+ */
+export async function ensureUserWorkspaceId(userId: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.rpc("provision_user_workspace", {
+    _user_id: userId,
+  });
+  if (error) {
+    console.error("provision_user_workspace failed", error.message);
+    const existing = await resolveCurrentWorkspace(userId);
+    return existing?.id ?? null;
+  }
+  return (data as string | null) ?? null;
+}
 
 /**
  * Seat accounting reads the SAME entitlement record billing writes:
@@ -273,13 +293,25 @@ export async function getSeatAccounting(workspaceId: string): Promise<SeatAccoun
   const totalSeats = includedSeats + extraSeats;
 
   // Active memberships only — suspended and removed members free their seat.
-  const { count } = await supabaseAdmin
-    .from("workspace_memberships")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
-    .eq("status", "active");
+  const [{ count }, { count: pendingCount }] = await Promise.all([
+    supabaseAdmin
+      .from("workspace_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active"),
+    // A pending invitation reserves a seat; cancelled, accepted and lapsed
+    // invitations release it (expiry is evaluated live, not by a background job).
+    supabaseAdmin
+      .from("workspace_invitations")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString()),
+  ]);
 
   const usedSeats = count ?? 0;
+  const pendingInvitations = pendingCount ?? 0;
+  const reservedSeats = usedSeats + pendingInvitations;
 
   return {
     workspaceId,
@@ -288,15 +320,36 @@ export async function getSeatAccounting(workspaceId: string): Promise<SeatAccoun
     extraSeats,
     totalSeats,
     usedSeats,
-    availableSeats: Math.max(0, totalSeats - usedSeats),
+    pendingInvitations,
+    reservedSeats,
+    availableSeats: Math.max(0, totalSeats - reservedSeats),
   };
 }
 
-/** Seat guard for the upcoming invitation workflow. Read-only, never billing. */
+/** Seat guard for the invitation workflow. Read-only, never billing. */
 export async function workspaceHasAvailableSeat(workspaceId: string): Promise<{
   ok: boolean;
   seats: SeatAccounting;
 }> {
   const seats = await getSeatAccounting(workspaceId);
   return { ok: seats.availableSeats > 0, seats };
+}
+
+/** Apps the workspace subscription actually includes. */
+export async function entitledApps(workspaceId: string): Promise<AppSlug[]> {
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces")
+    .select("owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  const entitlement = ws?.owner_user_id ? await refreshEntitlementStatus(ws.owner_user_id) : null;
+  const allowed = entitlement?.allowed_apps;
+  const registry = (APP_KEYS as AppSlug[]).filter((k) => {
+    const app = APPS.find((a) => a.key === k);
+    return app?.enabled && app.includedInSubscription;
+  });
+  if (Array.isArray(allowed) && allowed.length) {
+    return registry.filter((k) => allowed.includes(k));
+  }
+  return registry;
 }

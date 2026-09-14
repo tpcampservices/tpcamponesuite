@@ -104,6 +104,16 @@ export async function repairProvisioning(userId: string): Promise<string[]> {
     created.push("member role");
   }
 
+  // Workspace + Owner membership + app access. Idempotent: nothing is duplicated
+  // if the account already has them.
+  const { ensureUserWorkspaceId } = await import("./workspace.server");
+  const before = await supabaseAdmin
+    .from("workspaces")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_user_id", userId);
+  await ensureUserWorkspaceId(userId);
+  if ((before.count ?? 0) === 0) created.push("workspace and Owner membership");
+
   // Entitlements are deliberately NOT created here: access is granted through
   // a verified payment or an explicit administrative grant.
   return created;

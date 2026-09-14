@@ -652,6 +652,50 @@ export type Database = {
         }
         Relationships: []
       }
+      team_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          role_key: string | null
+          target_email: string | null
+          target_user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          role_key?: string | null
+          target_email?: string | null
+          target_user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          role_key?: string | null
+          target_email?: string | null
+          target_user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -672,6 +716,84 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_user_id: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          display_name: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          last_sent_at: string
+          metadata: Json
+          resend_count: number
+          role_id: string
+          status: string
+          token_hash: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          metadata?: Json
+          resend_count?: number
+          role_id: string
+          status?: string
+          token_hash: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_user_id?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          metadata?: Json
+          resend_count?: number
+          role_id?: string
+          status?: string
+          token_hash?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_member_app_access: {
         Row: {
@@ -901,6 +1023,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_workspace_invitation: {
+        Args: {
+          _app_access: Json
+          _email: string
+          _token_hash: string
+          _total_seats: number
+          _user_id: string
+        }
+        Returns: Json
+      }
+      create_workspace_invitation: {
+        Args: {
+          _display_name: string
+          _email: string
+          _expires_at: string
+          _invited_by: string
+          _role_id: string
+          _token_hash: string
+          _total_seats: number
+          _workspace_id: string
+        }
+        Returns: string
+      }
       get_workspace_role: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: string
@@ -932,6 +1077,7 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      provision_user_workspace: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "member"
