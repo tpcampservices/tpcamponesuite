@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { InvitationSummary } from "./invitations.server";
 
 /**
  * Workspace team invitations. The browser only ever submits an email, a desired
@@ -34,7 +35,7 @@ export const getMyTeam = createServerFn({ method: "GET" })
       access.permissions.includes("workspace.team.view") ||
       access.permissions.includes("workspace.team.invite");
 
-    let invitations: unknown[] = [];
+    let invitations: InvitationSummary[] = [];
     if (mayView) {
       const { listInvitations } = await import("./invitations.server");
       invitations = await listInvitations(context.userId, workspace.id);
