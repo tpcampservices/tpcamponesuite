@@ -102,6 +102,7 @@ export const inviteWorkspaceMember = createServerFn({ method: "POST" })
       email: data.email,
       roleKey: data.roleKey,
       displayName: data.displayName,
+      appAccess: data.appAccess,
     });
 
     const link = `${data.origin}/invite/${token}`;
