@@ -17,7 +17,12 @@ import {
   resolveWorkspaceAccess,
   type SeatAccounting,
 } from "./workspace.server";
-import { ROLE_LABELS, type AppAccessLevel, type SystemRoleKey } from "./permissions";
+import {
+  isAppAccessLevel,
+  ROLE_LABELS,
+  type AppAccessLevel,
+  type SystemRoleKey,
+} from "./permissions";
 import type { AppSlug } from "./apps";
 
 /** Invitation lifetime. */
