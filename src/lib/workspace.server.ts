@@ -335,6 +335,81 @@ export async function workspaceHasAvailableSeat(workspaceId: string): Promise<{
   return { ok: seats.availableSeats > 0, seats };
 }
 
+/**
+ * THE authoritative per-user application decision:
+ *   workspace entitlement ∩ member app access ∩ role permissions
+ *
+ * The Owner keeps the deliberate automatic manage fallback, and platform
+ * super admins keep full access. Every launch and every dashboard tile must
+ * come through here rather than reading "the plan is active" alone.
+ */
+export async function resolveAuthorizedApps(userId: string): Promise<{
+  apps: AppSlug[];
+  workspaceId: string | null;
+  roleKey: string | null;
+  isOwner: boolean;
+  isPlatformSuperAdmin: boolean;
+}> {
+  const workspace = await resolveCurrentWorkspace(userId);
+
+  if (!workspace) {
+    // Legacy single-user account with no workspace yet: entitlement alone
+    // decides, exactly as before, so nobody loses access during transition.
+    const superAdmin = await isPlatformSuperAdmin(userId);
+    const registry = (APP_KEYS as AppSlug[]).filter((k) => {
+      const app = APPS.find((a) => a.key === k);
+      return app?.enabled && app.includedInSubscription;
+    });
+    return {
+      apps: registry,
+      workspaceId: null,
+      roleKey: null,
+      isOwner: false,
+      isPlatformSuperAdmin: superAdmin,
+    };
+  }
+
+  const [access, entitled] = await Promise.all([
+    resolveWorkspaceAccess(userId, workspace.id),
+    entitledApps(workspace.id),
+  ]);
+
+  if (access.isPlatformSuperAdmin) {
+    return {
+      apps: entitled,
+      workspaceId: workspace.id,
+      roleKey: access.roleKey,
+      isOwner: access.isOwner,
+      isPlatformSuperAdmin: true,
+    };
+  }
+
+  if (access.membershipStatus !== "active") {
+    return {
+      apps: [],
+      workspaceId: workspace.id,
+      roleKey: access.roleKey,
+      isOwner: access.isOwner,
+      isPlatformSuperAdmin: false,
+    };
+  }
+
+  const apps = access.isOwner
+    ? entitled
+    : entitled.filter(
+        (app) =>
+          access.appAccess[app] !== "no_access" && access.permissions.includes(`${app}.access`),
+      );
+
+  return {
+    apps,
+    workspaceId: workspace.id,
+    roleKey: access.roleKey,
+    isOwner: access.isOwner,
+    isPlatformSuperAdmin: false,
+  };
+}
+
 /** Apps the workspace subscription actually includes. */
 export async function entitledApps(workspaceId: string): Promise<AppSlug[]> {
   const { data: ws } = await supabaseAdmin
