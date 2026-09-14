@@ -266,6 +266,11 @@ export async function applyPaidOrder(orderRowId: string, captureId: string | nul
       addons,
       seats_extra: extraSeats,
       access_status: "active",
+      // A verified PayPal capture writes into the same entitlement layer as a
+      // manual grant — one authoritative access record per user.
+      status: "active",
+      subscription_source: "paypal",
+      payment_status: "paid",
       access_start_date: start,
       access_expiry_date: expiry,
     },
