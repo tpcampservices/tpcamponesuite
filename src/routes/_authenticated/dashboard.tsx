@@ -72,8 +72,14 @@ function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
   const fetchAccess = useServerFn(getAccessState);
 
+  const fetchApps = useServerFn(getMyAuthorizedApps);
+
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
   const { data, isLoading } = useQuery({ queryKey: ["access-state"], queryFn: () => fetchAccess({}) });
+  const { data: appAuth } = useQuery({
+    queryKey: ["authorized-apps"],
+    queryFn: () => fetchApps(),
+  });
 
   const isSuperAdmin = Boolean(account?.isSuperAdmin);
   const entitlement = data?.entitlement ?? null;
