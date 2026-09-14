@@ -239,6 +239,58 @@ type WorkspaceSummaryRow = {
   status: string;
 };
 
+/** Every active workspace the user belongs to, workspaces they own first. */
+export async function listActiveWorkspaces(userId: string): Promise<WorkspaceSummary[]> {
+  const { data } = await supabaseAdmin
+    .from("workspace_memberships")
+    .select("workspace_id, workspaces(id, name, slug, owner_user_id, status)")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  return (data ?? [])
+    .map((r) => r.workspaces as unknown as WorkspaceSummaryRow | null)
+    .filter((w): w is WorkspaceSummaryRow => Boolean(w) && w!.status === "active")
+    .sort((a, b) => Number(b.owner_user_id === userId) - Number(a.owner_user_id === userId))
+    .map((w) => ({
+      id: w.id,
+      name: w.name,
+      slug: w.slug,
+      ownerUserId: w.owner_user_id,
+      status: w.status,
+    }));
+}
+
+/**
+ * Does this workspace currently hold access? The entitlement belongs to the
+ * workspace owner — the same record billing writes. Nothing is duplicated.
+ */
+export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces")
+    .select("owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (!ws?.owner_user_id) return false;
+  const entitlement = await refreshEntitlementStatus(ws.owner_user_id);
+  return entitlement?.access_status === "active";
+}
+
+/**
+ * The workspace whose entitlement backs this user, and the user that entitlement
+ * belongs to. A team member is covered by the owner's plan — they never need an
+ * entitlement of their own.
+ */
+export async function resolveBackingWorkspace(
+  userId: string,
+): Promise<{ workspaceId: string; ownerUserId: string } | null> {
+  for (const ws of await listActiveWorkspaces(userId)) {
+    if (await workspaceHasActiveEntitlement(ws.id)) {
+      return { workspaceId: ws.id, ownerUserId: ws.ownerUserId };
+    }
+  }
+  return null;
+}
+
 export type SeatAccounting = {
   workspaceId: string;
   planId: string | null;
