@@ -239,6 +239,58 @@ type WorkspaceSummaryRow = {
   status: string;
 };
 
+/** Every active workspace the user belongs to, workspaces they own first. */
+export async function listActiveWorkspaces(userId: string): Promise<WorkspaceSummary[]> {
+  const { data } = await supabaseAdmin
+    .from("workspace_memberships")
+    .select("workspace_id, workspaces(id, name, slug, owner_user_id, status)")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  return (data ?? [])
+    .map((r) => r.workspaces as unknown as WorkspaceSummaryRow | null)
+    .filter((w): w is WorkspaceSummaryRow => Boolean(w) && w!.status === "active")
+    .sort((a, b) => Number(b.owner_user_id === userId) - Number(a.owner_user_id === userId))
+    .map((w) => ({
+      id: w.id,
+      name: w.name,
+      slug: w.slug,
+      ownerUserId: w.owner_user_id,
+      status: w.status,
+    }));
+}
+
+/**
+ * Does this workspace currently hold access? The entitlement belongs to the
+ * workspace owner — the same record billing writes. Nothing is duplicated.
+ */
+export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces")
+    .select("owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (!ws?.owner_user_id) return false;
+  const entitlement = await refreshEntitlementStatus(ws.owner_user_id);
+  return entitlement?.access_status === "active";
+}
+
+/**
+ * The workspace whose entitlement backs this user, and the user that entitlement
+ * belongs to. A team member is covered by the owner's plan — they never need an
+ * entitlement of their own.
+ */
+export async function resolveBackingWorkspace(
+  userId: string,
+): Promise<{ workspaceId: string; ownerUserId: string } | null> {
+  for (const ws of await listActiveWorkspaces(userId)) {
+    if (await workspaceHasActiveEntitlement(ws.id)) {
+      return { workspaceId: ws.id, ownerUserId: ws.ownerUserId };
+    }
+  }
+  return null;
+}
+
 export type SeatAccounting = {
   workspaceId: string;
   planId: string | null;
@@ -333,6 +385,75 @@ export async function workspaceHasAvailableSeat(workspaceId: string): Promise<{
 }> {
   const seats = await getSeatAccounting(workspaceId);
   return { ok: seats.availableSeats > 0, seats };
+}
+
+/**
+ * THE authoritative per-user application decision:
+ *   workspace entitlement ∩ member app access ∩ role permissions
+ *
+ * The Owner keeps the deliberate automatic manage fallback, and platform
+ * super admins keep full access. Every launch and every dashboard tile must
+ * come through here rather than reading "the plan is active" alone.
+ */
+export async function resolveAuthorizedApps(userId: string): Promise<{
+  apps: AppSlug[];
+  workspaceId: string | null;
+  roleKey: string | null;
+  isOwner: boolean;
+  isPlatformSuperAdmin: boolean;
+}> {
+  const superAdmin = await isPlatformSuperAdmin(userId);
+  const workspaces = await listActiveWorkspaces(userId);
+
+  if (workspaces.length === 0) {
+    // Legacy single-user account with no workspace yet: entitlement alone
+    // decides, exactly as before, so nobody loses access during transition.
+    const registry = (APP_KEYS as AppSlug[]).filter((k) => {
+      const app = APPS.find((a) => a.key === k);
+      return app?.enabled && app.includedInSubscription;
+    });
+    return {
+      apps: registry,
+      workspaceId: null,
+      roleKey: null,
+      isOwner: false,
+      isPlatformSuperAdmin: superAdmin,
+    };
+  }
+
+  let fallback: Awaited<ReturnType<typeof resolveAuthorizedApps>> | null = null;
+
+  // A user can own an empty workspace and still be a member of the paying one,
+  // so every active workspace is considered and the first that actually grants
+  // applications wins.
+  for (const workspace of workspaces) {
+    const access = await resolveWorkspaceAccess(userId, workspace.id);
+    const covered = superAdmin || (await workspaceHasActiveEntitlement(workspace.id));
+    const entitled = covered ? await entitledApps(workspace.id) : [];
+
+    const apps =
+      access.membershipStatus !== "active"
+        ? []
+        : superAdmin || access.isOwner
+          ? entitled
+          : entitled.filter(
+              (app) =>
+                access.appAccess[app] !== "no_access" &&
+                access.permissions.includes(`${app}.access`),
+            );
+
+    const resolved = {
+      apps,
+      workspaceId: workspace.id,
+      roleKey: access.roleKey,
+      isOwner: access.isOwner,
+      isPlatformSuperAdmin: superAdmin,
+    };
+    if (apps.length > 0) return resolved;
+    fallback ??= resolved;
+  }
+
+  return fallback!;
 }
 
 /** Apps the workspace subscription actually includes. */

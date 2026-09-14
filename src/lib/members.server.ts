@@ -112,7 +112,7 @@ async function audit(entry: {
     target_email: entry.targetEmail ?? null,
     action: entry.action,
     role_key: entry.roleKey ?? null,
-    details: entry.details ?? {},
+    details: (entry.details ?? {}) as never,
   });
 }
 

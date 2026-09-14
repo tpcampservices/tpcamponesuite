@@ -16,6 +16,7 @@ import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount } from "@/lib/account.functions";
 import { getAccessState } from "@/lib/billing.functions";
 import { createAppLaunch } from "@/lib/sso.functions";
+import { getMyAuthorizedApps } from "@/lib/workspace.functions";
 import { activeReminder, daysUntil, formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -71,15 +72,25 @@ function DashboardPage() {
   const fetchAccount = useServerFn(getMyAccount);
   const fetchAccess = useServerFn(getAccessState);
 
+  const fetchApps = useServerFn(getMyAuthorizedApps);
+
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
   const { data, isLoading } = useQuery({ queryKey: ["access-state"], queryFn: () => fetchAccess({}) });
+  const { data: appAuth } = useQuery({
+    queryKey: ["authorized-apps"],
+    queryFn: () => fetchApps(),
+  });
 
   const isSuperAdmin = Boolean(account?.isSuperAdmin);
   const entitlement = data?.entitlement ?? null;
   const orders = data?.orders ?? [];
   const usage = data?.usage ?? [];
 
-  const hasAccess = isSuperAdmin || entitlement?.status === "active";
+  // A team member is covered by their workspace's plan, so workspace-resolved
+  // application access also counts as access.
+  const workspaceApps = appAuth?.apps ?? [];
+  const hasAccess =
+    isSuperAdmin || entitlement?.status === "active" || workspaceApps.length > 0;
   const expired = entitlement?.status === "expired";
   const remaining = daysUntil(entitlement?.expiryDate);
   const reminder =
@@ -95,6 +106,17 @@ function DashboardPage() {
         ? "Expired — renew to restore access"
         : "No access period yet";
   const statusTone: "good" | "warn" | "muted" = hasAccess ? "good" : expired ? "warn" : "muted";
+
+  // Application visibility follows the workspace resolver, not "the plan is
+  // active": entitlement ∩ member app access ∩ role permissions.
+  const allowedApps = appAuth?.apps;
+  const canOpen = (slug: string) =>
+    hasAccess && (allowedApps === undefined || allowedApps.includes(slug));
+  const unlockedCount = allowedApps
+    ? suiteApps.filter((a) => canOpen(a.slug)).length
+    : hasAccess
+      ? suiteApps.length
+      : 0;
 
   return (
     <div className="min-h-screen">
@@ -135,6 +157,12 @@ function DashboardPage() {
               {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
             </strong>
           </span>
+          <Link
+            to="/team"
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
+          >
+            Team &amp; access
+          </Link>
           {isSuperAdmin && (
             <>
               <Link
@@ -243,7 +271,9 @@ function DashboardPage() {
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
               <p className="eyebrow">Apps unlocked</p>
-              <p className="mt-2 text-sm">{hasAccess ? `All ${suiteApps.length} apps` : "None yet"}</p>
+              <p className="mt-2 text-sm">
+                {unlockedCount > 0 ? `${unlockedCount} of ${suiteApps.length} apps` : "None yet"}
+              </p>
             </div>
           </div>
 
@@ -350,7 +380,7 @@ function DashboardPage() {
         <h2 className="mt-10 text-lg font-semibold">Your applications</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {suiteApps.map((app) =>
-            hasAccess ? (
+            canOpen(app.slug) ? (
               <button
                 key={app.url}
                 type="button"
@@ -373,7 +403,9 @@ function DashboardPage() {
               >
                 <span>
                   <span className="block text-sm font-medium">{app.name}</span>
-                  <span className="block text-xs text-muted-foreground">{app.blurb}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {hasAccess ? "Not included in your access" : app.blurb}
+                  </span>
                 </span>
                 <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
               </div>
