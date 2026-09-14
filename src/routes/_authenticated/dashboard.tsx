@@ -261,7 +261,9 @@ function DashboardPage() {
             </div>
             <div className="rounded-lg border border-border bg-surface p-5">
               <p className="eyebrow">Apps unlocked</p>
-              <p className="mt-2 text-sm">{hasAccess ? `All ${suiteApps.length} apps` : "None yet"}</p>
+              <p className="mt-2 text-sm">
+                {unlockedCount > 0 ? `${unlockedCount} of ${suiteApps.length} apps` : "None yet"}
+              </p>
             </div>
           </div>
 
