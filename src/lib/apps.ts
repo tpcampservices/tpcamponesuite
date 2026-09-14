@@ -33,6 +33,7 @@ export type AppDefinition = {
 export const APPS: AppDefinition[] = [
   {
     key: "catalog",
+    displayLabel: "Catalog",
     name: "TP-CAMP Catalog",
     blurb: "Works, recordings, releases and splits",
     url: "https://catalog.tpcamponesuite.app",
@@ -41,6 +42,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "invoice",
+    displayLabel: "Invoice",
     name: "TP-CAMP Invoice",
     blurb: "Invoicing, receipts and supplier payables",
     url: "https://invoice.tpcamponesuite.app",
@@ -49,6 +51,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "splits",
+    displayLabel: "Split Sheets",
     name: "TP-CAMP Split Sheets",
     blurb: "Composition & master split sheet studio",
     url: "https://splits.tpcamponesuite.app",
@@ -57,6 +60,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "operations",
+    displayLabel: "Workflow",
     name: "TP-CAMP Operations Hub",
     blurb: "Release operations & campaign command centre",
     url: "https://operations.tpcamponesuite.app",
@@ -65,6 +69,7 @@ export const APPS: AppDefinition[] = [
   },
   {
     key: "finance",
+    displayLabel: "Finance",
     name: "TP-CAMP Finance",
     blurb: "Double-entry accounting, budgets and royalties",
     url: "https://finance.tpcamponesuite.app",
