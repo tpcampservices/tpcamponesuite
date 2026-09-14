@@ -1,4 +1,8 @@
-export type AppSlug = "catalog" | "invoice" | "splits" | "operations" | "finance";
+// The application registry now lives in `src/lib/apps.ts`. This module keeps the
+// historical `suiteApps` / `AppSlug` names working without duplicating the list.
+import { APPS, type AppSlug } from "./apps";
+
+export type { AppSlug };
 export type AppLink = { slug: AppSlug; name: string; url: string; blurb: string };
 
 export type BillingCycle = "monthly" | "yearly";

@@ -62,6 +62,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 5,
       splitSheetsPerMonth: 50,
     },
+    features: {
+      includedSeats: 1,
+      maxCustomRoles: 0,
+      permissionGroupsEnabled: false,
+      advancedPermissionsEnabled: false,
+    },
   },
   {
     id: "growth",
@@ -81,6 +87,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 10,
       splitSheetsPerMonth: 300,
     },
+    features: {
+      includedSeats: 3,
+      maxCustomRoles: 2,
+      permissionGroupsEnabled: false,
+      advancedPermissionsEnabled: false,
+    },
   },
   {
     id: "pro",
@@ -99,6 +111,12 @@ export const PLANS: PlanDefinition[] = [
       contractsPerMonth: 50,
       splitSheetsPerMonth: 1000,
     },
+    features: {
+      includedSeats: 8,
+      maxCustomRoles: 5,
+      permissionGroupsEnabled: true,
+      advancedPermissionsEnabled: true,
+    },
   },
   {
     id: "institutional",
@@ -116,6 +134,12 @@ export const PLANS: PlanDefinition[] = [
       financeTransactionsPerMonth: 20000,
       contractsPerMonth: 250,
       splitSheetsPerMonth: 10000,
+    },
+    features: {
+      includedSeats: 25,
+      maxCustomRoles: 25,
+      permissionGroupsEnabled: true,
+      advancedPermissionsEnabled: true,
     },
   },
 ];
