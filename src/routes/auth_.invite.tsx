@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/auth/invite")({
+export const Route = createFileRoute("/auth_/invite")({
   ssr: false,
   head: () => ({
     meta: [

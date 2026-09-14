@@ -21,6 +21,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
+import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
@@ -90,6 +92,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth_/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthInviteRoute = AuthInviteRouteImport.update({
+  id: '/auth_/invite',
+  path: '/auth/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/admin/settings',
@@ -148,6 +160,8 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/invite': typeof AuthInviteRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
@@ -169,6 +183,8 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/auth/invite': typeof AuthInviteRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
@@ -192,6 +208,8 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/auth_/callback': typeof AuthCallbackRoute
+  '/auth_/invite': typeof AuthInviteRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
@@ -215,6 +233,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/business-profile'
     | '/dashboard'
+    | '/auth/callback'
+    | '/auth/invite'
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
@@ -236,6 +256,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/business-profile'
     | '/dashboard'
+    | '/auth/callback'
+    | '/auth/invite'
     | '/admin/settings'
     | '/admin/webhooks'
     | '/contracts/$contractId'
@@ -258,6 +280,8 @@ export interface FileRouteTypes {
     | '/services'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
+    | '/auth_/callback'
+    | '/auth_/invite'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
@@ -279,6 +303,8 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthInviteRoute: typeof AuthInviteRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
   ApiPublicSsoEntitlementRoute: typeof ApiPublicSsoEntitlementRoute
@@ -371,6 +397,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/auth_/callback': {
+      id: '/auth_/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/invite': {
+      id: '/auth_/invite'
+      path: '/auth/invite'
+      fullPath: '/auth/invite'
+      preLoaderRoute: typeof AuthInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
       path: '/admin/settings'
@@ -462,6 +502,8 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthInviteRoute: AuthInviteRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
   ApiPublicSsoEntitlementRoute: ApiPublicSsoEntitlementRoute,
