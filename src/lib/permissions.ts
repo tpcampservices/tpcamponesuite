@@ -89,11 +89,28 @@ const APP_ACTIONS: Record<AppSlug, string[]> = {
 
 export type PermissionKey = string;
 
+/**
+ * Workspace administration permissions. Deliberately NOT app-specific: team and
+ * role administration is a workspace concern, never a Catalog/Finance concern.
+ */
+export const WORKSPACE_ADMIN_ACTIONS = [
+  "team.view",
+  "team.invite",
+  "team.manage",
+  "roles.assign",
+] as const;
+
 /** The full catalogue, in the same order as the database seed. */
-export const PERMISSIONS: { key: PermissionKey; app: AppSlug; action: string }[] =
-  (APP_KEYS as AppSlug[]).flatMap((app) =>
-    (APP_ACTIONS[app] ?? []).map((action) => ({ key: `${app}.${action}`, app, action })),
-  );
+export const PERMISSIONS: { key: PermissionKey; app: string; action: string }[] = [
+  ...(APP_KEYS as AppSlug[]).flatMap((app) =>
+    (APP_ACTIONS[app] ?? []).map((action) => ({ key: `${app}.${action}`, app: app as string, action })),
+  ),
+  ...WORKSPACE_ADMIN_ACTIONS.map((action) => ({
+    key: `workspace.${action}`,
+    app: "workspace",
+    action,
+  })),
+];
 
 export const PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
 
