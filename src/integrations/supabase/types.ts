@@ -1133,6 +1133,21 @@ export type Database = {
         Returns: boolean
       }
       provision_user_workspace: { Args: { _user_id: string }; Returns: string }
+      write_member_permission_override: {
+        Args: {
+          _actor_user_id: string
+          _app_key: string
+          _effect: string
+          _membership_id: string
+          _permission_id: string
+          _permission_key: string
+          _role_key: string
+          _target_email: string
+          _target_user_id: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "member"
