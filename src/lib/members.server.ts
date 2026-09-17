@@ -346,3 +346,226 @@ export async function setMemberStatus(args: {
 
   return { ok: true as const, seats: await getSeatAccounting(args.workspaceId) };
 }
+
+/* ------------------------------------- member-specific permission overrides */
+
+/**
+ * Advanced permissions: a single member's deviation from their role baseline,
+ * stored in `workspace_member_permission_overrides`.
+ *
+ * This is a WRITE layer only — the authorization model is unchanged and still
+ * resolved centrally (role baseline → member overrides → app-access cap → the
+ * existing status/entitlement gates). Nothing here grants access by itself.
+ *
+ * The browser only ever names a membership inside the actor's own workspace and
+ * a permission key; the workspace, the target's role, the canonical permission
+ * and the actor's authority are all resolved server-side.
+ */
+
+/** Permissions that must never be removed from a member by an override. */
+const NON_DENIABLE_PERMISSIONS = ["workspace.team.view"];
+
+type OverrideEffect = "allow" | "deny";
+
+/** Security-relevant rejection: observable server-side, opaque to the caller. */
+function rejectOverride(args: {
+  actorUserId: string;
+  workspaceId: string;
+  membershipId: string;
+  permissionKey: string;
+  effect: string;
+  cause: string;
+  message: string;
+}): never {
+  console.warn(
+    "[member-permission-override] rejected",
+    JSON.stringify({
+      cause: args.cause,
+      actor_user_id: args.actorUserId,
+      workspace_id: args.workspaceId,
+      membership_id: args.membershipId,
+      permission_key: args.permissionKey,
+      effect: args.effect,
+      at: new Date().toISOString(),
+    }),
+  );
+  throw new Error(args.message);
+}
+
+/** The canonical catalogue row for a permission key. Never trusts a client app. */
+async function loadPermission(permissionKey: string) {
+  const { data } = await supabaseAdmin
+    .from("workspace_permissions")
+    .select("id, permission_key, app_key")
+    .eq("permission_key", permissionKey)
+    .maybeSingle();
+  return data ?? null;
+}
+
+async function targetIsPlatformSuperAdmin(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "super_admin")
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/**
+ * Shared guard for every override mutation. Order is deliberate: authority →
+ * target resolution → same-workspace → self-target → Owner → super admin →
+ * canonical permission → entitlement.
+ */
+async function authorizeOverrideMutation(args: {
+  actorUserId: string;
+  workspaceId: string;
+  membershipId: string;
+  permissionKey: string;
+  effect: OverrideEffect | "clear";
+}) {
+  const reject = (cause: string, message: string) =>
+    rejectOverride({ ...args, cause, message });
+
+  // Effective permission, never role name: an Administrator whose
+  // `workspace.permissions.manage` has been denied fails here.
+  const access = await resolveWorkspaceAccess(args.actorUserId, args.workspaceId);
+  if (access.membershipStatus !== "active") {
+    reject("actor_not_active", "You are not an active member of this workspace");
+  }
+  if (!access.isOwner && !access.permissions.includes("workspace.permissions.manage")) {
+    reject("actor_not_authorized", "You do not have permission to manage advanced permissions");
+  }
+
+  const target = await loadTarget(args.workspaceId, args.membershipId);
+
+  // Conservative in this phase: no self-targeted override at all, Allow or Deny.
+  if (target.user_id === args.actorUserId) {
+    reject(
+      "self_target",
+      "You cannot change your own advanced permissions — ask another owner or administrator",
+    );
+  }
+  if (target.roleKey === "owner") {
+    reject("owner_target", "The workspace owner's permissions cannot be overridden");
+  }
+  if (await targetIsPlatformSuperAdmin(target.user_id)) {
+    // Deliberately does not disclose the platform role.
+    reject("super_admin_target", "That member's permissions cannot be overridden");
+  }
+
+  const permission = await loadPermission(args.permissionKey);
+  if (!permission) reject("unknown_permission", "Unknown permission");
+
+  const appKey = permission!.app_key;
+  const isAppPermission = isAppSlug(appKey);
+
+  // An Allow must never become a way of pre-granting an app the plan excludes.
+  // A Deny stays valid whatever the plan does, so it is not entitlement-gated.
+  if (args.effect === "allow" && isAppPermission) {
+    const entitled = await entitledApps(args.workspaceId);
+    if (!entitled.includes(appKey as AppSlug)) {
+      reject("app_not_entitled", "Your plan does not include that application");
+    }
+  }
+  if (args.effect === "deny" && NON_DENIABLE_PERMISSIONS.includes(permission!.permission_key)) {
+    reject("non_deniable", "That permission cannot be removed from a member");
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .eq("id", target.user_id)
+    .maybeSingle();
+
+  return {
+    access,
+    target,
+    permission: permission!,
+    appKey: isAppPermission ? appKey : null,
+    targetEmail: profile?.email ?? null,
+  };
+}
+
+/**
+ * Store an Allow or Deny for one member and one permission.
+ *
+ * Cap-aware storage: an Allow the member's current app-access level caps out is
+ * still stored, stays inert, and becomes effective if that level is later
+ * raised — exactly as the resolver already behaves.
+ */
+export async function setMemberPermissionOverride(args: {
+  actorUserId: string;
+  workspaceId: string;
+  membershipId: string;
+  permissionKey: string;
+  effect: string;
+}) {
+  if (args.effect !== "allow" && args.effect !== "deny") {
+    throw new Error("Choose either allow or deny");
+  }
+  const effect = args.effect as OverrideEffect;
+  const resolved = await authorizeOverrideMutation({ ...args, effect });
+
+  // The override row and its audit entry commit together.
+  const { data, error } = await supabaseAdmin.rpc("write_member_permission_override", {
+    _workspace_id: args.workspaceId,
+    _membership_id: resolved.target.id,
+    _permission_id: resolved.permission.id,
+    _effect: effect,
+    _actor_user_id: args.actorUserId,
+    _target_user_id: resolved.target.user_id,
+    _target_email: resolved.targetEmail,
+    _role_key: resolved.target.roleKey,
+    _permission_key: resolved.permission.permission_key,
+    _app_key: resolved.appKey,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = (data ?? {}) as {
+    changed?: boolean;
+    previous_effect?: string;
+    new_effect?: string;
+  };
+  return {
+    ok: true as const,
+    changed: Boolean(result.changed),
+    previousEffect: result.previous_effect ?? "inherited",
+    effect: result.new_effect ?? effect,
+  };
+}
+
+/**
+ * Remove a member's override so the permission returns to the role baseline.
+ * Clearing an override that does not exist is a safe no-op.
+ */
+export async function clearMemberPermissionOverride(args: {
+  actorUserId: string;
+  workspaceId: string;
+  membershipId: string;
+  permissionKey: string;
+}) {
+  const resolved = await authorizeOverrideMutation({ ...args, effect: "clear" });
+
+  const { data, error } = await supabaseAdmin.rpc("write_member_permission_override", {
+    _workspace_id: args.workspaceId,
+    _membership_id: resolved.target.id,
+    _permission_id: resolved.permission.id,
+    _effect: "clear",
+    _actor_user_id: args.actorUserId,
+    _target_user_id: resolved.target.user_id,
+    _target_email: resolved.targetEmail,
+    _role_key: resolved.target.roleKey,
+    _permission_key: resolved.permission.permission_key,
+    _app_key: resolved.appKey,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = (data ?? {}) as { changed?: boolean; previous_effect?: string };
+  return {
+    ok: true as const,
+    changed: Boolean(result.changed),
+    previousEffect: result.previous_effect ?? "inherited",
+    effect: "inherited" as const,
+  };
+}
