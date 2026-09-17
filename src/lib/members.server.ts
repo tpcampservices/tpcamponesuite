@@ -515,10 +515,10 @@ export async function setMemberPermissionOverride(args: {
     _effect: effect,
     _actor_user_id: args.actorUserId,
     _target_user_id: resolved.target.user_id,
-    _target_email: resolved.targetEmail,
+    _target_email: resolved.targetEmail ?? "",
     _role_key: resolved.target.roleKey,
     _permission_key: resolved.permission.permission_key,
-    _app_key: resolved.appKey,
+    _app_key: resolved.appKey ?? "",
   });
   if (error) throw new Error(error.message);
 
@@ -554,10 +554,10 @@ export async function clearMemberPermissionOverride(args: {
     _effect: "clear",
     _actor_user_id: args.actorUserId,
     _target_user_id: resolved.target.user_id,
-    _target_email: resolved.targetEmail,
+    _target_email: resolved.targetEmail ?? "",
     _role_key: resolved.target.roleKey,
     _permission_key: resolved.permission.permission_key,
-    _app_key: resolved.appKey,
+    _app_key: resolved.appKey ?? "",
   });
   if (error) throw new Error(error.message);
 
