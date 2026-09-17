@@ -475,12 +475,7 @@ export async function resolveAuthorizedApps(userId: string): Promise<{
 
 /** Apps the workspace subscription actually includes. */
 export async function entitledApps(workspaceId: string): Promise<AppSlug[]> {
-  const { data: ws } = await supabaseAdmin
-    .from("workspaces")
-    .select("owner_user_id")
-    .eq("id", workspaceId)
-    .maybeSingle();
-  const entitlement = ws?.owner_user_id ? await refreshEntitlementStatus(ws.owner_user_id) : null;
+  const entitlement = await workspaceEntitlementRow(workspaceId);
   const allowed = entitlement?.allowed_apps;
   const registry = (APP_KEYS as AppSlug[]).filter((k) => {
     const app = APPS.find((a) => a.key === k);
