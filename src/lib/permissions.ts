@@ -108,6 +108,9 @@ export const WORKSPACE_ADMIN_ACTIONS = [
   "team.invite",
   "team.manage",
   "roles.assign",
+  // Stage 1 foundation only: stored member permission overrides are NOT yet
+  // read by Authorization v2. Only Owner/Administrator hold this permission.
+  "permissions.manage",
 ] as const;
 
 /** The full catalogue, in the same order as the database seed. */

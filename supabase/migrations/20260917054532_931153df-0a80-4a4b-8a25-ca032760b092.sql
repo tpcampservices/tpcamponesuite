@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_override_workspace() FROM PUBLIC, anon, authenticated;

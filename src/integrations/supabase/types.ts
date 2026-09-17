@@ -830,6 +830,61 @@ export type Database = {
           },
         ]
       }
+      workspace_member_permission_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effect: string
+          id: string
+          membership_id: string
+          permission_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effect: string
+          id?: string
+          membership_id: string
+          permission_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effect?: string
+          id?: string
+          membership_id?: string
+          permission_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_member_permission_overrides_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_permission_overrides_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_permission_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_memberships: {
         Row: {
           created_at: string
