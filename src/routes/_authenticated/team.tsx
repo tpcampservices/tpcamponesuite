@@ -10,9 +10,12 @@ import {
   inviteWorkspaceMember,
   resendWorkspaceInvitation,
   updateMemberAppAccess,
+  updateMemberPermissionOverride,
   updateMemberRole,
   updateMemberStatus,
+  removeMemberPermissionOverride,
 } from "@/lib/invitations.functions";
+import type { PermissionGroup, TeamMember } from "@/lib/members.server";
 import { APPS } from "@/lib/apps";
 import { APP_ACCESS_LABELS, APP_ACCESS_LEVELS } from "@/lib/permissions";
 
@@ -66,6 +69,137 @@ function AccessBadge({ level }: { level: string }) {
   );
 }
 
+/** Three-state control plus the plain-language state of one permission. */
+function PermissionRow({
+  entry,
+  editable,
+  busy,
+  onChange,
+}: {
+  entry: PermissionGroup["permissions"][number];
+  editable: boolean;
+  busy: boolean;
+  onChange: (state: string) => void;
+}) {
+  const locked = !entry.deniable;
+  const status = !entry.effective
+    ? entry.state === "allow"
+      ? entry.cappedOut
+        ? `Allowed — needs ${APP_ACCESS_LABELS[entry.requiredLevel ?? "edit"]} access`
+        : "Allowed — not currently active"
+      : entry.state === "deny"
+        ? "Denied for this member"
+        : entry.inheritedByRole
+          ? "From role — not currently active"
+          : "Not granted by their role"
+    : entry.state === "allow"
+      ? entry.inheritedByRole
+        ? "Allowed (their role already grants this)"
+        : "Allowed for this member"
+      : "Granted by their role";
+
+  const tone = entry.effective
+    ? "text-accent"
+    : entry.state === "deny"
+      ? "text-destructive"
+      : "text-muted-foreground";
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+      <div className="min-w-0">
+        <p className="text-sm">{entry.label}</p>
+        <p className={`text-xs ${tone}`}>{status}</p>
+      </div>
+      {editable && !locked ? (
+        <select
+          value={entry.state}
+          disabled={busy}
+          onChange={(event) => onChange(event.target.value)}
+          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-accent"
+        >
+          <option value="inherited">Inherited</option>
+          <option value="allow" disabled={!entry.allowable}>
+            Allow
+          </option>
+          <option value="deny">Deny</option>
+        </select>
+      ) : (
+        <span className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+          {locked ? "Protected" : entry.state === "inherited" ? "Inherited" : entry.state === "allow" ? "Allowed" : "Denied"}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AdvancedPermissions({
+  member,
+  editable,
+  busy,
+  onChange,
+}: {
+  member: TeamMember;
+  editable: boolean;
+  busy: boolean;
+  onChange: (permissionKey: string, state: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="text-xs text-muted-foreground underline decoration-dotted hover:text-accent"
+      >
+        {open ? "Hide advanced permissions" : "Advanced permissions"}
+      </button>
+      {open && (
+        <div className="mt-3 space-y-4">
+          {!editable && (
+            <p className="text-xs text-muted-foreground">
+              Read-only — you cannot change this member's advanced permissions.
+            </p>
+          )}
+          {member.permissionGroups.map((group) => (
+            <div key={group.appKey}>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium">{group.label}</p>
+                {group.accessLevel && <AccessBadge level={group.accessLevel} />}
+                {!group.entitled && (
+                  <span className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                    Not in your plan
+                  </span>
+                )}
+              </div>
+              {group.accessLevel === "no_access" && (
+                <p className="mt-1 text-xs text-destructive">
+                  This member has no access to this application — nothing below is active.
+                </p>
+              )}
+              {!group.entitled && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your plan does not include this application, so nothing here can be allowed.
+                </p>
+              )}
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {group.permissions.map((entry) => (
+                  <PermissionRow
+                    key={entry.key}
+                    entry={entry}
+                    editable={editable}
+                    busy={busy}
+                    onChange={(state) => onChange(entry.key, state)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TeamPage() {
   const loadTeam = useServerFn(getMyTeam);
   const invite = useServerFn(inviteWorkspaceMember);
@@ -74,6 +208,8 @@ function TeamPage() {
   const setRole = useServerFn(updateMemberRole);
   const setAppAccess = useServerFn(updateMemberAppAccess);
   const setStatus = useServerFn(updateMemberStatus);
+  const setOverride = useServerFn(updateMemberPermissionOverride);
+  const clearOverride = useServerFn(removeMemberPermissionOverride);
   const queryClient = useQueryClient();
 
   const [lastLink, setLastLink] = useState<string | null>(null);
@@ -158,6 +294,30 @@ function TeamPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const overrideMutation = useMutation({
+    mutationFn: (input: { membershipId: string; permissionKey: string; state: string }) =>
+      input.state === "inherited"
+        ? clearOverride({
+            data: { membershipId: input.membershipId, permissionKey: input.permissionKey },
+          })
+        : setOverride({
+            data: {
+              membershipId: input.membershipId,
+              permissionKey: input.permissionKey,
+              effect: input.state,
+            },
+          }),
+    onSuccess: () => {
+      toast.success("Permission updated.");
+      // Always re-read the server's own answer; never assume the change applied.
+      refresh();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      refresh();
+    },
+  });
+
   const access = data?.access ?? null;
   const seats = data?.seats ?? null;
   const members = data?.members ?? [];
@@ -171,6 +331,10 @@ function TeamPage() {
   );
   const mayAssignRoles = Boolean(
     access?.isOwner || access?.permissions.includes("workspace.roles.assign"),
+  );
+  // Effective permission resolved server-side — never a role name.
+  const mayManagePermissions = Boolean(
+    access?.isOwner || access?.permissions.includes("workspace.permissions.manage"),
   );
 
   const pending = invitations.filter((i) => i.status === "pending");
@@ -336,6 +500,23 @@ function TeamPage() {
                     </div>
                   ))}
                 </div>
+
+                {m.isOwner ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Owner — full workspace permissions. These cannot be overridden.
+                  </p>
+                ) : (
+                  <AdvancedPermissions
+                    member={m}
+                    editable={
+                      mayManagePermissions && m.userId !== access?.membership?.userId && m.status === "active"
+                    }
+                    busy={overrideMutation.isPending}
+                    onChange={(permissionKey, state) =>
+                      overrideMutation.mutate({ membershipId: m.membershipId, permissionKey, state })
+                    }
+                  />
+                )}
               </li>
             ))}
           </ul>
