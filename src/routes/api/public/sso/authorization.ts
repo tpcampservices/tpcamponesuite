@@ -57,7 +57,9 @@ export const Route = createFileRoute("/api/public/sso/authorization")({
               ...result,
               authorized: false,
               app_access: "no_access",
+              permissions: [],
               reason: "workspace_mismatch",
+              reason_code: "WORKSPACE_MISMATCH",
             },
             { status: 200, headers: { "Cache-Control": "no-store" } },
           );

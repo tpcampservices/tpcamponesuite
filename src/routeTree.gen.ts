@@ -22,6 +22,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
+import { Route as ApiAuthzSelftestRouteImport } from './routes/api/authz-selftest'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -102,6 +103,11 @@ const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
   path: '/team',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiAuthzSelftestRoute = ApiAuthzSelftestRouteImport.update({
+  id: '/api/authz-selftest',
+  path: '/api/authz-selftest',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth_/callback',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/api/authz-selftest': typeof ApiAuthzSelftestRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/team': typeof AuthenticatedTeamRoute
+  '/api/authz-selftest': typeof ApiAuthzSelftestRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/api/authz-selftest': typeof ApiAuthzSelftestRoute
   '/auth_/callback': typeof AuthCallbackRoute
   '/auth_/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/business-profile'
     | '/dashboard'
     | '/team'
+    | '/api/authz-selftest'
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/business-profile'
     | '/dashboard'
     | '/team'
+    | '/api/authz-selftest'
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
     | '/_authenticated/team'
+    | '/api/authz-selftest'
     | '/auth_/callback'
     | '/auth_/invite'
     | '/invite/$token'
@@ -376,6 +388,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicesRoute: typeof ServicesRoute
+  ApiAuthzSelftestRoute: typeof ApiAuthzSelftestRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthInviteRoute: typeof AuthInviteRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/team'
       preLoaderRoute: typeof AuthenticatedTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/authz-selftest': {
+      id: '/api/authz-selftest'
+      path: '/api/authz-selftest'
+      fullPath: '/api/authz-selftest'
+      preLoaderRoute: typeof ApiAuthzSelftestRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth_/callback': {
       id: '/auth_/callback'
@@ -625,6 +645,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicesRoute: ServicesRoute,
+  ApiAuthzSelftestRoute: ApiAuthzSelftestRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthInviteRoute: AuthInviteRoute,
   InviteTokenRoute: InviteTokenRoute,
