@@ -120,7 +120,7 @@ if (staff) {
     JSON.stringify(beforeCat.permissions));
 
   const { data: sm } = await admin.from("workspace_memberships").select("id, workspace_id")
-    .eq("user_id", staff.id).eq("status", "active").limit(1).single();
+    .eq("user_id", staff.id).eq("workspace_id", beforeCat.workspaceId!).single();
   const { data: ins } = await admin.from("workspace_member_permission_overrides")
     .insert({ workspace_id: sm!.workspace_id, membership_id: sm!.id, permission_id: catPerm!.id, effect: "allow" })
     .select("id").single();
