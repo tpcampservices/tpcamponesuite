@@ -51,7 +51,17 @@ export const APP_ACCESS_LABELS: Record<AppAccessLevel, string> = {
 
 const APP_ACTIONS: Record<AppSlug, string[]> = {
   catalog: ["access", "view", "create", "edit", "delete", "export", "manage"],
-  splits: ["access", "view", "create", "edit", "edit_shares", "approve", "export", "manage"],
+  splits: [
+    "access",
+    "view",
+    "create",
+    "edit",
+    "edit_shares",
+    "approve",
+    "export",
+    "delete",
+    "manage",
+  ],
   operations: [
     "access",
     "view",
@@ -136,11 +146,28 @@ export const ROLE_ACTION_DEFAULTS: Record<SystemRoleKey, "all" | string[]> = {
   auditor: ["access", "view", "export"],
 };
 
+/**
+ * Per-application overrides on the role defaults, mirroring the database mapping.
+ * Splits governs copyright/master ownership, so Manager keeps the operational
+ * actions but never administers or deletes split records.
+ */
+export const ROLE_APP_ACTION_OVERRIDES: Partial<
+  Record<SystemRoleKey, Partial<Record<AppSlug, string[]>>>
+> = {
+  manager: {
+    splits: ["access", "view", "create", "edit", "edit_shares", "approve", "export"],
+  },
+};
+
 export function permissionsForRole(roleKey: string): PermissionKey[] {
   const defaults = ROLE_ACTION_DEFAULTS[roleKey as SystemRoleKey];
   if (!defaults) return [];
-  if (defaults === "all") return [...PERMISSION_KEYS];
-  return PERMISSIONS.filter((p) => defaults.includes(p.action)).map((p) => p.key);
+  const overrides = ROLE_APP_ACTION_OVERRIDES[roleKey as SystemRoleKey] ?? {};
+  return PERMISSIONS.filter((p) => {
+    const override = overrides[p.app as AppSlug];
+    if (override) return override.includes(p.action);
+    return defaults === "all" || defaults.includes(p.action);
+  }).map((p) => p.key);
 }
 
 /** Every permission key belonging to one application. */
