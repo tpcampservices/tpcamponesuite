@@ -110,46 +110,70 @@ const owner = users.users.find((u) => u.email === "tpcampservices@gmail.com");
 
 let staffOverrideId: string | null = null;
 if (staff) {
-  const before = await resolveAppAuthorization(staff.id, "splits");
-  ok("staff splits authorized (baseline)", before.authorized && before.appAccess === "edit", JSON.stringify(before));
-  ok("staff baseline permissions",
-    JSON.stringify([...before.permissions].sort()) ===
-      JSON.stringify(["splits.access", "splits.create", "splits.edit", "splits.view"]),
-    JSON.stringify(before.permissions));
+  const { data: catPerm } = await admin.from("workspace_permissions").select("id")
+    .eq("permission_key", "catalog.export").single();
+  const beforeCat = await resolveAppAuthorization(staff.id, "catalog");
+  const beforeSplits = await resolveAppAuthorization(staff.id, "splits");
+  console.log(`  staff live state: catalog=${beforeCat.accessLevel} splits=${beforeSplits.accessLevel}`);
+  ok("staff catalog permissions capped by role+level",
+    !beforeCat.permissions.includes("catalog.export") && !beforeCat.permissions.includes("catalog.manage"),
+    JSON.stringify(beforeCat.permissions));
 
   const { data: sm } = await admin.from("workspace_memberships").select("id, workspace_id")
     .eq("user_id", staff.id).eq("status", "active").limit(1).single();
   const { data: ins } = await admin.from("workspace_member_permission_overrides")
-    .insert({ workspace_id: sm!.workspace_id, membership_id: sm!.id, permission_id: permRow!.id, effect: "allow" })
+    .insert({ workspace_id: sm!.workspace_id, membership_id: sm!.id, permission_id: catPerm!.id, effect: "allow" })
     .select("id").single();
   staffOverrideId = ins!.id;
 
-  const after = await resolveAppAuthorization(staff.id, "splits");
-  ok("ALLOW override ignored by Authorization v2",
-    JSON.stringify([...after.permissions].sort()) === JSON.stringify([...before.permissions].sort()),
-    JSON.stringify(after.permissions));
-  ok("authorization_version unchanged", after.appAccess === before.appAccess && after.authorized === before.authorized);
+  const afterCat = await resolveAppAuthorization(staff.id, "catalog");
+  ok("ALLOW catalog.export override ignored by Authorization v2",
+    JSON.stringify([...afterCat.permissions].sort()) === JSON.stringify([...beforeCat.permissions].sort()),
+    JSON.stringify(afterCat.permissions));
+  ok("override does not change access level / authorized",
+    afterCat.accessLevel === beforeCat.accessLevel && afterCat.authorized === beforeCat.authorized);
 
-  await admin.from("workspace_member_permission_overrides").delete().eq("id", staffOverrideId);
-  const restored = await resolveAppAuthorization(staff.id, "splits");
+  // DENY override on a permission the member holds must also be ignored in Stage 1
+  const { data: catView } = await admin.from("workspace_permissions").select("id")
+    .eq("permission_key", "catalog.view").single();
+  const { data: ins2 } = await admin.from("workspace_member_permission_overrides")
+    .insert({ workspace_id: sm!.workspace_id, membership_id: sm!.id, permission_id: catView!.id, effect: "deny" })
+    .select("id").single();
+  const afterDeny = await resolveAppAuthorization(staff.id, "catalog");
+  ok("DENY override ignored by Authorization v2",
+    JSON.stringify([...afterDeny.permissions].sort()) === JSON.stringify([...beforeCat.permissions].sort()),
+    JSON.stringify(afterDeny.permissions));
+  await admin.from("workspace_member_permission_overrides").delete().in("id", [staffOverrideId, ins2!.id]);
+
+  const restored = await resolveAppAuthorization(staff.id, "catalog");
   ok("staff unchanged after override removal",
-    JSON.stringify([...restored.permissions].sort()) === JSON.stringify([...before.permissions].sort()));
+    JSON.stringify([...restored.permissions].sort()) === JSON.stringify([...beforeCat.permissions].sort()));
 
-  // no_access / suspended behaviour unchanged
-  const cat = await resolveAppAuthorization(staff.id, "catalog");
-  ok("staff catalog still no_access/unauthorized", !cat.authorized && cat.permissions.length === 0, JSON.stringify(cat));
+  const noAccessApp = beforeSplits.accessLevel === "no_access" ? beforeSplits : await resolveAppAuthorization(staff.id, "operations");
+  ok("no_access unchanged (no permissions, unauthorized)",
+    !noAccessApp.authorized && noAccessApp.permissions.length === 0, JSON.stringify(noAccessApp));
   const fin = await resolveAppAuthorization(staff.id, "finance");
-  ok("finance still not in plan", !fin.authorized, JSON.stringify(fin));
+  ok("entitlement gating unchanged (finance not in plan)", !fin.authorized, String(fin.reason));
+
+  // suspended membership behaviour, restored immediately
+  await admin.from("workspace_memberships").update({ status: "suspended" }).eq("id", sm!.id);
+  const susp = await resolveAppAuthorization(staff.id, "catalog");
+  await admin.from("workspace_memberships").update({ status: "active" }).eq("id", sm!.id);
+  ok("suspended membership fails closed", !susp.authorized && susp.permissions.length === 0, JSON.stringify(susp.reason));
+  const back = await resolveAppAuthorization(staff.id, "catalog");
+  ok("membership restored to active", back.authorized === beforeCat.authorized && back.accessLevel === beforeCat.accessLevel);
 } else {
   console.log("SKIP staff tests: account not found");
 }
 
 if (owner) {
   const o = await resolveAppAuthorization(owner.id, "splits");
-  ok("owner splits authorized manage", o.authorized && o.appAccess === "manage", JSON.stringify(o));
+  ok("owner splits authorized manage", o.authorized && o.accessLevel === "manage", JSON.stringify(o.reason));
   ok("owner splits full permission set", o.permissions.length === 9, JSON.stringify(o.permissions));
   const oc = await resolveAppAuthorization(owner.id, "catalog");
-  ok("owner catalog regression", oc.authorized && oc.appAccess === "manage", JSON.stringify(oc));
+  ok("owner catalog regression", oc.authorized && oc.accessLevel === "manage", JSON.stringify(oc.reason));
+  ok("owner catalog permissions intact", oc.permissions.length === 7, JSON.stringify(oc.permissions));
+  ok("super-admin still a platform attribute", oc.isPlatformSuperAdmin === true && oc.roleKey === "owner");
 }
 
 for (const fn of cleanup.reverse()) await fn();
