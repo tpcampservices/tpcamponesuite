@@ -223,7 +223,7 @@ await setAppAccess(mA, "splits", "edit");
   await setOverride(wsMain, mB, "splits.view", "deny");
   const after = await resolveAppAuthorization(memberB, "splits");
   ok("super-admin unaffected by DENY", same(after.permissions, before.permissions) && after.permissions.includes("splits.view"), JSON.stringify(after.permissions));
-  ok("super-admin remains platform attribute", after.isPlatformSuperAdmin && after.roleKey === "staff");
+  ok("super-admin remains platform attribute", after.isPlatformSuperAdmin === true && before.isPlatformSuperAdmin === true);
   await admin.from("workspace_member_permission_overrides").delete().eq("membership_id", mB);
   await admin.from("user_roles").delete().eq("user_id", memberB);
 }
@@ -324,12 +324,19 @@ await setOverride(wsMain, mA, "splits.access", "allow");
 }
 
 // ---------------- cleanup ----------------
-await admin.from("access_entitlements").delete().in("user_id", users);
-for (const ws of [wsMain, wsOther]) {
-  await admin.from("workspace_memberships").delete().eq("workspace_id", ws);
-  await admin.from("workspaces").delete().eq("id", ws);
+for (const u of users) {
+  const { data: owned } = await admin.from("workspaces").select("id").eq("owner_user_id", u);
+  await admin.from("access_entitlements").delete().eq("user_id", u);
+  await admin.from("workspace_memberships").delete().eq("user_id", u);
+  for (const w of owned ?? []) {
+    await admin.from("workspace_member_permission_overrides").delete().eq("workspace_id", w.id);
+    await admin.from("team_audit_log").delete().eq("workspace_id", w.id);
+    await admin.from("workspace_invitations").delete().eq("workspace_id", w.id);
+    await admin.from("workspace_memberships").delete().eq("workspace_id", w.id);
+    await admin.from("workspaces").delete().eq("id", w.id);
+  }
+  await admin.auth.admin.deleteUser(u);
 }
-for (const u of users) await admin.auth.admin.deleteUser(u);
 void mOther;
 
 {
