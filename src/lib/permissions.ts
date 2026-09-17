@@ -51,7 +51,17 @@ export const APP_ACCESS_LABELS: Record<AppAccessLevel, string> = {
 
 const APP_ACTIONS: Record<AppSlug, string[]> = {
   catalog: ["access", "view", "create", "edit", "delete", "export", "manage"],
-  splits: ["access", "view", "create", "edit", "edit_shares", "approve", "export", "manage"],
+  splits: [
+    "access",
+    "view",
+    "create",
+    "edit",
+    "edit_shares",
+    "approve",
+    "export",
+    "delete",
+    "manage",
+  ],
   operations: [
     "access",
     "view",
