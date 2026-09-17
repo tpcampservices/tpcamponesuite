@@ -1,0 +1,12 @@
+import { createClient } from "@supabase/supabase-js";
+import { resolveAppAuthorization } from "./src/lib/workspace.server";
+const admin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+const staff = users.users.find(u => u.email === "jabarimuzik@gmail.com")!;
+const { data: ms } = await admin.from("workspace_memberships").select("id, workspace_id, status, workspaces(name,status)").eq("user_id", staff.id);
+console.log(JSON.stringify(ms, null, 1));
+const m = ms!.find((x:any)=>x.workspaces.name === "CMMG RECORDS")!;
+await admin.from("workspace_memberships").update({ status: "suspended" }).eq("id", m.id);
+console.log("suspended =>", JSON.stringify(await resolveAppAuthorization(staff.id, "catalog")));
+await admin.from("workspace_memberships").update({ status: "active" }).eq("id", m.id);
+console.log("restored =>", JSON.stringify(await resolveAppAuthorization(staff.id, "catalog")));
