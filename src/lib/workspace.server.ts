@@ -14,9 +14,11 @@ import { getPlan } from "./plans";
 import { APP_KEYS, APPS, type AppSlug } from "./apps";
 import {
   appPermissionKeys,
+  applyMemberOverrides,
   filterPermissionsByLevel,
   permissionsForRole,
   type AppAccessLevel,
+  type MemberPermissionOverride,
   type MembershipStatus,
   type PermissionKey,
 } from "./permissions";
@@ -174,6 +176,27 @@ export async function resolveWorkspaceAccess(
     .map((p) => p.permission_key);
   if (permissions.length === 0 && role?.role_key) {
     permissions = permissionsForRole(role.role_key);
+  }
+
+  // Member-specific adjustments: role baseline → member overrides → app-access
+  // cap (applied downstream). Loaded strictly by THIS resolved membership id, so
+  // no other member's, user's or workspace's rows can ever be read, and the
+  // permission key always comes from the canonical catalogue join — never from a
+  // browser-supplied value. Owner and platform super admin are deliberately
+  // exempt: their authority is structural and cannot be edited by an override.
+  if (!resolved.isOwner && !superAdmin) {
+    const { data: overrideRows } = await supabaseAdmin
+      .from("workspace_member_permission_overrides")
+      .select("effect, workspace_permissions(permission_key)")
+      .eq("membership_id", membership.id);
+    const overrides: MemberPermissionOverride[] = (overrideRows ?? [])
+      .map((row) => ({
+        key: (row.workspace_permissions as unknown as { permission_key: string } | null)
+          ?.permission_key,
+        effect: row.effect,
+      }))
+      .filter((row): row is MemberPermissionOverride => Boolean(row.key));
+    permissions = applyMemberOverrides(permissions, overrides);
   }
 
   // Per-member app access narrows the role: a member with no access to an app
