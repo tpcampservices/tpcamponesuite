@@ -255,3 +255,52 @@ export const updateMemberStatus = createServerFn({ method: "POST" })
       status: data.status,
     });
   });
+
+/* ------------------------------- advanced (member-specific) permissions */
+
+/**
+ * Allow or Deny one permission for one member. The acting user's workspace and
+ * their `workspace.permissions.manage` authority are resolved from the verified
+ * session; the browser only names a membership in that same workspace and a
+ * permission key, both validated against the canonical catalogue server-side.
+ */
+export const updateMemberPermissionOverride = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { membershipId?: string; permissionKey?: string; effect?: string }) => ({
+    membershipId: String(data?.membershipId ?? "").trim(),
+    permissionKey: String(data?.permissionKey ?? "").trim().slice(0, 120),
+    effect: String(data?.effect ?? "").trim(),
+  }))
+  .handler(async ({ data, context }) => {
+    const { resolveCurrentWorkspace } = await import("./workspace.server");
+    const { setMemberPermissionOverride } = await import("./members.server");
+    const workspace = await resolveCurrentWorkspace(context.userId);
+    if (!workspace) throw new Error("You do not have a workspace yet");
+    return setMemberPermissionOverride({
+      actorUserId: context.userId,
+      workspaceId: workspace.id,
+      membershipId: data.membershipId,
+      permissionKey: data.permissionKey,
+      effect: data.effect,
+    });
+  });
+
+/** Remove a member's override so the permission returns to their role baseline. */
+export const removeMemberPermissionOverride = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { membershipId?: string; permissionKey?: string }) => ({
+    membershipId: String(data?.membershipId ?? "").trim(),
+    permissionKey: String(data?.permissionKey ?? "").trim().slice(0, 120),
+  }))
+  .handler(async ({ data, context }) => {
+    const { resolveCurrentWorkspace } = await import("./workspace.server");
+    const { clearMemberPermissionOverride } = await import("./members.server");
+    const workspace = await resolveCurrentWorkspace(context.userId);
+    if (!workspace) throw new Error("You do not have a workspace yet");
+    return clearMemberPermissionOverride({
+      actorUserId: context.userId,
+      workspaceId: workspace.id,
+      membershipId: data.membershipId,
+      permissionKey: data.permissionKey,
+    });
+  });
