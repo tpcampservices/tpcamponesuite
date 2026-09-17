@@ -689,7 +689,19 @@ export async function resolveAppAuthorization(
   for (const record of records) {
     const candidate = await evaluateWorkspaceApp(userId, record, slug, superAdmin, evaluatedAt);
     if (candidate.authorized) return candidate;
-    if (!best || denialRank(candidate.reason) < denialRank(best.reason)) best = candidate;
+    if (!best) {
+      best = candidate;
+      continue;
+    }
+    const rank = denialRank(candidate.reason) - denialRank(best.reason);
+    // Equal causes: report the workspace that actually holds a subscription
+    // record, so an expired plan reads as "expired" rather than "none".
+    const better =
+      rank < 0 ||
+      (rank === 0 &&
+        best.entitlement.status === "none" &&
+        candidate.entitlement.status !== "none");
+    if (better) best = candidate;
   }
   return best ?? { ...base, appSlug: slug, reason: "no_membership" };
 }
