@@ -590,13 +590,7 @@ export async function listMembershipRecords(userId: string): Promise<MembershipR
 export async function workspaceEntitlementSummary(
   workspaceId: string,
 ): Promise<EntitlementSummary> {
-  const { data: ws } = await supabaseAdmin
-    .from("workspaces")
-    .select("owner_user_id")
-    .eq("id", workspaceId)
-    .maybeSingle();
-  if (!ws?.owner_user_id) return { hasAccess: false, status: "none", planId: null, expiryDate: null };
-  const row = await refreshEntitlementStatus(ws.owner_user_id);
+  const row = await workspaceEntitlementRow(workspaceId);
   const status = (row?.access_status ?? "none") as EntitlementSummary["status"];
   return {
     hasAccess: status === "active",
