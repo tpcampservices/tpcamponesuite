@@ -173,6 +173,41 @@ export function permissionsForRole(roleKey: string): PermissionKey[] {
   }).map((p) => p.key);
 }
 
+/**
+ * A member-specific permission adjustment, resolved server-side from
+ * `workspace_member_permission_overrides`. Keys are canonical catalogue keys —
+ * never values supplied by a browser.
+ */
+export type MemberPermissionOverride = { key: PermissionKey; effect: "allow" | "deny" };
+
+/**
+ * effective = (baseline ∪ allow) - deny
+ *
+ * Pure and deterministic: inputs are never mutated, output is deduplicated and
+ * sorted. Deny always wins if contradictory data somehow reaches the helper, and
+ * any malformed effect is ignored (fail safe: it neither grants nor removes).
+ *
+ * This runs BEFORE the app-access cap — it computes the pre-cap permission set
+ * and deliberately knows nothing about access levels.
+ */
+export function applyMemberOverrides(
+  baselinePermissions: readonly PermissionKey[],
+  overrides: readonly MemberPermissionOverride[],
+): PermissionKey[] {
+  const allow = new Set<PermissionKey>();
+  const deny = new Set<PermissionKey>();
+  for (const override of overrides ?? []) {
+    const key = typeof override?.key === "string" ? override.key : "";
+    if (!key || !isPermissionKey(key)) continue;
+    if (override.effect === "allow") allow.add(key);
+    else if (override.effect === "deny") deny.add(key);
+    // Any other effect value is malformed and ignored.
+  }
+  const effective = new Set<PermissionKey>([...(baselinePermissions ?? []), ...allow]);
+  for (const key of deny) effective.delete(key);
+  return [...effective].sort();
+}
+
 /** Every permission key belonging to one application. */
 export function appPermissionKeys(app: AppSlug): PermissionKey[] {
   return (APP_ACTIONS[app] ?? []).map((action) => `${app}.${action}`);
