@@ -172,6 +172,8 @@ export type EntitlementRow = {
   payment_status: EntitlementPaymentStatus;
   seats_limit: number | null;
   allowed_apps: string[] | null;
+  /** Workspace this subscription covers; null for pre-workspace records. */
+  workspace_id: string | null;
   admin_notes: string | null;
   granted_by: string | null;
   granted_at: string | null;
