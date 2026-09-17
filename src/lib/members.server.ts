@@ -17,12 +17,25 @@ import {
   workspaceHasAvailableSeat,
 } from "./workspace.server";
 import {
+  actionMinimumLevel,
+  applyMemberOverrides,
+  appPermissionKeys,
+  filterPermissionsByLevel,
   isAppAccessLevel,
   isMembershipStatus,
+  isNonDeniable,
+  levelAtLeast,
+  NON_DENIABLE_PERMISSIONS,
+  permissionLabel,
+  permissionsForRole,
+  WORKSPACE_ADMIN_ACTIONS,
   type AppAccessLevel,
+  type MemberPermissionOverride,
   type MembershipStatus,
+  type PermissionKey,
+  type PermissionOverrideState,
 } from "./permissions";
-import { isAppSlug, type AppSlug } from "./apps";
+import { APPS, isAppSlug, type AppSlug } from "./apps";
 import { INVITABLE_ROLE_KEYS, isInvitableRole } from "./invitations.server";
 
 export type TeamMember = {
@@ -37,6 +50,42 @@ export type TeamMember = {
   isOwner: boolean;
   /** Level per app, limited to the workspace's entitled apps. */
   appAccess: Record<string, AppAccessLevel>;
+  /**
+   * Advanced permissions, resolved SERVER-SIDE. The browser renders this and
+   * never recomputes effective access itself.
+   */
+  permissionGroups: PermissionGroup[];
+};
+
+/** One permission row as presented in the team interface. */
+export type MemberPermissionEntry = {
+  key: PermissionKey;
+  label: string;
+  /** Granted by the member's current role, before any override. */
+  inheritedByRole: boolean;
+  /** Stored override, if any. */
+  state: PermissionOverrideState;
+  /** Final effective result, after overrides, the app-access cap and the gates. */
+  effective: boolean;
+  /** Access level this permission needs (app permissions only). */
+  requiredLevel: AppAccessLevel | null;
+  /** Stored Allow that the member's current access level suppresses. */
+  cappedOut: boolean;
+  /** False when the plan excludes the app: an Allow would be refused. */
+  allowable: boolean;
+  /** False for protected permissions that can never be denied. */
+  deniable: boolean;
+};
+
+export type PermissionGroup = {
+  /** App slug, or "workspace" for workspace administration. */
+  appKey: string;
+  label: string;
+  /** Current member access level for the app; null for workspace administration. */
+  accessLevel: AppAccessLevel | null;
+  /** True when the plan currently includes this application. */
+  entitled: boolean;
+  permissions: MemberPermissionEntry[];
 };
 
 /** Team administration authority. Owner always qualifies. */
@@ -133,7 +182,7 @@ export async function listMembers(
   const [{ data: rows }, entitled] = await Promise.all([
     supabaseAdmin
       .from("workspace_memberships")
-      .select("id, user_id, status, joined_at, workspace_roles(role_key, name)")
+      .select("id, user_id, status, joined_at, role_id, workspace_roles(role_key, name)")
       .eq("workspace_id", workspaceId)
       .neq("status", "removed")
       .order("created_at", { ascending: true }),
@@ -143,20 +192,47 @@ export async function listMembers(
   const memberships = rows ?? [];
   const userIds = memberships.map((m) => m.user_id);
   const membershipIds = memberships.map((m) => m.id);
+  const roleIds = [...new Set(memberships.map((m) => m.role_id))];
 
-  const [{ data: profiles }, { data: appRows }] = await Promise.all([
-    userIds.length
-      ? supabaseAdmin.from("profiles").select("id, email, full_name").in("id", userIds)
-      : Promise.resolve({ data: [] as any[] }),
-    membershipIds.length
-      ? supabaseAdmin
-          .from("workspace_member_app_access")
-          .select("membership_id, app_key, access_level")
-          .in("membership_id", membershipIds)
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
+  const [{ data: profiles }, { data: appRows }, { data: overrideRows }, { data: rolePermRows }, { data: superAdmins }] =
+    await Promise.all([
+      userIds.length
+        ? supabaseAdmin.from("profiles").select("id, email, full_name").in("id", userIds)
+        : Promise.resolve({ data: [] as any[] }),
+      membershipIds.length
+        ? supabaseAdmin
+            .from("workspace_member_app_access")
+            .select("membership_id, app_key, access_level")
+            .in("membership_id", membershipIds)
+        : Promise.resolve({ data: [] as any[] }),
+      membershipIds.length
+        ? supabaseAdmin
+            .from("workspace_member_permission_overrides")
+            .select("membership_id, effect, workspace_permissions(permission_key)")
+            .in("membership_id", membershipIds)
+        : Promise.resolve({ data: [] as any[] }),
+      roleIds.length
+        ? supabaseAdmin
+            .from("workspace_role_permissions")
+            .select("role_id, workspace_permissions(permission_key)")
+            .in("role_id", roleIds)
+        : Promise.resolve({ data: [] as any[] }),
+      userIds.length
+        ? supabaseAdmin.from("user_roles").select("user_id").eq("role", "super_admin").in("user_id", userIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
 
   const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  const superAdminIds = new Set((superAdmins ?? []).map((r: any) => r.user_id));
+
+  const baselineByRole = new Map<string, PermissionKey[]>();
+  for (const roleId of roleIds) {
+    const keys = (rolePermRows ?? [])
+      .filter((r: any) => r.role_id === roleId)
+      .map((r: any) => r.workspace_permissions?.permission_key)
+      .filter(Boolean) as PermissionKey[];
+    baselineByRole.set(roleId, keys);
+  }
 
   return memberships.map((m) => {
     const role = m.workspace_roles as unknown as { role_key: string; name: string } | null;
@@ -170,6 +246,85 @@ export async function listMembers(
       }),
     ) as Record<string, AppAccessLevel>;
     const profile = profileById.get(m.user_id) as any;
+
+    // Same order as the authoritative resolver: role baseline → member overrides
+    // → app-access cap. Presentation only; the resolver stays authoritative.
+    const overrides: MemberPermissionOverride[] = (overrideRows ?? [])
+      .filter((r: any) => r.membership_id === m.id)
+      .map((r: any) => ({ key: r.workspace_permissions?.permission_key, effect: r.effect }))
+      .filter((r: any) => Boolean(r.key));
+    const overrideByKey = new Map(overrides.map((o) => [o.key, o.effect]));
+
+    let baseline = baselineByRole.get(m.role_id) ?? [];
+    if (baseline.length === 0 && role?.role_key) baseline = permissionsForRole(role.role_key);
+    const exempt = isOwner || superAdminIds.has(m.user_id);
+    const preCap = exempt ? baseline : applyMemberOverrides(baseline, overrides);
+    const gated = m.status === "active";
+
+    const appsToShow = [
+      ...entitled,
+      ...[...overrideByKey.keys()]
+        .map((key) => key.split(".")[0])
+        .filter((app) => isAppSlug(app) && !entitled.includes(app as AppSlug)),
+    ].filter((app, index, all) => all.indexOf(app) === index);
+
+    const permissionGroups: PermissionGroup[] = appsToShow.map((app) => {
+      const slug = app as AppSlug;
+      const isEntitled = entitled.includes(slug);
+      const level = (appAccess[app] ?? "no_access") as AppAccessLevel;
+      const effectiveKeys = new Set(
+        isEntitled && gated ? filterPermissionsByLevel(slug, level, preCap) : [],
+      );
+      // The entry gate: without `<app>.access` nothing in the app is effective.
+      if (!effectiveKeys.has(`${slug}.access`)) effectiveKeys.clear();
+      return {
+        appKey: app,
+        label: APPS.find((a) => a.key === app)?.name ?? app,
+        accessLevel: level,
+        entitled: isEntitled,
+        permissions: appPermissionKeys(slug).map((key) => {
+          const action = key.slice(slug.length + 1);
+          const requiredLevel = actionMinimumLevel(action);
+          const state = (overrideByKey.get(key) ?? "inherited") as PermissionOverrideState;
+          const inCap = level !== "no_access" && levelAtLeast(level, requiredLevel);
+          return {
+            key,
+            label: permissionLabel(key),
+            inheritedByRole: baseline.includes(key),
+            state,
+            effective: effectiveKeys.has(key),
+            requiredLevel,
+            cappedOut: state === "allow" && !inCap,
+            allowable: isEntitled,
+            deniable: !isNonDeniable(key),
+          };
+        }),
+      };
+    });
+
+    // Workspace administration: no application, so no access-level cap applies.
+    permissionGroups.push({
+      appKey: "workspace",
+      label: "Workspace administration",
+      accessLevel: null,
+      entitled: true,
+      permissions: WORKSPACE_ADMIN_ACTIONS.map((action) => {
+        const key = `workspace.${action}`;
+        const state = (overrideByKey.get(key) ?? "inherited") as PermissionOverrideState;
+        return {
+          key,
+          label: permissionLabel(key),
+          inheritedByRole: baseline.includes(key),
+          state,
+          effective: gated && preCap.includes(key),
+          requiredLevel: null,
+          cappedOut: false,
+          allowable: true,
+          deniable: !isNonDeniable(key),
+        };
+      }),
+    });
+
     return {
       membershipId: m.id,
       userId: m.user_id,
@@ -181,6 +336,7 @@ export async function listMembers(
       joinedAt: m.joined_at,
       isOwner,
       appAccess,
+      permissionGroups,
     };
   });
 }
@@ -361,9 +517,6 @@ export async function setMemberStatus(args: {
  * a permission key; the workspace, the target's role, the canonical permission
  * and the actor's authority are all resolved server-side.
  */
-
-/** Permissions that must never be removed from a member by an override. */
-const NON_DENIABLE_PERMISSIONS = ["workspace.team.view"];
 
 type OverrideEffect = "allow" | "deny";
 

@@ -258,6 +258,53 @@ export function filterPermissionsByLevel(
     .sort();
 }
 
+/**
+ * Permissions that must never be removed from a member by a Deny override.
+ * This is the single authority: the write layer rejects a Deny on these, and the
+ * team interface renders them as protected instead of offering a control that
+ * would always fail.
+ */
+export const NON_DENIABLE_PERMISSIONS: PermissionKey[] = ["workspace.team.view"];
+
+export function isNonDeniable(key: PermissionKey) {
+  return NON_DENIABLE_PERMISSIONS.includes(key);
+}
+
+/** Business-readable action labels, shared by every application. */
+const ACTION_LABELS: Record<string, string> = {
+  access: "Open the application",
+  view: "View",
+  create: "Create",
+  edit: "Edit",
+  edit_shares: "Edit ownership shares",
+  approve: "Validate / approve",
+  assign: "Assign work",
+  post: "Post entries",
+  send: "Send",
+  void: "Void",
+  export: "Export",
+  delete: "Delete",
+  manage: "Manage application",
+  "team.view": "See the team",
+  "team.invite": "Invite team members",
+  "team.manage": "Manage team members",
+  "roles.assign": "Assign roles",
+  "permissions.manage": "Manage advanced permissions",
+};
+
+/** Human label for a canonical permission key. Never shown as a raw key. */
+export function permissionLabel(key: PermissionKey): string {
+  const action = key.slice(key.indexOf(".") + 1);
+  return ACTION_LABELS[action] ?? action.replace(/[._]/g, " ");
+}
+
+/** How a permission currently behaves for one member. */
+export type PermissionOverrideState = "inherited" | "allow" | "deny";
+
+export function isPermissionOverrideState(value: unknown): value is PermissionOverrideState {
+  return value === "inherited" || value === "allow" || value === "deny";
+}
+
 export function isPermissionKey(value: unknown): value is PermissionKey {
   return PERMISSION_KEYS.includes(String(value));
 }
