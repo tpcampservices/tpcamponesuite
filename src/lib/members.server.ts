@@ -17,10 +17,23 @@ import {
   workspaceHasAvailableSeat,
 } from "./workspace.server";
 import {
+  actionMinimumLevel,
+  applyMemberOverrides,
+  appPermissionKeys,
+  filterPermissionsByLevel,
   isAppAccessLevel,
   isMembershipStatus,
+  isNonDeniable,
+  levelAtLeast,
+  NON_DENIABLE_PERMISSIONS,
+  permissionLabel,
+  permissionsForRole,
+  WORKSPACE_ADMIN_ACTIONS,
   type AppAccessLevel,
+  type MemberPermissionOverride,
   type MembershipStatus,
+  type PermissionKey,
+  type PermissionOverrideState,
 } from "./permissions";
 import { isAppSlug, type AppSlug } from "./apps";
 import { INVITABLE_ROLE_KEYS, isInvitableRole } from "./invitations.server";
@@ -37,6 +50,42 @@ export type TeamMember = {
   isOwner: boolean;
   /** Level per app, limited to the workspace's entitled apps. */
   appAccess: Record<string, AppAccessLevel>;
+  /**
+   * Advanced permissions, resolved SERVER-SIDE. The browser renders this and
+   * never recomputes effective access itself.
+   */
+  permissionGroups: PermissionGroup[];
+};
+
+/** One permission row as presented in the team interface. */
+export type MemberPermissionEntry = {
+  key: PermissionKey;
+  label: string;
+  /** Granted by the member's current role, before any override. */
+  inheritedByRole: boolean;
+  /** Stored override, if any. */
+  state: PermissionOverrideState;
+  /** Final effective result, after overrides, the app-access cap and the gates. */
+  effective: boolean;
+  /** Access level this permission needs (app permissions only). */
+  requiredLevel: AppAccessLevel | null;
+  /** Stored Allow that the member's current access level suppresses. */
+  cappedOut: boolean;
+  /** False when the plan excludes the app: an Allow would be refused. */
+  allowable: boolean;
+  /** False for protected permissions that can never be denied. */
+  deniable: boolean;
+};
+
+export type PermissionGroup = {
+  /** App slug, or "workspace" for workspace administration. */
+  appKey: string;
+  label: string;
+  /** Current member access level for the app; null for workspace administration. */
+  accessLevel: AppAccessLevel | null;
+  /** True when the plan currently includes this application. */
+  entitled: boolean;
+  permissions: MemberPermissionEntry[];
 };
 
 /** Team administration authority. Owner always qualifies. */
@@ -361,9 +410,6 @@ export async function setMemberStatus(args: {
  * a permission key; the workspace, the target's role, the canonical permission
  * and the actor's authority are all resolved server-side.
  */
-
-/** Permissions that must never be removed from a member by an override. */
-const NON_DENIABLE_PERMISSIONS = ["workspace.team.view"];
 
 type OverrideEffect = "allow" | "deny";
 
