@@ -439,13 +439,15 @@ export async function resolveAuthorizedApps(userId: string): Promise<{
   }
 
   let fallback: Awaited<ReturnType<typeof resolveAuthorizedApps>> | null = null;
+  let fallbackHasEntitlement = false;
 
   // A user can own an empty workspace and still be a member of the paying one,
   // so every active workspace is considered and the first that actually grants
   // applications wins.
   for (const workspace of workspaces) {
     const access = await resolveWorkspaceAccess(userId, workspace.id);
-    const covered = superAdmin || (await workspaceHasActiveEntitlement(workspace.id));
+    const hasWorkspaceEntitlement = await workspaceHasActiveEntitlement(workspace.id);
+    const covered = superAdmin || hasWorkspaceEntitlement;
     const entitled = covered ? await entitledApps(workspace.id) : [];
 
     const apps =
@@ -467,7 +469,14 @@ export async function resolveAuthorizedApps(userId: string): Promise<{
       isPlatformSuperAdmin: superAdmin,
     };
     if (apps.length > 0) return resolved;
-    fallback ??= resolved;
+    // When no workspace currently grants an app, keep the workspace that actually
+    // carries the user's team entitlement ahead of an empty personal workspace.
+    // This lets presentation surfaces explain a no-access state in the right
+    // workspace without merging access from multiple memberships.
+    if (!fallback || (!fallbackHasEntitlement && hasWorkspaceEntitlement)) {
+      fallback = resolved;
+      fallbackHasEntitlement = hasWorkspaceEntitlement;
+    }
   }
 
   return fallback!;
@@ -704,6 +713,60 @@ export async function resolveAppAuthorization(
     if (better) best = candidate;
   }
   return best ?? { ...base, appSlug: slug, reason: "no_membership" };
+}
+
+/**
+ * Resolve one app inside one already-selected workspace. This is the scoped
+ * form used by workspace-aware presentation: every app is evaluated by the same
+ * central decision function and can never be borrowed from another workspace.
+ */
+export async function resolveWorkspaceAppAuthorization(
+  userId: string,
+  workspaceId: string,
+  appSlug: string,
+): Promise<AppAuthorization> {
+  const evaluatedAt = new Date().toISOString();
+  const noEntitlement: EntitlementSummary = {
+    hasAccess: false,
+    status: "none",
+    planId: null,
+    expiryDate: null,
+  };
+  const invalid: AppAuthorization = {
+    authorized: false,
+    userId,
+    workspaceId,
+    workspaceStatus: null,
+    membershipId: null,
+    appSlug: null,
+    accessLevel: "no_access",
+    membershipStatus: "none",
+    roleKey: null,
+    roleName: null,
+    isOwner: false,
+    isPlatformSuperAdmin: false,
+    permissions: [],
+    entitlement: noEntitlement,
+    legacyNoWorkspace: false,
+    evaluatedAt,
+    reason: "invalid_app",
+  };
+
+  if (!(APP_KEYS as string[]).includes(appSlug)) return invalid;
+  const record = (await listMembershipRecords(userId)).find(
+    (membership) => membership.workspaceId === workspaceId,
+  );
+  if (!record) {
+    return { ...invalid, appSlug: appSlug as AppSlug, reason: "no_membership" };
+  }
+
+  return evaluateWorkspaceApp(
+    userId,
+    record,
+    appSlug as AppSlug,
+    await isPlatformSuperAdmin(userId),
+    evaluatedAt,
+  );
 }
 
 /** Lower is reported first: the denial closest to the real cause. */

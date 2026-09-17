@@ -16,7 +16,8 @@ import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getMyAccount } from "@/lib/account.functions";
 import { getAccessState } from "@/lib/billing.functions";
 import { createAppLaunch } from "@/lib/sso.functions";
-import { getMyAuthorizedApps } from "@/lib/workspace.functions";
+import { getMyDashboardWorkspace } from "@/lib/workspace.functions";
+import { APP_ACCESS_LABELS } from "@/lib/permissions";
 import { activeReminder, daysUntil, formatMoney, type Currency } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -71,26 +72,32 @@ function DashboardPage() {
 
   const fetchAccount = useServerFn(getMyAccount);
   const fetchAccess = useServerFn(getAccessState);
-
-  const fetchApps = useServerFn(getMyAuthorizedApps);
+  const fetchWorkspace = useServerFn(getMyDashboardWorkspace);
 
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
-  const { data, isLoading } = useQuery({ queryKey: ["access-state"], queryFn: () => fetchAccess({}) });
-  const { data: appAuth } = useQuery({
-    queryKey: ["authorized-apps"],
-    queryFn: () => fetchApps(),
+  const { data: workspaceData, isLoading: workspaceLoading } = useQuery({
+    queryKey: ["dashboard-workspace"],
+    queryFn: () => fetchWorkspace(),
+  });
+  const shouldLoadBilling =
+    workspaceData !== undefined && (workspaceData.workspace === null || workspaceData.canManageBilling);
+  const { data, isLoading: billingLoading } = useQuery({
+    queryKey: ["access-state"],
+    queryFn: () => fetchAccess({}),
+    enabled: shouldLoadBilling,
   });
 
   const isSuperAdmin = Boolean(account?.isSuperAdmin);
   const entitlement = data?.entitlement ?? null;
   const orders = data?.orders ?? [];
   const usage = data?.usage ?? [];
+  const isTeamMember = Boolean(workspaceData?.workspace && !workspaceData.canManageBilling);
+  const workspacePlan = workspaceData?.plan ?? null;
+  const workspaceApps = workspaceData?.apps ?? [];
+  const isLoading = workspaceLoading || (shouldLoadBilling && billingLoading);
 
-  // A team member is covered by their workspace's plan, so workspace-resolved
-  // application access also counts as access.
-  const workspaceApps = appAuth?.apps ?? [];
   const hasAccess =
-    isSuperAdmin || entitlement?.status === "active" || workspaceApps.length > 0;
+    isSuperAdmin || entitlement?.status === "active" || workspaceApps.some((app) => app.authorized);
   const expired = entitlement?.status === "expired";
   const remaining = daysUntil(entitlement?.expiryDate);
   const reminder =
@@ -109,14 +116,18 @@ function DashboardPage() {
 
   // Application visibility follows the workspace resolver, not "the plan is
   // active": entitlement ∩ member app access ∩ role permissions.
-  const allowedApps = appAuth?.apps;
-  const canOpen = (slug: string) =>
-    hasAccess && (allowedApps === undefined || allowedApps.includes(slug));
-  const unlockedCount = allowedApps
-    ? suiteApps.filter((a) => canOpen(a.slug)).length
+  const appResult = (slug: string) => workspaceApps.find((app) => app.slug === slug);
+  const canOpen = (slug: string) => {
+    const result = appResult(slug);
+    return result ? result.authorized : hasAccess;
+  };
+  const unlockedCount = workspaceApps.length
+    ? workspaceApps.filter((app) => app.authorized).length
     : hasAccess
       ? suiteApps.length
       : 0;
+  const displayedPlan = isTeamMember ? (workspacePlan?.name ?? "None") : isSuperAdmin ? "All plans" : (entitlement?.planName ?? "None");
+  const displayedStatus = isTeamMember ? "Access provided by your workspace" : statusLabel;
 
   return (
     <div className="min-h-screen">
@@ -135,7 +146,7 @@ function DashboardPage() {
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
             <span className="text-muted-foreground">Plan</span>
             <strong className="font-medium">
-              {isSuperAdmin ? "All plans" : (entitlement?.planName ?? "None")}
+              {displayedPlan}
             </strong>
           </span>
           <span
@@ -148,15 +159,22 @@ function DashboardPage() {
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            {statusLabel}
+            {displayedStatus}
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
-            <CalendarClock className="h-4 w-4 text-accent" />
-            <span className="text-muted-foreground">Access expires</span>
-            <strong className="font-medium">
-              {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
-            </strong>
-          </span>
+          {isTeamMember ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
+              <span className="text-muted-foreground">Role</span>
+              <strong className="font-medium">{workspaceData?.membership?.roleName ?? "Member"}</strong>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5 text-sm">
+              <CalendarClock className="h-4 w-4 text-accent" />
+              <span className="text-muted-foreground">Access expires</span>
+              <strong className="font-medium">
+                {entitlement?.expiryDate ? formatDate(entitlement.expiryDate) : "—"}
+              </strong>
+            </span>
+          )}
           <Link
             to="/team"
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:border-accent/60"
@@ -189,7 +207,7 @@ function DashboardPage() {
 
         {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading your access…</p>}
 
-        {reminder && (
+        {!isTeamMember && reminder && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
             <p className="inline-flex items-center gap-2">
               <CalendarClock className="h-4 w-4 shrink-0 text-accent" />
@@ -204,7 +222,7 @@ function DashboardPage() {
           </div>
         )}
 
-        {expired && (
+        {!isTeamMember && expired && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
             <p className="inline-flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
@@ -222,7 +240,7 @@ function DashboardPage() {
         )}
 
         {/* A verified account with no access record yet — a calm, professional state. */}
-        {!isLoading && !hasAccess && !expired && (
+        {!isLoading && !isTeamMember && !hasAccess && !expired && (
           <div className="mt-6 rounded-lg border border-border bg-surface p-5 text-sm">
             <p className="font-medium">
               Your OneSuite account has been created successfully.
@@ -248,7 +266,25 @@ function DashboardPage() {
           </div>
         )}
 
-        <section className="panel mt-8 p-7">
+        {isTeamMember && (
+          <section className="panel mt-8 p-7">
+            <p className="eyebrow">Workspace access</p>
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-5">
+              <div>
+                <h2 className="text-2xl font-semibold">{workspaceData?.workspace?.name}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {workspacePlan?.name ? `${workspacePlan.name} Plan` : "Workspace plan"}
+                </p>
+              </div>
+              <div className="text-sm sm:text-right">
+                <p><span className="text-muted-foreground">Role:</span> {workspaceData?.membership?.roleName ?? "Member"}</p>
+                <p className="mt-1 text-accent">Access provided by your workspace</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!isTeamMember && <section className="panel mt-8 p-7">
           <h2 className="text-lg font-semibold">Access &amp; billing</h2>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-4">
@@ -351,7 +387,7 @@ function DashboardPage() {
               {hasAccess ? "Renew or change plan" : "Choose a plan"}
             </Link>
           </div>
-        </section>
+        </section>}
 
         <section className="panel mt-8 flex flex-wrap items-center justify-between gap-5 p-7">
           <div>
@@ -391,7 +427,11 @@ function DashboardPage() {
                 <span>
                   <span className="block text-sm font-medium">{app.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {launching === app.slug ? "Signing you in…" : app.blurb}
+                    {launching === app.slug
+                      ? "Signing you in…"
+                      : isTeamMember
+                        ? `${APP_ACCESS_LABELS[appResult(app.slug)?.accessLevel ?? "no_access"]} access`
+                        : app.blurb}
                   </span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent" />
@@ -404,7 +444,7 @@ function DashboardPage() {
                 <span>
                   <span className="block text-sm font-medium">{app.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {hasAccess ? "Not included in your access" : app.blurb}
+                    {isTeamMember ? "Not available" : hasAccess ? "Not included in your access" : app.blurb}
                   </span>
                 </span>
                 <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
