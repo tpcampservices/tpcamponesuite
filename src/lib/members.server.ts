@@ -35,7 +35,7 @@ import {
   type PermissionKey,
   type PermissionOverrideState,
 } from "./permissions";
-import { isAppSlug, type AppSlug } from "./apps";
+import { APPS, isAppSlug, type AppSlug } from "./apps";
 import { INVITABLE_ROLE_KEYS, isInvitableRole } from "./invitations.server";
 
 export type TeamMember = {
@@ -259,7 +259,7 @@ export async function listMembers(
     if (baseline.length === 0 && role?.role_key) baseline = permissionsForRole(role.role_key);
     const exempt = isOwner || superAdminIds.has(m.user_id);
     const preCap = exempt ? baseline : applyMemberOverrides(baseline, overrides);
-    const gated = m.status === "active" && !(exempt && false);
+    const gated = m.status === "active";
 
     const appsToShow = [
       ...entitled,
