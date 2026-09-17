@@ -242,7 +242,10 @@ await rejects("Allow for non-entitled app rejected", () => call(owner.id, wsA, m
   await clear(owner.id, wsA, mStaff, "splits.edit_shares");
   const allowed = await auditRows(wsA, "member_permission_allowed");
   const denied = await auditRows(wsA, "member_permission_denied");
-  const removed = await auditRows(wsA, "member_permission_override_removed");
+  const { data: removedOrdered } = await admin.from("team_audit_log").select("details")
+    .eq("workspace_id", wsA).eq("action", "member_permission_override_removed")
+    .order("created_at", { ascending: true });
+  const removed = removedOrdered ?? [];
   ok("audit entry for Allow", allowed.length > 0);
   ok("audit entry for Deny", denied.length > 0);
   ok("audit entry for Clear", removed.length > 0);
@@ -307,20 +310,21 @@ await rejects("Allow for non-entitled app rejected", () => call(owner.id, wsA, m
 
 // ---------------- gates remain intact ----------------
 {
-  await call(owner.id, wsA, mStaff, "splits.manage", "allow");
-  await admin.from("workspace_memberships").update({ status: "suspended" }).eq("id", mStaff);
-  const s = await resolveAppAuthorization(staff.id, "splits");
-  ok("suspended member gate intact", !s.authorized && s.permissions.length === 0);
-  await admin.from("workspace_memberships").update({ status: "active" }).eq("id", mStaff);
-  await setAppAccess(mStaff, "splits", "no_access");
-  const n = await resolveAppAuthorization(staff.id, "splits");
-  ok("No Access gate intact", !n.authorized && n.permissions.length === 0);
-  await setAppAccess(mStaff, "splits", "edit");
+  // viewer belongs to workspace A only, so gate behaviour is unambiguous
+  await call(owner.id, wsA, mViewer, "splits.manage", "allow");
+  await admin.from("workspace_memberships").update({ status: "suspended" }).eq("id", mViewer);
+  const s = await resolveAppAuthorization(viewer.id, "splits");
+  ok("suspended member gate intact", !s.authorized && s.permissions.length === 0, JSON.stringify([s.reason, s.permissions]));
+  await admin.from("workspace_memberships").update({ status: "active" }).eq("id", mViewer);
+  await setAppAccess(mViewer, "splits", "no_access");
+  const n = await resolveAppAuthorization(viewer.id, "splits");
+  ok("No Access gate intact", !n.authorized && n.permissions.length === 0, JSON.stringify([n.reason, n.permissions]));
+  await setAppAccess(mViewer, "splits", "edit");
   await admin.from("workspaces").update({ status: "suspended" }).eq("id", wsA);
-  const w = await resolveAppAuthorization(staff.id, "splits");
-  ok("inactive workspace gate intact", !w.authorized && w.reason === "workspace_inactive");
+  const w = await resolveAppAuthorization(viewer.id, "splits");
+  ok("inactive workspace gate intact", !w.authorized && w.reason === "workspace_inactive", JSON.stringify([w.reason, w.authorized]));
   await admin.from("workspaces").update({ status: "active" }).eq("id", wsA);
-  await clear(owner.id, wsA, mStaff, "splits.manage");
+  await clear(owner.id, wsA, mViewer, "splits.manage");
 }
 
 // ---------------- Owner / super-admin resolver regression ----------------
