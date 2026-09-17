@@ -266,15 +266,30 @@ export async function listActiveWorkspaces(userId: string): Promise<WorkspaceSum
  * Does this workspace currently hold access? The entitlement belongs to the
  * workspace owner — the same record billing writes. Nothing is duplicated.
  */
-export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
+/**
+ * The subscription record that covers THIS workspace, read from its owner.
+ *
+ * A record linked to another workspace never covers this one — otherwise the
+ * empty personal workspace every account is provisioned with would silently
+ * inherit the label's plan. A record with no workspace link still counts, so
+ * subscriptions bought before workspaces existed keep working.
+ */
+export async function workspaceEntitlementRow(workspaceId: string) {
   const { data: ws } = await supabaseAdmin
     .from("workspaces")
     .select("owner_user_id")
     .eq("id", workspaceId)
     .maybeSingle();
-  if (!ws?.owner_user_id) return false;
-  const entitlement = await refreshEntitlementStatus(ws.owner_user_id);
-  return entitlement?.access_status === "active";
+  if (!ws?.owner_user_id) return null;
+  const row = await refreshEntitlementStatus(ws.owner_user_id);
+  if (!row) return null;
+  if (row.workspace_id && row.workspace_id !== workspaceId) return null;
+  return row;
+}
+
+export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
+  const row = await workspaceEntitlementRow(workspaceId);
+  return row?.access_status === "active";
 }
 
 /**
