@@ -193,9 +193,14 @@ export async function redeemTicket(token: string, appSlug: string) {
       name: entitlement.fullName,
       app_slug: appSlug,
       workspace_id: authz.workspaceId,
+      workspace_status: authz.workspaceStatus,
+      membership_id: authz.membershipId,
       app_access: authz.accessLevel,
       membership_status: authz.membershipStatus,
       role_key: authz.roleKey,
+      role_name: authz.roleName,
+      permissions: authz.permissions,
+      authorization_version: AUTHORIZATION_VERSION,
       is_owner: authz.isOwner,
       is_super_admin: entitlement.isSuperAdmin,
       has_access: entitlement.hasAccess,
@@ -217,10 +222,14 @@ export async function redeemTicket(token: string, appSlug: string) {
     name: entitlement.fullName,
     appSlug,
     workspaceId: authz.workspaceId,
+    workspaceStatus: authz.workspaceStatus,
+    membershipId: authz.membershipId,
     appAccess: authz.accessLevel,
     membershipStatus: authz.membershipStatus,
     roleKey: authz.roleKey,
     roleName: authz.roleName,
+    permissions: authz.permissions,
+    authorizationVersion: AUTHORIZATION_VERSION,
     assertion,
     issuedAt,
     expiresAt,
@@ -233,39 +242,91 @@ export type AppAuthorizationResponse = {
   authorized: boolean;
   user_id: string;
   workspace_id: string | null;
+  workspace_status: string | null;
+  membership_id: string | null;
   app_slug: string | null;
   app_access: "no_access" | "view" | "edit" | "manage";
   membership_status: string;
   role_key: string | null;
   role_name: string | null;
+  /** Effective permissions for this app only: role ∩ access level. */
+  permissions: string[];
+  /** Access status of the workspace subscription — never billing detail. */
+  entitlement: {
+    has_access: boolean;
+    status: "none" | "active" | "expired";
+    plan_id: string | null;
+    expiry_date: string | null;
+  };
+  is_owner: boolean;
+  is_super_admin: boolean;
+  legacy_no_workspace: boolean;
+  /** Contract version, so child apps can detect a newer shape safely. */
+  authorization_version: number;
+  evaluated_at: string;
   checked_at: string;
   reason: string | null;
+  reason_code: string | null;
 };
 
+export const AUTHORIZATION_VERSION = 2;
+
 /**
- * Minimal authorization answer for the server-to-server endpoint. It delegates
- * entirely to the OneSuite resolver, so suspension, removal, level changes,
- * role changes, entitlement expiry, plan changes and workspace status are all
- * reflected on the very next call. No entitlement, billing, profile or
- * permission detail is returned.
+ * THE current authorization answer for the server-to-server endpoint.
+ *
+ * A launch assertion describes authorization AT LAUNCH TIME only. This response
+ * is the live authority: if the two disagree because something changed after
+ * launch, THIS wins. It delegates entirely to the OneSuite resolver, so
+ * suspension, removal, level changes, role changes, entitlement expiry, plan
+ * changes and workspace status are reflected on the very next call. No billing,
+ * profile or unrelated personal detail is returned.
  */
+
+/**
+ * Keeps `reason` inside the vocabulary child apps already handle, while
+ * `reason_code` carries the precise machine-readable cause.
+ */
+function legacyReason(reason: string | null): string | null {
+  if (!reason) return null;
+  if (reason === "membership_suspended" || reason === "membership_removed") {
+    return "membership_inactive";
+  }
+  if (reason === "workspace_inactive" || reason === "no_membership") return "no_workspace";
+  return reason;
+}
+
 export async function authorizationFor(
   userId: string,
   appSlug: string,
 ): Promise<AppAuthorizationResponse> {
-  const { resolveAppAuthorization } = await import("./workspace.server");
+  const { resolveAppAuthorization, reasonCode } = await import("./workspace.server");
   const authz = await resolveAppAuthorization(userId, appSlug);
   return {
     authorized: authz.authorized,
     user_id: userId,
     workspace_id: authz.workspaceId,
+    workspace_status: authz.workspaceStatus,
+    membership_id: authz.membershipId,
     app_slug: authz.appSlug,
     app_access: authz.accessLevel,
     membership_status: authz.membershipStatus,
     role_key: authz.roleKey,
     role_name: authz.roleName,
+    permissions: authz.permissions,
+    entitlement: {
+      has_access: authz.entitlement.hasAccess,
+      status: authz.entitlement.status,
+      plan_id: authz.entitlement.planId,
+      expiry_date: authz.entitlement.expiryDate,
+    },
+    is_owner: authz.isOwner,
+    is_super_admin: authz.isPlatformSuperAdmin,
+    legacy_no_workspace: authz.legacyNoWorkspace,
+    authorization_version: AUTHORIZATION_VERSION,
+    evaluated_at: authz.evaluatedAt,
     checked_at: new Date().toISOString(),
-    reason: authz.reason,
+    reason: legacyReason(authz.reason),
+    reason_code: reasonCode(authz.reason),
   };
 }
 

@@ -143,6 +143,56 @@ export function permissionsForRole(roleKey: string): PermissionKey[] {
   return PERMISSIONS.filter((p) => defaults.includes(p.action)).map((p) => p.key);
 }
 
+/** Every permission key belonging to one application. */
+export function appPermissionKeys(app: AppSlug): PermissionKey[] {
+  return (APP_ACTIONS[app] ?? []).map((action) => `${app}.${action}`);
+}
+
+/**
+ * The minimum member access level each action requires.
+ *
+ * `view` covers reads and (role-permitting) export. `edit` covers ordinary
+ * create/edit workflow. Destructive and administrative actions require `manage`.
+ * This is a CAP, never a grant: a role that does not hold a permission never
+ * gains it by having a higher access level.
+ */
+const VIEW_ACTIONS = ["access", "view", "export"];
+const MANAGE_ACTIONS = ["delete", "manage", "void", "approve"];
+
+export function actionMinimumLevel(action: string): AppAccessLevel {
+  if (VIEW_ACTIONS.includes(action)) return "view";
+  if (MANAGE_ACTIONS.includes(action)) return "manage";
+  return "edit";
+}
+
+const LEVEL_RANK: Record<AppAccessLevel, number> = {
+  no_access: 0,
+  view: 1,
+  edit: 2,
+  manage: 3,
+};
+
+export function levelAtLeast(level: AppAccessLevel, required: AppAccessLevel) {
+  return LEVEL_RANK[level] >= LEVEL_RANK[required];
+}
+
+/**
+ * Effective app permissions = role permissions ∩ what the member's access level
+ * allows. Both inputs are resolved server-side; nothing is taken from a request.
+ */
+export function filterPermissionsByLevel(
+  app: AppSlug,
+  level: AppAccessLevel,
+  rolePermissions: PermissionKey[],
+): PermissionKey[] {
+  if (level === "no_access") return [];
+  const prefix = `${app}.`;
+  return rolePermissions
+    .filter((key) => key.startsWith(prefix))
+    .filter((key) => levelAtLeast(level, actionMinimumLevel(key.slice(prefix.length))))
+    .sort();
+}
+
 export function isPermissionKey(value: unknown): value is PermissionKey {
   return PERMISSION_KEYS.includes(String(value));
 }
