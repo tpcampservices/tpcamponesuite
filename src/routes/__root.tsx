@@ -112,8 +112,10 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <script type="text/javascript" id="hs-script-loader" async defer src="//js-na1.hs-scripts.com/52032001.js"></script>
         <Scripts />
       </body>
+
     </html>
   );
 }
