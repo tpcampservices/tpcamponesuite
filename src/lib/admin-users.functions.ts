@@ -83,8 +83,14 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       rolesById.set(r.user_id, [...(rolesById.get(r.user_id) ?? []), r.role as string]);
     }
     const entById = new Map((entitlements ?? []).map((e: any) => [e.user_id, e]));
-    const { listCrmStates } = await import("./crm.server");
+    const { listCrmStates, refreshCrmDrift } = await import("./crm.server");
     const crmById = await listCrmStates();
+    // Change detection: only already-synced records are re-hashed (no external calls).
+    for (const [uid, state] of crmById) {
+      if (state.status === "synced") {
+        crmById.set(uid, await refreshCrmDrift(uid).catch(() => state));
+      }
+    }
 
     const users = authUsers
       .map((u) => {
