@@ -144,9 +144,9 @@ export const previewHubSpotMapping = createServerFn({ method: "POST" })
   .inputValidator((d: { userId?: string }) => ({ userId: uuid(d?.userId) }))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
-    const { buildCrmPayload } = await import("./crm.server");
+    const { buildCrmPayload, ambiguityMessage } = await import("./crm.server");
     const hubspot = await import("./hubspot.server");
-    const { payload } = await buildCrmPayload(data.userId);
+    const { payload, workspace } = await buildCrmPayload(data.userId);
     const { skipped } = hubspot.toHubSpotProperties(payload);
     let missing: string[] | null = null;
     if (hubspot.hubspotConfigured()) missing = await hubspot.missingCustomProperties().catch(() => null);
@@ -157,7 +157,13 @@ export const previewHubSpotMapping = createServerFn({ method: "POST" })
       skipped: skipped.includes(field),
       missingInHubSpot: missing ? missing.includes(property) : null,
     }));
-    return { rows, missingProperties: missing, sent: false as const };
+    return {
+      rows,
+      missingProperties: missing,
+      workspaceKind: workspace.kind,
+      workspaceWarning: workspace.kind === "ambiguous" ? ambiguityMessage(workspace) : null,
+      sent: false as const,
+    };
   });
 
 /** Manual one-account sync / retry. Super admin only; no bulk, no automation. */
