@@ -336,6 +336,54 @@ export type Database = {
           },
         ]
       }
+      crm_sync_queue: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          note: string | null
+          payload_hash: string | null
+          processed_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          note?: string | null
+          payload_hash?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          note?: string | null
+          payload_hash?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           created_at: string
@@ -1160,6 +1208,36 @@ export type Database = {
         }
         Returns: string
       }
+      crm_claim_jobs: {
+        Args: { _limit: number }
+        Returns: {
+          attempt_count: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          note: string | null
+          payload_hash: string | null
+          processed_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "crm_sync_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      crm_enqueue: {
+        Args: { _event: string; _force?: boolean; _user_id: string }
+        Returns: undefined
+      }
+      crm_enqueue_expired: { Args: never; Returns: number }
+      crm_wake_processor: { Args: never; Returns: undefined }
       get_workspace_role: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: string
