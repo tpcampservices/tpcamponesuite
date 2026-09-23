@@ -47,8 +47,9 @@ async function finish(id: string, patch: Record<string, unknown>) {
 type Job = { id: string; user_id: string; event_type: string; attempt_count: number };
 type Classified = { kind: "retry" | "permanent" | "auth" | "rate"; message: string };
 
-function classify(e: unknown, HubSpotError: any): Classified {
-  if (e instanceof HubSpotError) {
+function classify(err: unknown, HubSpotError: any): Classified {
+  if (err instanceof HubSpotError) {
+    const e = err as { status: number; category: string; message: string };
     const msg = `HubSpot ${e.status || ""} ${e.category}: ${e.message}`.trim().slice(0, 500);
     if (e.status === 401 || e.status === 403 || e.status === 0) return { kind: "auth", message: msg };
     if (e.status === 429) return { kind: "rate", message: msg };
