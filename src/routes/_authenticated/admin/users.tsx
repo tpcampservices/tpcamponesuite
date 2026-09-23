@@ -16,7 +16,12 @@ import {
 import { getMyAccount } from "@/lib/account.functions";
 import {
   ensureHubSpotProperties,
+  getCrmAutomation,
+  previewCrmBackfill,
   previewHubSpotMapping,
+  runCrmQueueNow,
+  setCrmAutoSync,
+  startCrmBackfill,
   syncToHubSpot,
   testHubSpotConnection,
 } from "@/lib/crm.functions";
@@ -65,6 +70,7 @@ const CRM_LABELS: Record<string, string> = {
   synced: "Synced",
   failed: "Failed",
   needs_update: "Needs Update",
+  blocked: "Ambiguous / Blocked",
 };
 const CRM_BADGE: Record<string, string> = {
   not_synced: "border-border text-muted-foreground",
@@ -72,6 +78,7 @@ const CRM_BADGE: Record<string, string> = {
   synced: "border-accent bg-accent/10 text-accent",
   failed: "border-destructive/60 text-destructive",
   needs_update: "border-primary/50 text-primary",
+  blocked: "border-destructive/40 text-destructive",
 };
 
 const fmt = (value: string | null | undefined) =>
@@ -154,6 +161,30 @@ function AdminUsersPage() {
     enabled: Boolean(account?.isSuperAdmin),
   });
   const hubspot = hubspotTest ?? hubspotStatus ?? null;
+  const fetchAutomation = useServerFn(getCrmAutomation);
+  const toggleAuto = useServerFn(setCrmAutoSync);
+  const runQueue = useServerFn(runCrmQueueNow);
+  const fetchBackfill = useServerFn(previewCrmBackfill);
+  const runBackfill = useServerFn(startCrmBackfill);
+  const [backfill, setBackfill] = useState<Awaited<ReturnType<typeof fetchBackfill>> | null>(null);
+  const { data: automation } = useQuery({
+    queryKey: ["crm-automation"],
+    queryFn: () => fetchAutomation(),
+    enabled: Boolean(account?.isSuperAdmin),
+  });
+  const crmAct = async (fn: () => Promise<unknown>, ok: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      toast.success(ok);
+      await queryClient.invalidateQueries({ queryKey: ["crm-automation"] });
+      await queryClient.invalidateQueries({ queryKey: ["platform-users"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "CRM action failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const users = data?.users ?? [];
   const selected = useMemo(() => users.find((u) => u.id === target) ?? null, [users, target]);
 
@@ -367,8 +398,92 @@ function AdminUsersPage() {
             <p className="mt-3 text-xs text-muted-foreground">All TP-CAMP contact properties exist in HubSpot.</p>
           )}
           <p className="mt-2 text-xs text-muted-foreground">
-            Manual, one account at a time. Syncing never changes TP-CAMP access and never subscribes anyone to marketing email.
+            Syncing never changes TP-CAMP access and never subscribes anyone to marketing email.
           </p>
+          {automation && (
+            <div className="mt-4 border-t border-border pt-4">
+              <div className="flex flex-wrap gap-2 text-xs">
+                {Object.entries(automation.counts).map(([k, v]) => (
+                  <span key={k} className={`rounded-full border px-2 py-0.5 ${CRM_BADGE[k] ?? ""}`}>
+                    {CRM_LABELS[k] ?? k}: {v}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Queue: {automation.queue.pending} pending · {automation.queue.failed} retrying · {automation.queue.dead_letter} dead-letter ·
+                Last run {automation.lastRun ? new Date(automation.lastRun).toLocaleString() : "never"} · Last automated sync{" "}
+                {automation.lastAutoSuccess ? new Date(automation.lastAutoSuccess).toLocaleString() : "never"}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs">
+                  Automatic sync: <strong>{automation.autoSyncEnabled ? "On" : "Off"}</strong>
+                </span>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    crmAct(
+                      () => toggleAuto({ data: { enabled: !automation.autoSyncEnabled } }),
+                      automation.autoSyncEnabled ? "Automatic sync turned off." : "Automatic sync turned on.",
+                    )
+                  }
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  {automation.autoSyncEnabled ? "Turn off" : "Turn on"}
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => crmAct(() => runQueue(), "Queue processed.")}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  Process queue now
+                </button>
+                <button
+                  disabled={busy || !hubspot?.connected}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      setBackfill(await fetchBackfill());
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not check existing customers.");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  className="rounded-lg border border-accent/50 px-3 py-1.5 text-xs text-accent disabled:opacity-50"
+                >
+                  Sync Existing Customers to HubSpot
+                </button>
+              </div>
+              {backfill && (
+                <div className="mt-3 rounded-lg border border-border p-3 text-xs">
+                  <p>
+                    Total {backfill.total} · Eligible {backfill.eligible} · Already synced {backfill.alreadySynced} · Not synced{" "}
+                    {backfill.notSynced} · Ambiguous {backfill.ambiguous} · Missing email {backfill.missingEmail} · Failed{" "}
+                    {backfill.failed} · Excluded {backfill.ineligible}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      disabled={busy || backfill.eligible === 0}
+                      onClick={() => {
+                        if (!window.confirm(`Send the next ${Math.min(5, backfill.eligible)} eligible customers to HubSpot?`)) return;
+                        crmAct(async () => {
+                          const r = await runBackfill({ data: { batchSize: 5, confirm: true } });
+                          setBackfill(await fetchBackfill());
+                          toast.message(`Batch: ${r.synced} synced, ${r.skipped} skipped, ${r.remaining} remaining.`);
+                        }, "Backfill batch finished.");
+                      }}
+                      className="rounded-lg border border-accent px-3 py-1.5 text-accent disabled:opacity-50"
+                    >
+                      Confirm — sync next batch of 5
+                    </button>
+                    <button onClick={() => setBackfill(null)} className="rounded-lg border border-border px-3 py-1.5">
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="panel mt-6 p-6">

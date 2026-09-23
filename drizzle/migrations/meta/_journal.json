@@ -15,6 +15,13 @@
       "when": 1790189657275,
       "tag": "0001_crm_contacts_revoke_extra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790196801187,
+      "tag": "0002_crm_sync_queue_phase3",
+      "breakpoints": true
     }
   ]
 }

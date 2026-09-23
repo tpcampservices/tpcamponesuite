@@ -191,3 +191,60 @@ export const syncToHubSpot = createServerFn({ method: "POST" })
     await audit(context, data.userId, "crm_sync_failed", { error: res.error });
     return { ok: false as const, error: res.error, state: res.state };
   });
+
+/* ---------------- Phase 3: automation (Super Admin only) ---------------- */
+
+export const getCrmAutomation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperAdmin(context);
+    const { crmOverview } = await import("./crm-queue.server");
+    return crmOverview();
+  });
+
+export const setCrmAutoSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { enabled?: boolean }) => ({ enabled: Boolean(d?.enabled) }))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { setAutoSync } = await import("./crm-queue.server");
+    await setAutoSync(data.enabled);
+    await audit(context, context.userId, data.enabled ? "crm_auto_sync_enabled" : "crm_auto_sync_disabled", {});
+    return { ok: true as const, enabled: data.enabled };
+  });
+
+export const runCrmQueueNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperAdmin(context);
+    const { processCrmQueue } = await import("./crm-queue.server");
+    return processCrmQueue(10);
+  });
+
+export const previewCrmBackfill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperAdmin(context);
+    const { backfillPreview } = await import("./crm-queue.server");
+    const { eligibleIds, ...counts } = await backfillPreview();
+    return counts;
+  });
+
+/** Queues the next N eligible, not-yet-synced accounts and processes them now. */
+export const startCrmBackfill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { batchSize?: number; confirm?: boolean }) => {
+    if (d?.confirm !== true) throw new Error("Explicit confirmation is required");
+    return { batchSize: Math.max(1, Math.min(25, Math.floor(Number(d?.batchSize) || 5))) };
+  })
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const q = await import("./crm-queue.server");
+    const { eligibleIds } = await q.backfillPreview();
+    const batch = eligibleIds.slice(0, data.batchSize);
+    await audit(context, context.userId, "crm_backfill_started", { batch: batch.length, remaining: eligibleIds.length - batch.length });
+    for (const id of batch) await q.requeueUser(id, "backfill");
+    const result = batch.length ? await q.processCrmQueue(batch.length) : { claimed: 0, synced: 0, skipped: 0, stopped: false };
+    await audit(context, context.userId, "crm_backfill_completed", { ...result, remaining: eligibleIds.length - batch.length });
+    return { ...result, queued: batch.length, remaining: eligibleIds.length - batch.length };
+  });

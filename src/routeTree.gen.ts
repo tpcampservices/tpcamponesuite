@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
+import { Route as ApiPublicCrmProcessRouteImport } from './routes/api/public/crm/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
 import { Route as ApiPublicSsoAuthorizationRouteImport } from './routes/api/public/sso/authorization'
@@ -147,6 +148,11 @@ const AuthenticatedContractsContractIdRoute =
     path: '/contracts/$contractId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicCrmProcessRoute = ApiPublicCrmProcessRouteImport.update({
+  id: '/api/public/crm/process',
+  path: '/api/public/crm/process',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
+  '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
+  '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
+  '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts/'
+    | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/authorization'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/admin/webhooks'
     | '/contracts/$contractId'
     | '/contracts'
+    | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/authorization'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
     | '/_authenticated/contracts/'
+    | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
     | '/api/public/sso/authorization'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthInviteRoute: typeof AuthInviteRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ApiPublicCrmProcessRoute: typeof ApiPublicCrmProcessRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
   ApiPublicSsoAuthorizationRoute: typeof ApiPublicSsoAuthorizationRoute
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/crm/process': {
+      id: '/api/public/crm/process'
+      path: '/api/public/crm/process'
+      fullPath: '/api/public/crm/process'
+      preLoaderRoute: typeof ApiPublicCrmProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   AuthInviteRoute: AuthInviteRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ApiPublicCrmProcessRoute: ApiPublicCrmProcessRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
   ApiPublicSsoAuthorizationRoute: ApiPublicSsoAuthorizationRoute,
