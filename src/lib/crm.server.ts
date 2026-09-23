@@ -13,8 +13,8 @@ import { APPS, type AppSlug } from "./apps";
 import { getPlan } from "./plans";
 import {
   getSeatAccounting,
-  resolveAppAuthorization,
-  resolveAuthorizedApps,
+  listMembershipRecords,
+  resolveWorkspaceAppAuthorization,
   workspaceEntitlementRow,
 } from "./workspace.server";
 
@@ -110,48 +110,74 @@ function splitName(full: string | null) {
   return { first: parts[0], last: parts.length > 1 ? parts.slice(1).join(" ") : null };
 }
 
+export type CrmWorkspaceResolution = {
+  /** "canonical" = exactly one active entitlement workspace; "none" = no entitlement workspace. */
+  kind: "canonical" | "none" | "ambiguous";
+  workspaceId: string | null;
+  conflicts: { workspaceId: string; workspaceName: string | null; planId: string | null }[];
+};
+
+/**
+ * Canonical CRM workspace: the ONE workspace the user is an active member of
+ * whose access_entitlements record is active. Never guesses: several candidates
+ * → ambiguous (sync blocked); none → no workspace fields, all apps no_access.
+ */
+export async function resolveCrmWorkspace(userId: string): Promise<CrmWorkspaceResolution> {
+  const records = await listMembershipRecords(userId);
+  const candidates: CrmWorkspaceResolution["conflicts"] = [];
+  for (const r of records) {
+    if (r.membershipStatus !== "active" || r.workspaceStatus !== "active") continue;
+    const ent = await workspaceEntitlementRow(r.workspaceId);
+    if (ent?.access_status !== "active" || ent.workspace_id !== r.workspaceId) continue;
+    const { data: ws } = await supabaseAdmin.from("workspaces").select("name").eq("id", r.workspaceId).maybeSingle();
+    candidates.push({ workspaceId: r.workspaceId, workspaceName: ws?.name ?? null, planId: ent.plan_id ?? null });
+  }
+  if (candidates.length === 1) return { kind: "canonical", workspaceId: candidates[0].workspaceId, conflicts: [] };
+  if (candidates.length === 0) return { kind: "none", workspaceId: null, conflicts: [] };
+  return { kind: "ambiguous", workspaceId: null, conflicts: candidates };
+}
+
 /** Builds (never sends) the normalized CRM payload for one account. Read-only. */
 export async function buildCrmPayload(userId: string): Promise<{
   payload: CrmPayload;
   hash: string;
   workspaceId: string | null;
+  workspace: CrmWorkspaceResolution;
 }> {
   const { data: authRes } = await supabaseAdmin.auth.admin.getUserById(userId);
   const user = authRes?.user;
   if (!user) throw new Error("That account no longer exists");
 
-  const [{ data: profile }, { data: business }, resolved] = await Promise.all([
+  const [{ data: profile }, { data: business }, resolution] = await Promise.all([
     supabaseAdmin.from("profiles").select("full_name, organisation, country, email").eq("id", userId).maybeSingle(),
     supabaseAdmin
       .from("business_profiles")
       .select("legal_name, trading_name, registration_number, address, contact_phone")
       .eq("user_id", userId)
       .maybeSingle(),
-    resolveAuthorizedApps(userId),
+    resolveCrmWorkspace(userId),
   ]);
 
-  const workspaceId = resolved.workspaceId;
-  const [workspaceRow, entitlement, seats, roleRow] = await Promise.all([
+  const workspaceId = resolution.workspaceId;
+  const membership = workspaceId
+    ? (await listMembershipRecords(userId)).find((m) => m.workspaceId === workspaceId) ?? null
+    : null;
+  const [workspaceRow, entitlement, seats] = await Promise.all([
     workspaceId
       ? supabaseAdmin.from("workspaces").select("name").eq("id", workspaceId).maybeSingle().then((r) => r.data)
       : Promise.resolve(null),
     workspaceId ? workspaceEntitlementRow(workspaceId) : Promise.resolve(null),
     workspaceId ? getSeatAccounting(workspaceId).catch(() => null) : Promise.resolve(null),
-    resolved.roleKey
-      ? supabaseAdmin
-          .from("workspace_roles")
-          .select("name")
-          .eq("role_key", resolved.roleKey)
-          .is("workspace_id", null)
-          .maybeSingle()
-          .then((r) => r.data)
-      : Promise.resolve(null),
   ]);
 
-  // Per-app access comes from Central Authorization v2 — never re-derived here.
+  // Per-app access: Central Authorization v2, scoped strictly to the canonical workspace.
   const appAccess: Record<string, string> = {};
   for (const app of APPS) {
-    const auth = await resolveAppAuthorization(userId, app.key);
+    if (!workspaceId) {
+      appAccess[app.key as AppSlug] = "no_access";
+      continue;
+    }
+    const auth = await resolveWorkspaceAppAuthorization(userId, workspaceId, app.key);
     appAccess[app.key as AppSlug] = auth.authorized ? auth.accessLevel : "no_access";
   }
 
@@ -184,7 +210,7 @@ export async function buildCrmPayload(userId: string): Promise<{
     subscription_source: ent?.subscription_source ?? null,
     workspace_id: workspaceId,
     workspace_name: workspaceRow?.name ?? null,
-    workspace_role: roleRow?.name ?? resolved.roleKey,
+    workspace_role: membership?.roleName ?? membership?.roleKey ?? null,
     seats_limit: seats?.totalSeats ?? ent?.seats_limit ?? null,
     seats_used: seats?.usedSeats ?? null,
     app_catalog_access: appAccess.catalog,
@@ -194,7 +220,13 @@ export async function buildCrmPayload(userId: string): Promise<{
     app_finance_access: appAccess.finance,
   });
 
-  return { payload, hash: hashCrmPayload(payload), workspaceId };
+  return { payload, hash: hashCrmPayload(payload), workspaceId, workspace: resolution };
+}
+
+export function ambiguityMessage(w: CrmWorkspaceResolution): string {
+  return `Ambiguous CRM workspace — multiple active entitlement workspaces: ${w.conflicts
+    .map((c) => `${c.workspaceName ?? "Unnamed"} (${c.workspaceId}, ${c.planId ?? "no plan"})`)
+    .join("; ")}. Sync blocked.`;
 }
 
 function toState(row: any | null): CrmContactState {
