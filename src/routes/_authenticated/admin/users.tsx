@@ -114,6 +114,7 @@ function AdminUsersPage() {
   const [crmPreview, setCrmPreview] = useState<
     { field: string; property: string; value: unknown; skipped: boolean; missingInHubSpot: boolean | null }[] | null
   >(null);
+  const [crmWarning, setCrmWarning] = useState<string | null>(null);
   const runPreview = useServerFn(previewHubSpotMapping);
   const runHubSpotTest = useServerFn(testHubSpotConnection);
   const runEnsureProps = useServerFn(ensureHubSpotProperties);
@@ -567,6 +568,7 @@ function AdminUsersPage() {
                     try {
                       const res = await runPreview({ data: { userId: u.id } });
                       setCrmPreview(res.rows);
+                      setCrmWarning(res.workspaceWarning);
                     } catch (err) {
                       toast.error(err instanceof Error ? err.message : "Could not build the preview.");
                     }
@@ -576,6 +578,11 @@ function AdminUsersPage() {
                   Preview CRM data
                 </button>
               </div>
+              {crmWarning && (
+                <p className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
+                  {crmWarning}
+                </p>
+              )}
               {crmPreview && (
                 <div className="mt-4 overflow-x-auto">
                   <p className="text-xs text-muted-foreground">

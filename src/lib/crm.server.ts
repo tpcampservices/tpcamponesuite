@@ -324,7 +324,11 @@ export async function refreshCrmDrift(userId: string) {
 export async function syncCrmContact(userId: string) {
   const hubspot = await import("./hubspot.server");
   const before = await readCrmState(userId);
-  const { payload, hash, workspaceId } = await buildCrmPayload(userId);
+  const { payload, hash, workspaceId, workspace } = await buildCrmPayload(userId);
+  // Never guess a workspace: an ambiguous account is not sent to HubSpot at all.
+  if (workspace.kind === "ambiguous") {
+    return { ok: false as const, error: ambiguityMessage(workspace), state: before };
+  }
   const email = payload.email ? String(payload.email) : null;
   const attemptAt = new Date().toISOString();
 
