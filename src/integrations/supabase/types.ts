@@ -277,6 +277,65 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_contacts: {
+        Row: {
+          created_at: string
+          crm_provider: string
+          external_contact_id: string | null
+          id: string
+          last_attempted_at: string | null
+          last_error: string | null
+          last_payload_hash: string | null
+          last_synced_at: string | null
+          normalized_email: string | null
+          sync_attempts: number
+          sync_status: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          crm_provider?: string
+          external_contact_id?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          last_error?: string | null
+          last_payload_hash?: string | null
+          last_synced_at?: string | null
+          normalized_email?: string | null
+          sync_attempts?: number
+          sync_status?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          crm_provider?: string
+          external_contact_id?: string | null
+          id?: string
+          last_attempted_at?: string | null
+          last_error?: string | null
+          last_payload_hash?: string | null
+          last_synced_at?: string | null
+          normalized_email?: string | null
+          sync_attempts?: number
+          sync_status?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_settings: {
         Row: {
           created_at: string
