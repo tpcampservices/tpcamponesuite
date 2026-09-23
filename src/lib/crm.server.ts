@@ -19,7 +19,7 @@ import {
 } from "./workspace.server";
 
 export const CRM_PROVIDER = "hubspot" as const;
-export const CRM_SYNC_STATUSES = ["not_synced", "pending", "synced", "failed", "needs_update"] as const;
+export const CRM_SYNC_STATUSES = ["not_synced", "pending", "synced", "failed", "needs_update", "blocked"] as const;
 export type CrmSyncStatus = (typeof CRM_SYNC_STATUSES)[number];
 
 export type CrmContactState = {
@@ -112,7 +112,7 @@ function splitName(full: string | null) {
 
 export type CrmWorkspaceResolution = {
   /** "canonical" = exactly one active entitlement workspace; "none" = no entitlement workspace. */
-  kind: "canonical" | "none" | "ambiguous";
+  kind: "canonical" | "none" | "ambiguous" | "lapsed";
   workspaceId: string | null;
   conflicts: { workspaceId: string; workspaceName: string | null; planId: string | null }[];
 };
@@ -133,7 +133,21 @@ export async function resolveCrmWorkspace(userId: string): Promise<CrmWorkspaceR
     candidates.push({ workspaceId: r.workspaceId, workspaceName: ws?.name ?? null, planId: ent.plan_id ?? null });
   }
   if (candidates.length === 1) return { kind: "canonical", workspaceId: candidates[0].workspaceId, conflicts: [] };
-  if (candidates.length === 0) return { kind: "none", workspaceId: null, conflicts: [] };
+  if (candidates.length === 0) {
+    // Lapsed: an already-synced contact whose previous CRM workspace no longer has
+    // active access keeps that workspace so HubSpot can learn it expired/was cancelled.
+    const { data: prev } = await supabaseAdmin
+      .from("crm_contacts")
+      .select("workspace_id, external_contact_id")
+      .eq("user_id", userId)
+      .eq("crm_provider", CRM_PROVIDER)
+      .maybeSingle();
+    const still = prev?.workspace_id && prev.external_contact_id
+      ? records.find((r) => r.workspaceId === prev.workspace_id && r.membershipStatus === "active")
+      : null;
+    if (still) return { kind: "lapsed", workspaceId: still.workspaceId, conflicts: [] };
+    return { kind: "none", workspaceId: null, conflicts: [] };
+  }
   return { kind: "ambiguous", workspaceId: null, conflicts: candidates };
 }
 
@@ -182,6 +196,11 @@ export async function buildCrmPayload(userId: string): Promise<{
   }
 
   const ent = entitlement as Record<string, any> | null;
+  // Date-derived status via the existing entitlement model (no second expiry engine).
+  const { deriveAccess } = await import("./entitlement-model");
+  const derivedStatus = ent
+    ? deriveAccess({ planId: ent.plan_id, status: ent.status, expiryDate: ent.access_expiry_date }).status
+    : null;
   const fullName = profile?.full_name ?? null;
   const { first, last } = splitName(fullName);
 
@@ -202,7 +221,7 @@ export async function buildCrmPayload(userId: string): Promise<{
     contact_phone: business?.contact_phone ?? null,
     website: null, // not currently captured by TP-CAMP
     current_plan: ent?.plan_id ? (getPlan(ent.plan_id)?.name ?? ent.plan_id) : null,
-    subscription_status: ent?.status ?? "none",
+    subscription_status: derivedStatus ?? ent?.status ?? "none",
     payment_status: ent?.payment_status ? (PAYMENT_STATUS_CRM[ent.payment_status] ?? null) : null,
     billing_period: ent?.billing_period ?? null,
     access_start_date: ent?.access_start_date ?? null,
@@ -259,7 +278,7 @@ export async function readCrmState(userId: string): Promise<CrmContactState> {
 }
 
 /** Idempotent upsert keyed by (user_id, crm_provider). Touches crm_contacts only. */
-async function writeCrm(userId: string, patch: Record<string, unknown>) {
+export async function writeCrm(userId: string, patch: Record<string, unknown>) {
   const { data, error } = await supabaseAdmin
     .from("crm_contacts")
     .upsert({ user_id: userId, crm_provider: CRM_PROVIDER, ...patch } as never, {
