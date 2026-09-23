@@ -83,6 +83,8 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       rolesById.set(r.user_id, [...(rolesById.get(r.user_id) ?? []), r.role as string]);
     }
     const entById = new Map((entitlements ?? []).map((e: any) => [e.user_id, e]));
+    const { listCrmStates } = await import("./crm.server");
+    const crmById = await listCrmStates();
 
     const users = authUsers
       .map((u) => {
@@ -101,6 +103,17 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
           fullName: profile?.full_name ?? null,
           workspace: profile?.organisation ?? null,
           roles: rolesById.get(u.id) ?? [],
+          crm: crmById.get(u.id) ?? {
+            provider: "hubspot" as const,
+            status: "not_synced" as const,
+            externalContactId: null,
+            workspaceId: null,
+            lastSyncedAt: null,
+            lastAttemptedAt: null,
+            attempts: 0,
+            lastError: null,
+            payloadHash: null,
+          },
           entitlement: ent
             ? {
                 planId: ent.plan_id as string | null,
