@@ -14,7 +14,12 @@ import {
   repairAccount,
 } from "@/lib/admin-users.functions";
 import { getMyAccount } from "@/lib/account.functions";
-import { previewCrmPayload } from "@/lib/crm.functions";
+import {
+  ensureHubSpotProperties,
+  previewHubSpotMapping,
+  syncToHubSpot,
+  testHubSpotConnection,
+} from "@/lib/crm.functions";
 import { PLANS } from "@/lib/plans";
 import {
   ENTITLEMENT_STATUSES,
@@ -106,8 +111,29 @@ function AdminUsersPage() {
   const [inspection, setInspection] = useState<{ userId: string; missing: string[] } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [crmTarget, setCrmTarget] = useState<string | null>(null);
-  const [crmPreview, setCrmPreview] = useState<Record<string, unknown> | null>(null);
-  const runPreview = useServerFn(previewCrmPayload);
+  const [crmPreview, setCrmPreview] = useState<
+    { field: string; property: string; value: unknown; skipped: boolean; missingInHubSpot: boolean | null }[] | null
+  >(null);
+  const runPreview = useServerFn(previewHubSpotMapping);
+  const runHubSpotTest = useServerFn(testHubSpotConnection);
+  const runEnsureProps = useServerFn(ensureHubSpotProperties);
+  const runSyncFn = useServerFn(syncToHubSpot);
+  const [hubspotTest, setHubspotTest] = useState<Awaited<ReturnType<typeof runHubSpotTest>> | null>(null);
+
+  const runSync = async (userId: string, retry: boolean) => {
+    setBusy(true);
+    try {
+      const res = await runSyncFn({ data: { userId, retry } });
+      if (res.ok) toast.success(`HubSpot contact ${res.outcome} (ID ${res.state.externalContactId}).`);
+      else toast.error(`Sync failed: ${res.error}`);
+      await queryClient.invalidateQueries({ queryKey: ["platform-users"] });
+      await queryClient.invalidateQueries({ queryKey: ["access-audit"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not sync this account.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
   const { data, isLoading } = useQuery({
@@ -121,6 +147,12 @@ function AdminUsersPage() {
     enabled: Boolean(account?.isSuperAdmin),
   });
 
+  const { data: hubspotStatus } = useQuery({
+    queryKey: ["hubspot-status"],
+    queryFn: () => runHubSpotTest({ data: { run: false } }),
+    enabled: Boolean(account?.isSuperAdmin),
+  });
+  const hubspot = hubspotTest ?? hubspotStatus ?? null;
   const users = data?.users ?? [];
   const selected = useMemo(() => users.find((u) => u.id === target) ?? null, [users, target]);
 
@@ -272,6 +304,73 @@ function AdminUsersPage() {
         </div>
 
         <section className="panel mt-8 p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-sm font-semibold">HubSpot CRM</h2>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[11px] ${hubspot?.connected ? "border-accent text-accent" : "border-border text-muted-foreground"}`}
+            >
+              {hubspot?.connected ? "Connected" : "Not connected"}
+            </span>
+            {hubspot?.tested && (
+              <span className={`text-xs ${hubspot.ok ? "text-accent" : "text-destructive"}`}>
+                Test {hubspot.ok ? "passed" : `failed (${hubspot.error})`}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Last successful test: {hubspot?.lastOkAt ? new Date(hubspot.lastOkAt).toLocaleString() : "never"}
+            </span>
+            <div className="ml-auto flex gap-2">
+              <button
+                disabled={busy || !hubspot?.connected}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    setHubspotTest(await runHubSpotTest({ data: { run: true } }));
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Connection test failed.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+              >
+                Test connection
+              </button>
+              <button
+                disabled={busy || !hubspot?.connected}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const res = await runEnsureProps();
+                    if (res.failed.length) toast.error(`Could not create: ${res.failed.map((f) => f.name).join(", ")}`);
+                    else toast.success(res.created.length ? `Created ${res.created.length} HubSpot properties.` : "All TP-CAMP properties already exist.");
+                    setHubspotTest(await runHubSpotTest({ data: { run: true } }));
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not create properties.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="rounded-lg border border-accent/50 px-3 py-1.5 text-xs text-accent disabled:opacity-50"
+              >
+                Create missing properties
+              </button>
+            </div>
+          </div>
+          {hubspot?.missingProperties && hubspot.missingProperties.length > 0 && (
+            <p className="mt-3 text-xs text-destructive">
+              Missing HubSpot contact properties: {hubspot.missingProperties.join(", ")}
+            </p>
+          )}
+          {hubspot?.missingProperties && hubspot.missingProperties.length === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">All TP-CAMP contact properties exist in HubSpot.</p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Manual, one account at a time. Syncing never changes TP-CAMP access and never subscribes anyone to marketing email.
+          </p>
+        </section>
+
+        <section className="panel mt-6 p-6">
           <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
             <Mail className="h-4 w-4 text-accent" /> Invite a customer
           </h2>
@@ -446,18 +545,28 @@ function AdminUsersPage() {
                 <Summary label="Last error" value={u.crm.lastError ?? "—"} />
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button disabled className="rounded-lg border border-border px-4 py-2 text-sm opacity-50">
-                  Sync to HubSpot
+                <button
+                  disabled={busy || !hubspot?.connected}
+                  onClick={() => runSync(u.id, false)}
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {busy ? "Syncing…" : "Sync to HubSpot"}
                 </button>
-                <button disabled className="rounded-lg border border-border px-4 py-2 text-sm opacity-50">
+                <button
+                  disabled={busy || !hubspot?.connected || u.crm.status !== "failed"}
+                  onClick={() => runSync(u.id, true)}
+                  className="rounded-lg border border-border px-4 py-2 text-sm disabled:opacity-50"
+                >
                   Retry sync
                 </button>
-                <span className="text-xs text-muted-foreground">HubSpot not connected</span>
+                {!hubspot?.connected && (
+                  <span className="text-xs text-muted-foreground">HubSpot not connected</span>
+                )}
                 <button
                   onClick={async () => {
                     try {
                       const res = await runPreview({ data: { userId: u.id } });
-                      setCrmPreview(res.payload as Record<string, unknown>);
+                      setCrmPreview(res.rows);
                     } catch (err) {
                       toast.error(err instanceof Error ? err.message : "Could not build the preview.");
                     }
@@ -468,18 +577,38 @@ function AdminUsersPage() {
                 </button>
               </div>
               {crmPreview && (
-                <div className="mt-4">
+                <div className="mt-4 overflow-x-auto">
                   <p className="text-xs text-muted-foreground">
-                    Preview only — these are the only fields that would ever be shared. Nothing was sent.
+                    Preview only — nothing was sent. Empty fields are skipped and never clear HubSpot data.
                   </p>
-                  <dl className="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
-                    {Object.entries(crmPreview).map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-3 border-b border-border/50 py-1">
-                        <dt className="text-muted-foreground">{k}</dt>
-                        <dd className="text-right break-all">{v === null ? "—" : String(v)}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <table className="mt-2 w-full text-left text-xs">
+                    <thead className="text-muted-foreground">
+                      <tr>
+                        <th className="py-1 pr-3 font-medium">TP-CAMP field</th>
+                        <th className="py-1 pr-3 font-medium">HubSpot property</th>
+                        <th className="py-1 pr-3 font-medium">Value</th>
+                        <th className="py-1 font-medium">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {crmPreview.map((r) => (
+                        <tr key={r.field} className="border-t border-border/50">
+                          <td className="py-1 pr-3 text-muted-foreground">{r.field}</td>
+                          <td className="py-1 pr-3 font-mono">{r.property}</td>
+                          <td className="py-1 pr-3 break-all">{r.value === null ? "—" : String(r.value)}</td>
+                          <td className="py-1">
+                            {r.missingInHubSpot ? (
+                              <span className="text-destructive">Missing in HubSpot</span>
+                            ) : r.skipped ? (
+                              <span className="text-muted-foreground">Skipped (empty)</span>
+                            ) : (
+                              "Will send"
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
