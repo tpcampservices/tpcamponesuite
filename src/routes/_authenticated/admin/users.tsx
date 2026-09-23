@@ -119,12 +119,6 @@ function AdminUsersPage() {
   const runEnsureProps = useServerFn(ensureHubSpotProperties);
   const runSyncFn = useServerFn(syncToHubSpot);
   const [hubspotTest, setHubspotTest] = useState<Awaited<ReturnType<typeof runHubSpotTest>> | null>(null);
-  const { data: hubspotStatus } = useQuery({
-    queryKey: ["hubspot-status"],
-    queryFn: () => runHubSpotTest({ data: { run: false } }),
-    enabled: Boolean(account?.isSuperAdmin),
-  });
-  const hubspot = hubspotTest ?? hubspotStatus ?? null;
 
   const runSync = async (userId: string, retry: boolean) => {
     setBusy(true);
@@ -153,6 +147,12 @@ function AdminUsersPage() {
     enabled: Boolean(account?.isSuperAdmin),
   });
 
+  const { data: hubspotStatus } = useQuery({
+    queryKey: ["hubspot-status"],
+    queryFn: () => runHubSpotTest({ data: { run: false } }),
+    enabled: Boolean(account?.isSuperAdmin),
+  });
+  const hubspot = hubspotTest ?? hubspotStatus ?? null;
   const users = data?.users ?? [];
   const selected = useMemo(() => users.find((u) => u.id === target) ?? null, [users, target]);
 
