@@ -284,3 +284,52 @@ export async function refreshCrmDrift(userId: string) {
   }
   return state;
 }
+
+/**
+ * Manual, single-account sync (Phase 2). Only CRM state is written; a failure
+ * never touches TP-CAMP access. Returns a safe summary — no provider bodies.
+ */
+export async function syncCrmContact(userId: string) {
+  const hubspot = await import("./hubspot.server");
+  const before = await readCrmState(userId);
+  const { payload, hash, workspaceId } = await buildCrmPayload(userId);
+  const email = payload.email ? String(payload.email) : null;
+  const attemptAt = new Date().toISOString();
+
+  await writeCrm(userId, {
+    sync_status: "pending",
+    workspace_id: workspaceId,
+    normalized_email: email,
+    last_attempted_at: attemptAt,
+  });
+
+  try {
+    if (!email) throw new Error("This account has no email address to match in HubSpot");
+    const { properties } = hubspot.toHubSpotProperties(payload);
+    const result = await hubspot.upsertContact({ storedId: before.externalContactId, email, properties });
+    const state = await writeCrm(userId, {
+      sync_status: "synced",
+      external_contact_id: result.id,
+      last_payload_hash: hash,
+      last_error: null,
+      last_synced_at: new Date().toISOString(),
+      last_attempted_at: attemptAt,
+      sync_attempts: before.attempts + 1,
+    });
+    return { ok: true as const, outcome: result.outcome, previousId: before.externalContactId, state };
+  } catch (e) {
+    const message =
+      e instanceof hubspot.HubSpotError
+        ? `HubSpot ${e.status || ""} ${e.category}: ${e.message}`.trim()
+        : e instanceof Error
+          ? e.message
+          : "Unknown error";
+    const state = await writeCrm(userId, {
+      sync_status: "failed",
+      last_error: message.slice(0, 500),
+      last_attempted_at: attemptAt,
+      sync_attempts: before.attempts + 1,
+    });
+    return { ok: false as const, error: state.lastError, state };
+  }
+}
