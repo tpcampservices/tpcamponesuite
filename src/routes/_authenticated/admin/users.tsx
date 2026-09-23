@@ -304,6 +304,73 @@ function AdminUsersPage() {
         </div>
 
         <section className="panel mt-8 p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-sm font-semibold">HubSpot CRM</h2>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[11px] ${hubspot?.connected ? "border-accent text-accent" : "border-border text-muted-foreground"}`}
+            >
+              {hubspot?.connected ? "Connected" : "Not connected"}
+            </span>
+            {hubspot?.tested && (
+              <span className={`text-xs ${hubspot.ok ? "text-accent" : "text-destructive"}`}>
+                Test {hubspot.ok ? "passed" : `failed (${hubspot.error})`}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Last successful test: {hubspot?.lastOkAt ? new Date(hubspot.lastOkAt).toLocaleString() : "never"}
+            </span>
+            <div className="ml-auto flex gap-2">
+              <button
+                disabled={busy || !hubspot?.connected}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    setHubspotTest(await runHubSpotTest({ data: { run: true } }));
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Connection test failed.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+              >
+                Test connection
+              </button>
+              <button
+                disabled={busy || !hubspot?.connected}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const res = await runEnsureProps();
+                    if (res.failed.length) toast.error(`Could not create: ${res.failed.map((f) => f.name).join(", ")}`);
+                    else toast.success(res.created.length ? `Created ${res.created.length} HubSpot properties.` : "All TP-CAMP properties already exist.");
+                    setHubspotTest(await runHubSpotTest({ data: { run: true } }));
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not create properties.");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="rounded-lg border border-accent/50 px-3 py-1.5 text-xs text-accent disabled:opacity-50"
+              >
+                Create missing properties
+              </button>
+            </div>
+          </div>
+          {hubspot?.missingProperties && hubspot.missingProperties.length > 0 && (
+            <p className="mt-3 text-xs text-destructive">
+              Missing HubSpot contact properties: {hubspot.missingProperties.join(", ")}
+            </p>
+          )}
+          {hubspot?.missingProperties && hubspot.missingProperties.length === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">All TP-CAMP contact properties exist in HubSpot.</p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Manual, one account at a time. Syncing never changes TP-CAMP access and never subscribes anyone to marketing email.
+          </p>
+        </section>
+
+        <section className="panel mt-6 p-6">
           <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
             <Mail className="h-4 w-4 text-accent" /> Invite a customer
           </h2>
