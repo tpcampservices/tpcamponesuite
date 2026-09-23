@@ -14,6 +14,7 @@ import {
   repairAccount,
 } from "@/lib/admin-users.functions";
 import { getMyAccount } from "@/lib/account.functions";
+import { previewCrmPayload } from "@/lib/crm.functions";
 import { PLANS } from "@/lib/plans";
 import {
   ENTITLEMENT_STATUSES,
@@ -53,6 +54,21 @@ const APPS = [
   { slug: "finance", name: "Finance" },
 ];
 
+const CRM_LABELS: Record<string, string> = {
+  not_synced: "Not Synced",
+  pending: "Pending",
+  synced: "Synced",
+  failed: "Failed",
+  needs_update: "Needs Update",
+};
+const CRM_BADGE: Record<string, string> = {
+  not_synced: "border-border text-muted-foreground",
+  pending: "border-accent/40 text-accent",
+  synced: "border-accent bg-accent/10 text-accent",
+  failed: "border-destructive/60 text-destructive",
+  needs_update: "border-primary/50 text-primary",
+};
+
 const fmt = (value: string | null | undefined) =>
   value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
 
@@ -89,6 +105,9 @@ function AdminUsersPage() {
   const [busy, setBusy] = useState(false);
   const [inspection, setInspection] = useState<{ userId: string; missing: string[] } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [crmTarget, setCrmTarget] = useState<string | null>(null);
+  const [crmPreview, setCrmPreview] = useState<Record<string, unknown> | null>(null);
+  const runPreview = useServerFn(previewCrmPayload);
 
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
   const { data, isLoading } = useQuery({
@@ -308,6 +327,7 @@ function AdminUsersPage() {
                   <th className="py-2 pr-4 font-medium">Profile / role</th>
                   <th className="py-2 pr-4 font-medium">Workspace</th>
                   <th className="py-2 pr-4 font-medium">Plan &amp; access</th>
+                  <th className="py-2 pr-4 font-medium">CRM</th>
                   <th className="py-2 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -366,6 +386,14 @@ function AdminUsersPage() {
                         <span className="text-muted-foreground">No access record</span>
                       )}
                     </td>
+                    <td className="py-3 pr-4">
+                      <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] ${CRM_BADGE[u.crm.status] ?? ""}`}>
+                        {CRM_LABELS[u.crm.status] ?? u.crm.status}
+                      </span>
+                      {u.crm.lastSyncedAt && (
+                        <span className="mt-1 block text-[11px] text-muted-foreground">{fmt(u.crm.lastSyncedAt)}</span>
+                      )}
+                    </td>
                     <td className="py-3">
                       <div className="flex flex-col gap-1.5">
                         <button
@@ -380,6 +408,12 @@ function AdminUsersPage() {
                         >
                           <Wrench className="h-3 w-3" /> Repair account
                         </button>
+                        <button
+                          onClick={() => { setCrmTarget(u.id); setCrmPreview(null); }}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs"
+                        >
+                          CRM details
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -388,6 +422,69 @@ function AdminUsersPage() {
             </table>
           </div>
         </section>
+
+        {crmTarget && (() => {
+          const u = users.find((x) => x.id === crmTarget);
+          if (!u) return null;
+          return (
+            <div className="panel mt-6 p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold">CRM — {u.email}</h2>
+                <button onClick={() => { setCrmTarget(null); setCrmPreview(null); }} className="text-xs text-accent">
+                  Close
+                </button>
+              </div>
+              <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+                <Summary label="CRM provider" value="HubSpot" />
+                <Summary label="CRM status" value={CRM_LABELS[u.crm.status] ?? u.crm.status} />
+                <Summary label="External contact ID" value={u.crm.externalContactId ?? "—"} />
+                <Summary label="Last successful sync" value={u.crm.lastSyncedAt ? new Date(u.crm.lastSyncedAt).toLocaleString() : "—"} />
+                <Summary label="Last attempt" value={u.crm.lastAttemptedAt ? new Date(u.crm.lastAttemptedAt).toLocaleString() : "—"} />
+                <Summary label="Attempt count" value={String(u.crm.attempts)} />
+              </dl>
+              <div className="mt-2">
+                <Summary label="Last error" value={u.crm.lastError ?? "—"} />
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button disabled className="rounded-lg border border-border px-4 py-2 text-sm opacity-50">
+                  Sync to HubSpot
+                </button>
+                <button disabled className="rounded-lg border border-border px-4 py-2 text-sm opacity-50">
+                  Retry sync
+                </button>
+                <span className="text-xs text-muted-foreground">HubSpot not connected</span>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await runPreview({ data: { userId: u.id } });
+                      setCrmPreview(res.payload as Record<string, unknown>);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not build the preview.");
+                    }
+                  }}
+                  className="ml-auto rounded-lg border border-accent/50 px-4 py-2 text-sm text-accent"
+                >
+                  Preview CRM data
+                </button>
+              </div>
+              {crmPreview && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Preview only — these are the only fields that would ever be shared. Nothing was sent.
+                  </p>
+                  <dl className="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+                    {Object.entries(crmPreview).map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-3 border-b border-border/50 py-1">
+                        <dt className="text-muted-foreground">{k}</dt>
+                        <dd className="text-right break-all">{v === null ? "—" : String(v)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {inspection && (
           <div className="panel mt-6 p-6">
