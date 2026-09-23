@@ -56,7 +56,7 @@ function classify(err: unknown, HubSpotError: any): Classified {
     if (e.status >= 500) return { kind: "retry", message: msg };
     return { kind: "permanent", message: msg }; // 400/404/409 validation or property errors
   }
-  return { kind: "retry", message: (e instanceof Error ? e.message : "Unknown error").slice(0, 500) };
+  return { kind: "retry", message: (err instanceof Error ? err.message : "Unknown error").slice(0, 500) };
 }
 
 async function processJob(job: Job): Promise<"ok" | "skipped" | "stop"> {
