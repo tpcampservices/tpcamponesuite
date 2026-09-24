@@ -28,12 +28,33 @@ Server-to-server only. Never call it from a browser.
 
 | Header | Value |
 | --- | --- |
-| `x-tpcamp-app` | `catalog` or `splits` — identifies the source application |
-| `x-tpcamp-key` | The existing OneSuite shared server key already stored in your app's server-side secrets |
+| `x-tpcamp-app` | `catalog` or `splits`. Must agree with the credential. |
+| `x-tpcamp-key` | Your app's own registration-feed credential (not the SSO key) |
+| `Content-Type` | `application/json` (optional `charset=utf-8`), otherwise 415 |
 
-- The key is the same one your app already uses for OneSuite SSO / Authorization v2. No new key is issued.
-- Read it inside your server handler from secret storage. Never put it in browser code, logs, screenshots, docs, tickets or Git.
-- The value of `x-tpcamp-app` must match `event_type` (`catalog` → `catalog.work.snapshot`, `splits` → `splits.composition.snapshot`). OneSuite picks the schema from the header, so a Catalog event sent as `splits` is rejected.
+Each source app has its own credential per environment. OneSuite holds them in server-side secret slots:
+
+| Slot | App | Environment |
+| --- | --- | --- |
+| `REG_FEED_KEY_CATALOG_DEV` | catalog | development |
+| `REG_FEED_KEY_CATALOG_PROD` | catalog | production |
+| `REG_FEED_KEY_SPLITS_DEV` | splits | development |
+| `REG_FEED_KEY_SPLITS_PROD` | splits | production |
+
+- The shared SSO / Authorization v2 key is **not** accepted.
+- The credential decides which app is calling. A Catalog credential claiming `splits` is refused, and a Split Sheets credential claiming `catalog` is refused too.
+- Credential format: 43–128 characters from `A–Z a–z 0–9 - _`, with no whitespace and at least 256 bits of randomness (for example, 32 random bytes in base64url). A value in any other format is treated as inactive.
+- If two slots hold the same value, the endpoint returns `503 feed_misconfigured`. Neither app is accepted.
+- The following all return the same `401 {"error":"unauthorized"}`:
+  - a wrong, missing or revoked credential
+  - an unknown app
+  - an app/credential mismatch
+  - a production credential while production delivery is disabled
+- Development credentials may target only the workspaces listed in `REG_FEED_TEST_WORKSPACES`, a comma-separated list of UUIDs. Production credentials may never target those workspaces. Any other target returns `403 workspace_not_permitted`. An invalid list entry returns 503.
+- Production delivery stays off until `REG_FEED_PROD_ENABLED=true` is set. The `REG_FEED_REVOKED` setting takes a comma-separated list of slot names to revoke.
+- Headers are checked before the body is read. The 5,000,000-byte limit is counted on the bytes actually received, and anything larger returns 413, rejected whole.
+- Keep the credential in server-side secret storage. Never put it in browser code, logs, screenshots, docs, tickets or Git.
+- `x-tpcamp-app` must match `event_type`: `catalog` goes with `catalog.work.snapshot`, and `splits` goes with `splits.composition.snapshot`.
 
 ## 3. Event types and version
 
