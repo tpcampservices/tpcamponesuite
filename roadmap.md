@@ -12,4 +12,4 @@
 - [x] Registration feed: per-app dev/prod credentials + safeguards, 18 tests
 - [ ] Registration feed credentials: values not created (awaiting approval to create/share with Catalog & Split Sheets)
 
-- [ ] Contract Builder server-side plan check (6 actions, behavioral tests, deep scan) — no publish
+- [x] Contract Builder server-side plan check (6 actions, 106 new tests) — deep-scan re-check pending, not published
