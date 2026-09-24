@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tpcamponesuite.app/contracts/registration/catalog.work.snapshot.v1.schema.json",
+  "title": "Catalog work snapshot (Rights Registration Hub feed v1.0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_type", "event_id", "occurred_at", "workspace_id", "work_uid", "source_record_id", "source_revision", "payload"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "event_type": { "const": "catalog.work.snapshot" },
+    "event_id": { "$ref": "#/$defs/id" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "work_uid": { "$ref": "#/$defs/id" },
+    "source_record_id": { "$ref": "#/$defs/id" },
+    "source_revision": { "$ref": "#/$defs/id" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "iswc": { "type": ["string", "null"], "pattern": "^T-?\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d$" },
+        "language": { "type": ["string", "null"], "maxLength": 20 },
+        "duration_seconds": { "type": ["integer", "null"], "minimum": 0 },
+        "alternate_titles": {
+          "type": "array", "maxItems": 100,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["title"],
+            "properties": { "title": { "type": "string", "minLength": 1, "maxLength": 500 }, "type": { "type": ["string", "null"], "maxLength": 10 } }
+          }
+        },
+        "recordings": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/recording" } }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "recording": {
+      "type": "object", "additionalProperties": false, "required": ["recording_id"],
+      "properties": {
+        "recording_id": { "$ref": "#/$defs/id" },
+        "recording_uid": { "type": ["string", "null"], "minLength": 1, "maxLength": 200 },
+        "isrc": { "type": ["string", "null"], "pattern": "^[A-Z]{2}[A-Z0-9]{3}\\d{7}$" },
+        "title": { "type": ["string", "null"], "maxLength": 500 },
+        "artist": { "type": ["string", "null"], "maxLength": 500 },
+        "version": { "type": ["string", "null"], "maxLength": 200 },
+        "duration_seconds": { "type": ["integer", "null"], "minimum": 0 },
+        "release_date": { "$ref": "#/$defs/date" },
+        "primary": { "type": "boolean" },
+        "releases": {
+          "type": "array", "maxItems": 500,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["release_id"],
+            "properties": {
+              "release_id": { "$ref": "#/$defs/id" },
+              "upc": { "type": ["string", "null"], "maxLength": 20 },
+              "title": { "type": ["string", "null"], "maxLength": 500 },
+              "release_date": { "$ref": "#/$defs/date" },
+              "label": { "type": ["string", "null"], "maxLength": 300 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
