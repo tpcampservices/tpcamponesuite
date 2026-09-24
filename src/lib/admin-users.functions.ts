@@ -89,6 +89,7 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       rolesById.set(r.user_id, [...(rolesById.get(r.user_id) ?? []), r.role as string]);
     }
     const entById = new Map((entitlements ?? []).map((e: any) => [e.user_id, e]));
+    if (!memberships) console.error("[admin-users] membership_lookup_failed");
     // Search-only: active workspace IDs per account (not returned to the browser).
     const wsIdsById = new Map<string, string[]>();
     for (const m of memberships ?? []) {
