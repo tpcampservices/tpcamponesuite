@@ -32,6 +32,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedRegistrationsRouteImport } from './routes/_authenticated/registrations'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
@@ -44,6 +45,7 @@ import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_
 import { Route as ApiPublicCrmProcessRouteImport } from './routes/api/public/crm/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
+import { Route as ApiPublicRegistrationSourceRouteImport } from './routes/api/public/registration/source'
 import { Route as ApiPublicSsoAuthorizationRouteImport } from './routes/api/public/sso/authorization'
 import { Route as ApiPublicSsoEntitlementRouteImport } from './routes/api/public/sso/entitlement'
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
@@ -165,6 +167,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRegistrationsRoute =
+  AuthenticatedRegistrationsRouteImport.update({
+    id: '/registrations',
+    path: '/registrations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -230,6 +238,12 @@ const ApiPublicPaypalWebhookRoute = ApiPublicPaypalWebhookRouteImport.update({
   path: '/api/public/paypal/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRegistrationSourceRoute =
+  ApiPublicRegistrationSourceRouteImport.update({
+    id: '/api/public/registration/source',
+    path: '/api/public/registration/source',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSsoAuthorizationRoute =
   ApiPublicSsoAuthorizationRouteImport.update({
     id: '/api/public/sso/authorization',
@@ -280,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/registrations': typeof AuthenticatedRegistrationsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -292,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/registration/source': typeof ApiPublicRegistrationSourceRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
@@ -321,6 +337,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/registrations': typeof AuthenticatedRegistrationsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
@@ -333,6 +350,7 @@ export interface FileRoutesByTo {
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/registration/source': typeof ApiPublicRegistrationSourceRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
@@ -364,6 +382,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/registrations': typeof AuthenticatedRegistrationsRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/auth_/callback': typeof AuthCallbackRoute
   '/auth_/invite': typeof AuthInviteRoute
@@ -376,6 +395,7 @@ export interface FileRoutesById {
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
+  '/api/public/registration/source': typeof ApiPublicRegistrationSourceRoute
   '/api/public/sso/authorization': typeof ApiPublicSsoAuthorizationRoute
   '/api/public/sso/entitlement': typeof ApiPublicSsoEntitlementRoute
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
@@ -407,6 +427,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/business-profile'
     | '/dashboard'
+    | '/registrations'
     | '/team'
     | '/auth/callback'
     | '/auth/invite'
@@ -419,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/registration/source'
     | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
@@ -448,6 +470,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/business-profile'
     | '/dashboard'
+    | '/registrations'
     | '/team'
     | '/auth/callback'
     | '/auth/invite'
@@ -460,6 +483,7 @@ export interface FileRouteTypes {
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/registration/source'
     | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
@@ -490,6 +514,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
+    | '/_authenticated/registrations'
     | '/_authenticated/team'
     | '/auth_/callback'
     | '/auth_/invite'
@@ -502,6 +527,7 @@ export interface FileRouteTypes {
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
+    | '/api/public/registration/source'
     | '/api/public/sso/authorization'
     | '/api/public/sso/entitlement'
     | '/api/public/sso/exchange'
@@ -537,6 +563,7 @@ export interface RootRouteChildren {
   ApiPublicCrmProcessRoute: typeof ApiPublicCrmProcessRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
+  ApiPublicRegistrationSourceRoute: typeof ApiPublicRegistrationSourceRoute
   ApiPublicSsoAuthorizationRoute: typeof ApiPublicSsoAuthorizationRoute
   ApiPublicSsoEntitlementRoute: typeof ApiPublicSsoEntitlementRoute
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
@@ -707,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/registrations': {
+      id: '/_authenticated/registrations'
+      path: '/registrations'
+      fullPath: '/registrations'
+      preLoaderRoute: typeof AuthenticatedRegistrationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/team': {
       id: '/_authenticated/team'
       path: '/team'
@@ -791,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaypalWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/registration/source': {
+      id: '/api/public/registration/source'
+      path: '/api/public/registration/source'
+      fullPath: '/api/public/registration/source'
+      preLoaderRoute: typeof ApiPublicRegistrationSourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/sso/authorization': {
       id: '/api/public/sso/authorization'
       path: '/api/public/sso/authorization'
@@ -832,6 +873,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBusinessProfileRoute: typeof AuthenticatedBusinessProfileRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedRegistrationsRoute: typeof AuthenticatedRegistrationsRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -843,6 +885,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBusinessProfileRoute: AuthenticatedBusinessProfileRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedRegistrationsRoute: AuthenticatedRegistrationsRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
@@ -882,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCrmProcessRoute: ApiPublicCrmProcessRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,
+  ApiPublicRegistrationSourceRoute: ApiPublicRegistrationSourceRoute,
   ApiPublicSsoAuthorizationRoute: ApiPublicSsoAuthorizationRoute,
   ApiPublicSsoEntitlementRoute: ApiPublicSsoEntitlementRoute,
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
