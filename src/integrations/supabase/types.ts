@@ -684,6 +684,1020 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_affiliations: {
+        Row: {
+          created_at: string
+          id: string
+          party_id: string
+          right_type: string
+          society_code: string
+          territory: string
+          valid_from: string | null
+          valid_to: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          party_id: string
+          right_type: string
+          society_code: string
+          territory?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          party_id?: string
+          right_type?: string
+          society_code?: string
+          territory?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_affiliations_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "registration_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_affiliations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_agreements: {
+        Row: {
+          agreement_type: string
+          created_at: string
+          end_date: string | null
+          evidence_asset_id: string | null
+          id: string
+          party_ids: string[]
+          rights: string[]
+          start_date: string | null
+          territory: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agreement_type: string
+          created_at?: string
+          end_date?: string | null
+          evidence_asset_id?: string | null
+          id?: string
+          party_ids?: string[]
+          rights?: string[]
+          start_date?: string | null
+          territory?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agreement_type?: string
+          created_at?: string
+          end_date?: string | null
+          evidence_asset_id?: string | null
+          id?: string
+          party_ids?: string[]
+          rights?: string[]
+          start_date?: string | null
+          territory?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_agreements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_assets: {
+        Row: {
+          asset_type: string
+          bytes: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          mime_type: string | null
+          registration_work_id: string | null
+          sha256: string
+          storage_path: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_type: string
+          bytes?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          registration_work_id?: string | null
+          sha256: string
+          storage_path: string
+          workspace_id: string
+        }
+        Update: {
+          asset_type?: string
+          bytes?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mime_type?: string | null
+          registration_work_id?: string | null
+          sha256?: string
+          storage_path?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_assets_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_authority: {
+        Row: {
+          created_at: string
+          destination: string
+          evidence_asset_id: string | null
+          expires_at: string | null
+          id: string
+          scope: string | null
+          signer_name: string | null
+          signer_title: string | null
+          submitting_party_id: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination: string
+          evidence_asset_id?: string | null
+          expires_at?: string | null
+          id?: string
+          scope?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          submitting_party_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          evidence_asset_id?: string | null
+          expires_at?: string | null
+          id?: string
+          scope?: string | null
+          signer_name?: string | null
+          signer_title?: string | null
+          submitting_party_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_authority_submitting_party_id_fkey"
+            columns: ["submitting_party_id"]
+            isOneToOne: false
+            referencedRelation: "registration_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_authority_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_conflicts: {
+        Row: {
+          conflict_type: string
+          created_at: string
+          field_path: string
+          id: string
+          proposed_value: Json | null
+          registration_work_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_value: Json | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          conflict_type: string
+          created_at?: string
+          field_path: string
+          id?: string
+          proposed_value?: Json | null
+          registration_work_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_value?: Json | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          conflict_type?: string
+          created_at?: string
+          field_path?: string
+          id?: string
+          proposed_value?: Json | null
+          registration_work_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_value?: Json | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_conflicts_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_conflicts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_interests: {
+        Row: {
+          controlled: boolean | null
+          created_at: string
+          id: string
+          mr_collection: number | null
+          mr_ownership: number | null
+          party_id: string
+          pr_collection: number | null
+          pr_ownership: number | null
+          registration_work_id: string
+          role_code: string
+          source_snapshot_id: string | null
+          sr_collection: number | null
+          sr_ownership: number | null
+          territory: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          controlled?: boolean | null
+          created_at?: string
+          id?: string
+          mr_collection?: number | null
+          mr_ownership?: number | null
+          party_id: string
+          pr_collection?: number | null
+          pr_ownership?: number | null
+          registration_work_id: string
+          role_code: string
+          source_snapshot_id?: string | null
+          sr_collection?: number | null
+          sr_ownership?: number | null
+          territory?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          controlled?: boolean | null
+          created_at?: string
+          id?: string
+          mr_collection?: number | null
+          mr_ownership?: number | null
+          party_id?: string
+          pr_collection?: number | null
+          pr_ownership?: number | null
+          registration_work_id?: string
+          role_code?: string
+          source_snapshot_id?: string | null
+          sr_collection?: number | null
+          sr_ownership?: number | null
+          territory?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_interests_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "registration_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_interests_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_interests_source_snapshot_id_fkey"
+            columns: ["source_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "registration_source_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_interests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_packages: {
+        Row: {
+          adapter_version: string
+          approved_at: string | null
+          approved_by: string | null
+          artifact_asset_id: string | null
+          checksum: string
+          created_at: string
+          created_by: string | null
+          destination: string
+          id: string
+          profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          adapter_version: string
+          approved_at?: string | null
+          approved_by?: string | null
+          artifact_asset_id?: string | null
+          checksum: string
+          created_at?: string
+          created_by?: string | null
+          destination: string
+          id?: string
+          profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          adapter_version?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          artifact_asset_id?: string | null
+          checksum?: string
+          created_at?: string
+          created_by?: string | null
+          destination?: string
+          id?: string
+          profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_packages_artifact_asset_id_fkey"
+            columns: ["artifact_asset_id"]
+            isOneToOne: false
+            referencedRelation: "registration_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_packages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "registration_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_packages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_parties: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          legal_name: string
+          party_type: string
+          updated_at: string
+          verified: boolean
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          legal_name: string
+          party_type: string
+          updated_at?: string
+          verified?: boolean
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          legal_name?: string
+          party_type?: string
+          updated_at?: string
+          verified?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_parties_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_party_identifiers: {
+        Row: {
+          created_at: string
+          id: string
+          party_id: string
+          scheme: string
+          source_app: string | null
+          value: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          party_id: string
+          scheme: string
+          source_app?: string | null
+          value: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          party_id?: string
+          scheme?: string
+          source_app?: string | null
+          value?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_party_identifiers_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "registration_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_party_identifiers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_profiles: {
+        Row: {
+          catalog_revision: string | null
+          catalog_snapshot_id: string | null
+          created_at: string
+          created_by: string | null
+          fingerprint: string
+          id: string
+          ownership_revision: string | null
+          profile_revision: number
+          registration_work_id: string
+          schema_version: string
+          splits_snapshot_id: string | null
+          urp: Json
+          workspace_id: string
+        }
+        Insert: {
+          catalog_revision?: string | null
+          catalog_snapshot_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fingerprint: string
+          id?: string
+          ownership_revision?: string | null
+          profile_revision: number
+          registration_work_id: string
+          schema_version?: string
+          splits_snapshot_id?: string | null
+          urp: Json
+          workspace_id: string
+        }
+        Update: {
+          catalog_revision?: string | null
+          catalog_snapshot_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fingerprint?: string
+          id?: string
+          ownership_revision?: string | null
+          profile_revision?: number
+          registration_work_id?: string
+          schema_version?: string
+          splits_snapshot_id?: string | null
+          urp?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_profiles_catalog_snapshot_id_fkey"
+            columns: ["catalog_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "registration_source_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_profiles_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_profiles_splits_snapshot_id_fkey"
+            columns: ["splits_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "registration_source_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_receipts: {
+        Row: {
+          asset_id: string | null
+          external_reference: string | null
+          id: string
+          outcome: string
+          payload: Json | null
+          receipt_kind: string
+          received_at: string
+          recorded_by: string | null
+          submission_id: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_id?: string | null
+          external_reference?: string | null
+          id?: string
+          outcome: string
+          payload?: Json | null
+          receipt_kind: string
+          received_at?: string
+          recorded_by?: string | null
+          submission_id: string
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string | null
+          external_reference?: string | null
+          id?: string
+          outcome?: string
+          payload?: Json | null
+          receipt_kind?: string
+          received_at?: string
+          recorded_by?: string | null
+          submission_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_receipts_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "registration_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_receipts_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "registration_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_source_snapshots: {
+        Row: {
+          checksum: string
+          entity_type: string
+          id: string
+          ownership_revision: string | null
+          payload: Json
+          received_at: string
+          source_app: string
+          source_entity_id: string
+          source_event_id: string | null
+          source_revision: string | null
+          work_uid: string | null
+          workspace_id: string
+        }
+        Insert: {
+          checksum: string
+          entity_type: string
+          id?: string
+          ownership_revision?: string | null
+          payload: Json
+          received_at?: string
+          source_app: string
+          source_entity_id: string
+          source_event_id?: string | null
+          source_revision?: string | null
+          work_uid?: string | null
+          workspace_id: string
+        }
+        Update: {
+          checksum?: string
+          entity_type?: string
+          id?: string
+          ownership_revision?: string | null
+          payload?: Json
+          received_at?: string
+          source_app?: string
+          source_entity_id?: string
+          source_event_id?: string | null
+          source_revision?: string | null
+          work_uid?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_source_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_status_history: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          destination: string
+          details: Json
+          id: string
+          note: string | null
+          package_id: string | null
+          profile_id: string | null
+          registration_work_id: string
+          state: string
+          submission_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          destination?: string
+          details?: Json
+          id?: string
+          note?: string | null
+          package_id?: string | null
+          profile_id?: string | null
+          registration_work_id: string
+          state: string
+          submission_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          destination?: string
+          details?: Json
+          id?: string
+          note?: string | null
+          package_id?: string | null
+          profile_id?: string | null
+          registration_work_id?: string
+          state?: string
+          submission_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_status_history_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "registration_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_status_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "registration_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_status_history_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_status_history_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "registration_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_status_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_submissions: {
+        Row: {
+          attempt_number: number
+          channel: string
+          external_reference: string | null
+          id: string
+          idempotency_key: string
+          package_id: string
+          response: Json | null
+          submitted_at: string
+          submitted_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attempt_number: number
+          channel: string
+          external_reference?: string | null
+          id?: string
+          idempotency_key: string
+          package_id: string
+          response?: Json | null
+          submitted_at?: string
+          submitted_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attempt_number?: number
+          channel?: string
+          external_reference?: string | null
+          id?: string
+          idempotency_key?: string
+          package_id?: string
+          response?: Json | null
+          submitted_at?: string
+          submitted_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_submissions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "registration_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_validations: {
+        Row: {
+          created_at: string
+          destination: string
+          id: string
+          issues: Json
+          passed: boolean
+          profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination?: string
+          id?: string
+          issues?: Json
+          passed: boolean
+          profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          destination?: string
+          id?: string
+          issues?: Json
+          passed?: boolean
+          profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_validations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "registration_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_validations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_works: {
+        Row: {
+          catalog_work_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          primary_recording_id: string | null
+          split_sheet_id: string | null
+          status: string
+          updated_at: string
+          work_uid: string
+          workspace_id: string
+        }
+        Insert: {
+          catalog_work_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          primary_recording_id?: string | null
+          split_sheet_id?: string | null
+          status?: string
+          updated_at?: string
+          work_uid: string
+          workspace_id: string
+        }
+        Update: {
+          catalog_work_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          primary_recording_id?: string | null
+          split_sheet_id?: string | null
+          status?: string
+          updated_at?: string
+          work_uid?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_works_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_writeback_requests: {
+        Row: {
+          created_at: string
+          expected_current_value: Json | null
+          field_path: string
+          id: string
+          new_value: Json
+          receipt_id: string | null
+          registration_work_id: string
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_app: string
+          target_entity_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_current_value?: Json | null
+          field_path: string
+          id?: string
+          new_value: Json
+          receipt_id?: string | null
+          registration_work_id: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_app: string
+          target_entity_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_current_value?: Json | null
+          field_path?: string
+          id?: string
+          new_value?: Json
+          receipt_id?: string | null
+          registration_work_id?: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_app?: string
+          target_entity_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_writeback_requests_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "registration_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_writeback_requests_registration_work_id_fkey"
+            columns: ["registration_work_id"]
+            isOneToOne: false
+            referencedRelation: "registration_works"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_writeback_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sso_tickets: {
         Row: {
           app_slug: string
@@ -1194,6 +2208,10 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      can_read_registrations: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
       }
       create_workspace_invitation: {
         Args: {
