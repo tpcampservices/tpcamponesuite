@@ -10,11 +10,7 @@ import type { TeamMember } from "./members.server";
  * the server from the verified session.
  */
 
-function safeOrigin(value: unknown) {
-  return typeof value === "string" && value.startsWith("http")
-    ? value.replace(/\/$/, "").slice(0, 200)
-    : "https://tpcamponesuite.app";
-}
+import { coreInvite, coreResend } from "./invitations.core";
 
 /** The signed-in user's workspace, seat position, members and invitation list. */
 export const getMyTeam = createServerFn({ method: "GET" })
@@ -66,6 +62,14 @@ export const getMyTeam = createServerFn({ method: "GET" })
     return { workspace, access, seats, invitations, members, entitledApps: apps, rolePresets };
   });
 
+// Every invite/resend goes through the gated core. The link origin is never
+// taken from input; only an exact trusted Origin header is honoured.
+async function inviteDeps(userId: string) {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  const { liveInviteDeps } = await import("./invitation-deps.server");
+  return liveInviteDeps(userId, getRequestHeader("origin") ?? null);
+}
+
 export const inviteWorkspaceMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -73,81 +77,25 @@ export const inviteWorkspaceMember = createServerFn({ method: "POST" })
       email?: string;
       roleKey?: string;
       displayName?: string;
-      origin?: string;
       appAccess?: Record<string, string>;
     }) => ({
-      email: String(data?.email ?? "").trim().toLowerCase().slice(0, 255),
+      email: String(data?.email ?? "").slice(0, 400),
       roleKey: String(data?.roleKey ?? "").trim(),
       displayName: String(data?.displayName ?? "").trim().slice(0, 120) || null,
-      origin: safeOrigin(data?.origin),
       appAccess:
         data?.appAccess && typeof data.appAccess === "object"
           ? (data.appAccess as Record<string, string>)
           : null,
     }),
   )
-  .handler(async ({ data, context }) => {
-    const { resolveCurrentWorkspace } = await import("./workspace.server");
-    const { createInvitation } = await import("./invitations.server");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // The workspace is resolved from the session — a browser-supplied workspace
-    // id is never accepted.
-    const workspace = await resolveCurrentWorkspace(context.userId);
-    if (!workspace) throw new Error("You do not have a workspace yet");
-
-    const { invitationId, token, expiresAt, seats } = await createInvitation({
-      actorUserId: context.userId,
-      workspaceId: workspace.id,
-      email: data.email,
-      roleKey: data.roleKey,
-      displayName: data.displayName,
-      appAccess: data.appAccess,
-    });
-
-    const link = `${data.origin}/invite/${token}`;
-
-    // Delivery: an email with no OneSuite account gets the existing auth invite,
-    // which lands back on the acceptance link after they set a password.
-    // Membership is still only created when the invitation is accepted.
-    const { data: existing } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("email", data.email)
-      .maybeSingle();
-
-    let emailSent = false;
-    let emailError: string | null = null;
-    if (!existing) {
-      const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
-        redirectTo: link,
-      });
-      if (error) emailError = error.message;
-      else emailSent = true;
-    }
-
-    return { ok: true as const, invitationId, link, expiresAt, seats, emailSent, emailError };
-  });
+  .handler(async ({ data, context }) => coreInvite(await inviteDeps(context.userId), data));
 
 export const resendWorkspaceInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { invitationId?: string; origin?: string }) => ({
+  .inputValidator((data: { invitationId?: string }) => ({
     invitationId: String(data?.invitationId ?? "").trim(),
-    origin: safeOrigin(data?.origin),
   }))
-  .handler(async ({ data, context }) => {
-    const { resolveCurrentWorkspace } = await import("./workspace.server");
-    const { resendInvitation } = await import("./invitations.server");
-    const workspace = await resolveCurrentWorkspace(context.userId);
-    if (!workspace) throw new Error("You do not have a workspace yet");
-
-    const { token, expiresAt } = await resendInvitation({
-      actorUserId: context.userId,
-      workspaceId: workspace.id,
-      invitationId: data.invitationId,
-    });
-    return { ok: true as const, link: `${data.origin}/invite/${token}`, expiresAt };
-  });
+  .handler(async ({ data, context }) => coreResend(await inviteDeps(context.userId), data));
 
 export const cancelWorkspaceInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
