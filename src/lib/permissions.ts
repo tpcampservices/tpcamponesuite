@@ -61,6 +61,12 @@ const APP_ACTIONS: Record<AppSlug, string[]> = {
     "export",
     "delete",
     "manage",
+    // Rights Registration Hub (hosted in Split Sheets). Kept separate so
+    // preparation, approval, submission and administration can be split.
+    "registration.prepare",
+    "registration.approve",
+    "registration.submit",
+    "registration.admin",
   ],
   operations: [
     "access",
@@ -158,7 +164,21 @@ export const ROLE_APP_ACTION_OVERRIDES: Partial<
   Record<SystemRoleKey, Partial<Record<AppSlug, string[]>>>
 > = {
   manager: {
-    splits: ["access", "view", "create", "edit", "edit_shares", "approve", "export"],
+    splits: [
+      "access",
+      "view",
+      "create",
+      "edit",
+      "edit_shares",
+      "approve",
+      "export",
+      "registration.prepare",
+      "registration.approve",
+      "registration.submit",
+    ],
+  },
+  staff: {
+    splits: ["access", "view", "create", "edit", "registration.prepare"],
   },
 };
 
@@ -222,7 +242,15 @@ export function appPermissionKeys(app: AppSlug): PermissionKey[] {
  * gains it by having a higher access level.
  */
 const VIEW_ACTIONS = ["access", "view", "export"];
-const MANAGE_ACTIONS = ["delete", "manage", "void", "approve"];
+const MANAGE_ACTIONS = [
+  "delete",
+  "manage",
+  "void",
+  "approve",
+  "registration.approve",
+  "registration.submit",
+  "registration.admin",
+];
 
 export function actionMinimumLevel(action: string): AppAccessLevel {
   if (VIEW_ACTIONS.includes(action)) return "view";
@@ -285,6 +313,10 @@ const ACTION_LABELS: Record<string, string> = {
   export: "Export",
   delete: "Delete",
   manage: "Manage application",
+  "registration.prepare": "Prepare rights registrations",
+  "registration.approve": "Approve rights registrations",
+  "registration.submit": "Submit rights registrations",
+  "registration.admin": "Administer rights registrations",
   "team.view": "See the team",
   "team.invite": "Invite team members",
   "team.manage": "Manage team members",
