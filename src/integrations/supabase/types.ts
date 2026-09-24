@@ -408,6 +408,50 @@ export type Database = {
         }
         Relationships: []
       }
+      invitation_send_ledger: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          email_hash: string
+          finalized_at: string | null
+          id: string
+          invitation_id: string | null
+          kind: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          email_hash: string
+          finalized_at?: string | null
+          id?: string
+          invitation_id?: string | null
+          kind: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          email_hash?: string
+          finalized_at?: string | null
+          id?: string
+          invitation_id?: string | null
+          kind?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_send_ledger_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paypal_plans: {
         Row: {
           active: boolean
@@ -2256,6 +2300,10 @@ export type Database = {
       }
       crm_enqueue_expired: { Args: never; Returns: number }
       crm_wake_processor: { Args: never; Returns: undefined }
+      finalize_invitation_send: {
+        Args: { _id: string; _ok: boolean }
+        Returns: undefined
+      }
       get_workspace_role: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: string
@@ -2288,6 +2336,17 @@ export type Database = {
         Returns: boolean
       }
       provision_user_workspace: { Args: { _user_id: string }; Returns: string }
+      purge_invitation_send_ledger: { Args: never; Returns: number }
+      reserve_invitation_send: {
+        Args: {
+          _actor_user_id: string
+          _email_hash: string
+          _invitation_id: string
+          _kind: string
+          _workspace_id: string
+        }
+        Returns: string
+      }
       write_member_permission_override: {
         Args: {
           _actor_user_id: string
