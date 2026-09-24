@@ -151,7 +151,7 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       })
       .filter((u) => {
         if (!data.query) return true;
-        const haystack = [u.email, u.fullName, u.workspace, u.id]
+        const haystack = [u.email, u.fullName, u.workspace, u.id, ...(wsIdsById.get(u.id) ?? [])]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
