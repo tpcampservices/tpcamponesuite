@@ -75,11 +75,13 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       if (res.users.length < 200) break;
     }
 
-    const [{ data: profiles }, { data: roles }, { data: entitlements }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, email, full_name, organisation, country"),
-      supabaseAdmin.from("user_roles").select("user_id, role"),
-      supabaseAdmin.from("access_entitlements").select("*"),
-    ]);
+    const [{ data: profiles }, { data: roles }, { data: entitlements }, { data: memberships }] =
+      await Promise.all([
+        supabaseAdmin.from("profiles").select("id, email, full_name, organisation, country"),
+        supabaseAdmin.from("user_roles").select("user_id, role"),
+        supabaseAdmin.from("access_entitlements").select("*"),
+        supabaseAdmin.from("workspace_memberships").select("user_id, workspace_id").eq("status", "active"),
+      ]);
 
     const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
     const rolesById = new Map<string, string[]>();
@@ -87,6 +89,11 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
       rolesById.set(r.user_id, [...(rolesById.get(r.user_id) ?? []), r.role as string]);
     }
     const entById = new Map((entitlements ?? []).map((e: any) => [e.user_id, e]));
+    // Search-only: active workspace IDs per account (not returned to the browser).
+    const wsIdsById = new Map<string, string[]>();
+    for (const m of memberships ?? []) {
+      wsIdsById.set(m.user_id, [...(wsIdsById.get(m.user_id) ?? []), m.workspace_id as string]);
+    }
     const { listCrmStates, refreshCrmDrift } = await import("./crm.server");
     const crmById = await listCrmStates();
     // Change detection: only already-synced records are re-hashed (no external calls).
