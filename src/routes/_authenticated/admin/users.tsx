@@ -971,8 +971,14 @@ function AdminUsersPage() {
           </div>
         )}
 
-        <section className="panel mt-6 p-6">
-          <h2 className="text-sm font-semibold">Access change audit trail</h2>
+        <details className="panel group mt-6 p-6">
+          <summary className="cursor-pointer list-none text-sm font-semibold">
+            <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>
+            Access change audit trail
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              ({audit?.entries.length ?? 0}) — show
+            </span>
+          </summary>
           <p className="mt-1 text-xs text-muted-foreground">
             Append-only. Entries cannot be edited or deleted from the application.
           </p>
@@ -1014,7 +1020,7 @@ function AdminUsersPage() {
               </table>
             </div>
           )}
-        </section>
+        </details>
       </main>
       <SiteFooter />
     </div>
