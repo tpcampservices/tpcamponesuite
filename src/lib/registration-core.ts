@@ -129,6 +129,8 @@ export type Urp = {
   };
   /** Hub selection (F12); never the earliest or title-matched recording. */
   selected_recording_id: null;
+  /** Per Catalog field: present, missing (null), invalid, or unsupported by Catalog. */
+  catalog_fields: FieldStatus[];
   recordings: Record<string, unknown>[];
   releases: Record<string, unknown>[];
   writers: {
