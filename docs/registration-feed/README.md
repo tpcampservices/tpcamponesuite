@@ -1,6 +1,6 @@
-# Rights Registration Hub — Source Feed Contract v1.0 (pre-production revision 2)
+# Rights Registration Hub — Source Feed Contract v1.0 (pre-production revision 3)
 
-Revision 2 replaces revision 1 of the Catalog feed before any real delivery. Catalog events built for revision 1 are now rejected (`invalid_body`) until the Catalog builder is updated.
+Revision 3 replaces revisions 1 and 2 of the Catalog feed before any real delivery. Catalog events built for revision 1 are now rejected (`invalid_body`) until the Catalog builder is updated.
 
 Audience: engineers of **TP-CAMP Catalog** and **TP-CAMP Split Sheets**.
 OneSuite only *receives* these events. It never edits Catalog or Split Sheets records through this feed.
@@ -63,60 +63,58 @@ Unknown fields are rejected everywhere, so mistakes surface instead of being sil
 
 ## 5. Payloads
 
-### Catalog payload (pre-production revision 2)
+### Catalog payload (pre-production revision 3) and reconciliation with the master specification
 
-Rule: every field below that Catalog stores is a **required key**. Send `null` when the value is empty in Catalog. The Hub reports an empty value as *missing* (fix it in Catalog) and a field Catalog cannot supply as *unsupported* (needs a Catalog change). Never omit a stored key. Catalog never sends ownership, performing, mechanical or synchronization rights, and never sends contributors.
+Rules:
+- Every stored Catalog field is a **required key**. Send JSON `null` when it is empty. Empty strings are rejected for every field.
+- Something Catalog cannot supply is **not** in the contract. The Hub reports it as *unsupported*, separately from *missing* (`null`) and *invalid* (stored but badly formatted).
+- Identifiers are strings exactly as stored (leading zeros kept). The Hub checks ISWC (with check digit), ISRC and UPC and reports an invalid value without dropping it.
+- Dates are real calendar dates `YYYY-MM-DD`. Durations are integer seconds. `explicit` is a boolean. Track and disc positions are integers ≥ 1.
+- Releases are listed **once** in `payload.releases`; each recording lists `release_links[] {release_id, track_number, disc_number}`. The Hub rejects duplicate ids, links to unlisted releases, and releases not linked to any recording.
+- Destination display formats (`M.SS`, `HH:MM:SS`, dashed ISWC) are produced by adapters, never stored as the universal value.
+- Catalog never sends ownership shares, performing, mechanical or synchronization rights, mandates, signing authority or registration status.
 
-| Catalog column | Contract field | Key | Value | Destination use |
-| --- | --- | --- | --- | --- |
-| `works.title` | `payload.title` | required | required | Work title on every society form |
-| `works.alternate_titles` (split on `;`) | `payload.alternate_titles[].title` | required | may be `[]` | AKA titles (COTT/ECCO/COSCAP forms, CWR ALT) |
-| `works.iswc` | `payload.iswc` | required | nullable | Work identifier; matching |
-| `works.language` | `payload.language` | required | nullable | Language of lyrics (CWR, EBR) |
-| `works.genre` | `payload.genre` | required | nullable | Genre / category on society forms |
-| `works.duration_seconds` | `payload.duration_seconds` | required | nullable | Work duration |
-| `works.creation_date` | `payload.creation_date` | required | nullable | Date written / created |
-| `works.copyright_date` | `payload.copyright_date` | required | nullable | Copyright date |
-| `works.copyright_owner` | `payload.copyright_owner` | required | nullable | Copyright owner as recorded (information only, not ownership) |
-| `works.work_type` | `payload.work_type` | required | nullable | Original / arrangement etc. |
-| `works.version_type` | `payload.version_type` | required | nullable | Version type (CWR version, forms) |
-| `works.territory` | `payload.territory` | required | nullable | Descriptive territory (not a rights territory) |
-| `works.work_code` | `payload.work_code` | required | nullable | Submitter work code |
-| `works.publisher_reference` | `payload.publisher_reference` | required | nullable | Publisher's own reference |
-| `recordings.id` (via `work_recordings`) | `recordings[].recording_id` | required | required | Stable recording id |
-| `recordings.recording_uid` | `recordings[].recording_uid` | required | nullable | Shared recording id |
-| `recordings.title` | `recordings[].title` | required | nullable | Recording title |
-| `recordings.artist` | `recordings[].artist` | required | nullable | Artist credit / performer |
-| `recordings.isrc` | `recordings[].isrc` | required | nullable | ISRC (CWR REC, EBR) |
-| `recordings.version` | `recordings[].version` | required | nullable | Version title |
-| `recordings.duration_seconds` | `recordings[].duration_seconds` | required | nullable | Recording duration |
-| `recordings.recording_date` | `recordings[].recording_date` | required | nullable | Recording date |
-| `recordings.release_date` | `recordings[].release_date` | required | nullable | First release date |
-| `recordings.label` | `recordings[].label` | required | nullable | Record label |
-| `recordings.studio` | `recordings[].studio` | required | nullable | Studio |
-| `recordings.genre` | `recordings[].genre` | required | nullable | Recording genre |
-| `recordings.language` | `recordings[].language` | required | nullable | Recording language |
-| `recordings.explicit` | `recordings[].explicit` | required | boolean | Explicit flag |
-| `recordings.pline` | `recordings[].pline` | required | nullable | (P) line |
-| `releases.id` (via `release_recordings`) | `recordings[].releases[].release_id` | required | required | Stable release id |
-| `releases.title` | `…releases[].title` | required | nullable | Release title |
-| `releases.upc` | `…releases[].upc` | required | nullable | UPC/EAN |
-| `releases.catalog_number` | `…releases[].catalog_number` | required | nullable | Catalogue number |
-| `releases.release_date` | `…releases[].release_date` | required | nullable | Release date |
-| `releases.release_type` | `…releases[].release_type` | required | nullable | Single / EP / album |
-| `releases.label` | `…releases[].label` | required | nullable | Label |
-| `releases.distributor` | `…releases[].distributor` | required | nullable | Distributor |
-| `releases.territory` | `…releases[].territory` | required | nullable | Release territory text |
-| `releases.genre` | `…releases[].genre` | required | nullable | Release genre |
-| `releases.pline` / `cline` | `…releases[].pline` / `cline` | required | nullable | (P)/(C) lines |
-| `release_recordings.track_number` | `…releases[].track_number` | required | nullable | Track position |
-| `release_recordings.disc_number` | `…releases[].disc_number` | required | nullable | Disc position |
+| URP field (spec ID) | Catalog table.column | Contract path | Type | Status | Missing value | Destinations | Transformation / validation | Classification |
+|---|---|---|---|---|---|---|---|---|
+| F01 `source_refs.catalog_work_id` | `works.id` | `source_record_id` | string | required | — (never null) | all (H) | Kept alongside `work_uid`; never a title match | supported |
+| F01 `source_refs.work_uid` | `works.work_uid` | `work_uid` | string | required | — (event not sent without it) | all (H) | Must match Splits `source_work_id`; bound to one workspace | supported |
+| F02 `source_refs.catalog_revision` | `works.registration_revision` | `source_revision` | string | required | — | all (H) | Frozen with the snapshot; staleness check | supported |
+| F03 `work.title` | `works.title` | `payload.title` | string | required | — (non-blank) | COTT, COSCAP (128), ECCO, EBR, CWR | Trimmed; blank rejected | supported |
+| F04 `work.alternate_titles[].title` | `works.alternate_titles` (split on `;`) | `payload.alternate_titles[].title` | array of objects | required key | `[]` | COTT, COSCAP (1×128), ECCO, EBR, CWR ALT | One entry per title; never a joined string | supported |
+| F04 `alternate_titles[].type` / `.language` | — | — | — | — | URP `null` | CWR ALT | — | missing in Catalog |
+| F05 `work.iswc` | `works.iswc` | `payload.iswc` | string | required key | `null` | EBR (O), CWR (C) | Hub canonicalises to `T`+10 digits and checks check digit; invalid ≠ missing; never generated | supported |
+| F06 `work.duration_seconds` | `works.duration_seconds` | `payload.duration_seconds` | integer seconds | required key | `null` | COTT, COSCAP (`M.SS`), ECCO, EBR (HHMMSS), CWR | Seconds kept; each adapter formats | supported |
+| F07 `work.genre` | `works.genre` | `payload.genre` | string | required key | `null` | COTT, COSCAP, ECCO, CWR (mapped) | Raw text; destination code mapping is reviewed per adapter | supported |
+| F07 `work.language` | `works.language` | `payload.language` | string | required key | `null` | CWR | Raw text | supported |
+| F08 `work.creation_date` | `works.creation_date` | `payload.creation_date` | date YYYY-MM-DD | required key | `null` | COTT, ECCO forms | Real calendar date; distinct from copyright date | supported |
+| F08 `work.copyright_date` | `works.copyright_date` | `payload.copyright_date` | date YYYY-MM-DD | required key | `null` | CWR (C) | Real calendar date | supported |
+| F08 `work.copyright_owner` | `works.copyright_owner` | `payload.copyright_owner` | string | required key | `null` | information only | Never used as ownership; parties come from Splits | supported |
+| F09 `work.work_type` | `works.work_type` | `payload.work_type` | string | required key | `null` | COTT, COSCAP, ECCO, EBR, CWR | Raw value; vocabulary reviewed per adapter | supported |
+| F09 `work.version_type` | `works.version_type` | `payload.version_type` | string | required key | `null` | as above | Raw value | supported |
+| F10 `work.internal_code` | `works.work_code` | `payload.work_code` | string | required key | `null` | CWR/EBR submitter work ID (via Hub crosswalk) | Never truncated | supported |
+| F10 `work.publisher_reference` | `works.publisher_reference` | `payload.publisher_reference` | string | required key | `null` | CWR, EBR | As stored | supported |
+| `work.catalog_territory` | `works.territory` | `payload.territory` | string | required key | `null` | none directly | Descriptive only — not a rights/agreement territory (F33) | supported |
+| F11 `work.first_release_date` | (recording/release dates are evidence) | — | date | conditional | URP `null` until confirmed | COTT, COSCAP, ECCO | Confirmed in the Hub; never the earliest date | sourced elsewhere (Hub) |
+| F12 `recordings[].recording_id` | `recordings.id` via `work_recordings` | `payload.recordings[].recording_id` | string | required | — | all | Every linked recording, unique | supported |
+| F12 `recordings[].recording_uid` | `recordings.recording_uid` | `…recording_uid` | string | required key | `null` | crosswalk | — | supported |
+| F12 `selected_recording_id` | — | — | string | conditional (>1 recording) | URP `null` | all | Chosen in the Hub; never title-matched | sourced elsewhere (Hub) |
+| F13 `recordings[].artists[]` | `recordings.artist` | `…artist` | string (credit text) | required key | `null` | COTT, COSCAP (128), ECCO, EBR, CWR PER | URP holds `[{display_name, party_type:null}]` | derived; structure missing in Catalog |
+| F14 `recordings[].isrc` | `recordings.isrc` | `…isrc` | string | required key | `null` | EBR (O), CWR REC | Hub canonicalises (12 chars, no dashes); invalid flagged, not dropped | supported |
+| F14 `recordings[].title` / `version` | `recordings.title` / `version` | `…title` / `…version` | string | required key | `null` | COTT, CWR REC | — | supported |
+| F14 `recordings[].duration_seconds` | `recordings.duration_seconds` | `…duration_seconds` | integer seconds | required key | `null` | CWR REC | — | supported |
+| F15 `recordings[].label`, `recording_date`, `release_date`, `studio` | matching `recordings` columns | same names | string / date | required keys | `null` | COTT, COSCAP, ECCO, CWR | Studio/label are never publishers | supported |
+| `recordings[].genre`, `language`, `pline` | matching columns | same names | string | required keys | `null` | CWR/EBR where applicable | — | supported |
+| `recordings[].explicit` | `recordings.explicit` (NOT NULL) | `…explicit` | boolean | required | — (always true/false) | informational | Never a string | supported |
+| F16 `releases[]` | `releases.*` | `payload.releases[]` | array, each release once | required key | `[]` | COTT, EBR (library CD), CWR REC | Unique ids; every release linked | supported |
+| F16 `releases[].title`, `upc`, `catalog_number`, `release_date`, `release_type`, `label`, `distributor`, `territory`, `genre`, `pline`, `cline` | matching `releases` columns | same names | string / date | required keys | `null` | as above | UPC kept as string (leading zeros); Hub checks 12/13 digits | supported |
+| F16 track / disc | `release_recordings.track_number` / `disc_number` | `recordings[].release_links[].track_number` / `disc_number` | integer ≥1 | required keys | `null` | EBR cut, CWR | Link must point to a listed release | supported |
+| F36 jingle, F37 origin, F38 derivation, F39 components, F40 performances | — | — | — | conditional | — | see spec §5 | — | missing in Catalog |
+| F17–F33 parties, roles, IPI, affiliations, shares, PR/MR/SR, control, publishers, agreements | — | not in Catalog feed | — | — | — | all | Rejected if sent by Catalog | sourced elsewhere (Splits / Hub) |
+| F34–F35, F41–F48 declarations, assets, authority, signatures, accounts, submissions, notes | — | not in Catalog feed | — | — | — | all | — | sourced elsewhere (Hub) |
 
-Send **every** linked recording and every release it appears on. Nothing is truncated.
+**Size handling:** up to 500 recordings, 1,000 releases, 500 release links per recording and 100 alternate titles. The Hub refuses bodies over 5,000,000 bytes with `413 payload_too_large`. Nothing is ever truncated: an event over any limit is rejected whole, and needs review. A work at every limit fits under the body limit (tested).
 
-Deliberately excluded: `works.society_registration` (registration status belongs to the Hub), `lyrics`, `lyrics_file_path`, `notes`, `status`, artwork, `work_contributors` and `recording_contributors` (ownership/credits come from Split Sheets).
-
-Not supplied by the current Catalog schema (reported as *unsupported*): alternate-title type, primary-recording flag, recording country, first-release country, text/music relationship.
+Deliberately excluded: `works.society_registration` and `works.status` (registration status belongs to the Hub), `lyrics`, `lyrics_file_path`, `notes`, artwork, `work_contributors`, `recording_contributors`.
 
 **Split Sheets** `payload`: `sheet_type: "composition"`, `ownership_validated_at` (ISO or `null` if not yet approved — must be present), `writers[]` with `id` (your contributor id), `legalName`, `sharePercent` (0–100) required, and optional `role`, `ipiNumber` (9–11 digits), `cmo`, `publisher`, `publisherIpi`.
 Send **every** writer. Do not send performing / mechanical / sync shares — the Hub records those separately and never derives them from `sharePercent`.
@@ -152,6 +150,7 @@ Conflicts are never overwritten automatically; they need a human decision.
 | 400 | `{ error: "invalid_body", issues: [{ path, message }] }` | no — fix data |
 | 401 | `{ error: "unauthorized" }` / `{ error: "app_mismatch" }` | no — fix configuration, alert |
 | 403 | `{ error: "app_not_entitled" }` | no |
+| 413 | `{ error: "payload_too_large", limit_bytes }` | no — needs review; never split or truncate |
 | 404 | `{ error: "workspace_not_found" }` | no |
 | 409 | `event_id_reused` / `work_workspace_conflict` / `source_record_conflict` | no — needs review |
 | 500 | `{ error: "server_error" }` | yes |
