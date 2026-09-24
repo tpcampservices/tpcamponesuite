@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tpcamponesuite.app/contracts/registration/splits.composition.snapshot.v1.schema.json",
+  "title": "Split Sheets composition snapshot (Rights Registration Hub feed v1.0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_type", "event_id", "occurred_at", "workspace_id", "work_uid", "source_record_id", "source_revision", "ownership_revision", "payload"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "event_type": { "const": "splits.composition.snapshot" },
+    "event_id": { "$ref": "#/$defs/id" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "work_uid": { "$ref": "#/$defs/id" },
+    "source_record_id": { "$ref": "#/$defs/id" },
+    "source_revision": { "$ref": "#/$defs/id" },
+    "ownership_revision": { "$ref": "#/$defs/id" },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sheet_type", "ownership_validated_at", "writers"],
+      "properties": {
+        "sheet_type": { "const": "composition" },
+        "ownership_validated_at": { "type": ["string", "null"], "format": "date-time" },
+        "writers": {
+          "description": "Every writer on the approved sheet. Never truncate.",
+          "type": "array", "maxItems": 1000,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id", "legalName", "sharePercent"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "legalName": { "type": "string", "minLength": 1, "maxLength": 300 },
+              "role": { "type": ["string", "null"], "maxLength": 100 },
+              "ipiNumber": { "type": ["string", "null"], "pattern": "^\\d{9,11}$" },
+              "cmo": { "type": ["string", "null"], "maxLength": 100 },
+              "publisher": { "type": ["string", "null"], "maxLength": 300 },
+              "publisherIpi": { "type": ["string", "null"], "pattern": "^\\d{9,11}$" },
+              "sharePercent": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": { "id": { "type": "string", "minLength": 1, "maxLength": 200 } }
+}
