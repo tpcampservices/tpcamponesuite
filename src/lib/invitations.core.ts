@@ -104,7 +104,13 @@ export async function coreInvite(d: InviteDeps, input: InviteInput) {
 
   let created: Awaited<ReturnType<InviteDeps["createInvitation"]>>;
   try {
-    created = await d.createInvitation({ workspaceId, ...input, email });
+    created = await d.createInvitation({
+      workspaceId,
+      email,
+      roleKey: input.roleKey,
+      displayName: input.displayName,
+      appAccess: input.appAccess,
+    });
   } catch (e) {
     // Nothing was sent: the reservation stops counting (recorded as not sent).
     if (reservation) await d.finalizeSend(reservation, false);
