@@ -182,6 +182,10 @@ describe("static guard", () => {
     const src = readFileSync("src/lib/contracts.core.ts", "utf8");
     const bodies = src.split("export async function core").slice(1);
     expect(bodies.length).toBe(6);
-    for (const b of bodies) expect(b.indexOf("await gate(userId)")).toBeLessThan(b.indexOf("db.from") );
+    for (const b of bodies) {
+      const g = b.indexOf("await gate(userId)");
+      expect(g).toBeGreaterThan(-1);
+      expect(g).toBeLessThan(b.search(/db\s*\.from/));
+    }
   });
 });
