@@ -12,13 +12,24 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
+import { Route as AiTransparencyRouteImport } from './routes/ai-transparency'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CancellationRouteImport } from './routes/cancellation'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as CopyrightRouteImport } from './routes/copyright'
+import { Route as DataRetentionRouteImport } from './routes/data-retention'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as PaymentSuccessRouteImport } from './routes/payment-success'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SecurityRouteImport } from './routes/security'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedBusinessProfileRouteImport } from './routes/_authenticated/business-profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
@@ -53,9 +64,24 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcceptableUseRoute = AcceptableUseRouteImport.update({
+  id: '/acceptable-use',
+  path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiTransparencyRoute = AiTransparencyRouteImport.update({
+  id: '/ai-transparency',
+  path: '/ai-transparency',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CancellationRoute = CancellationRouteImport.update({
+  id: '/cancellation',
+  path: '/cancellation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompareRoute = CompareRouteImport.update({
@@ -68,6 +94,26 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CopyrightRoute = CopyrightRouteImport.update({
+  id: '/copyright',
+  path: '/copyright',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataRetentionRoute = DataRetentionRouteImport.update({
+  id: '/data-retention',
+  path: '/data-retention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
   id: '/payment-success',
   path: '/payment-success',
@@ -78,14 +124,34 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBusinessProfileRoute =
@@ -194,13 +260,24 @@ const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-transparency': typeof AiTransparencyRoute
   '/auth': typeof AuthRoute
+  '/cancellation': typeof CancellationRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
+  '/copyright': typeof CopyrightRoute
+  '/data-retention': typeof DataRetentionRoute
+  '/legal': typeof LegalRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security': typeof SecurityRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -224,13 +301,24 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-transparency': typeof AiTransparencyRoute
   '/auth': typeof AuthRoute
+  '/cancellation': typeof CancellationRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
+  '/copyright': typeof CopyrightRoute
+  '/data-retention': typeof DataRetentionRoute
+  '/legal': typeof LegalRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security': typeof SecurityRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/team': typeof AuthenticatedTeamRoute
@@ -256,13 +344,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/ai-transparency': typeof AiTransparencyRoute
   '/auth': typeof AuthRoute
+  '/cancellation': typeof CancellationRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/cookies': typeof CookiesRoute
+  '/copyright': typeof CopyrightRoute
+  '/data-retention': typeof DataRetentionRoute
+  '/legal': typeof LegalRoute
   '/payment-success': typeof PaymentSuccessRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refunds': typeof RefundsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security': typeof SecurityRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/business-profile': typeof AuthenticatedBusinessProfileRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
@@ -288,13 +387,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/acceptable-use'
+    | '/ai-transparency'
     | '/auth'
+    | '/cancellation'
     | '/compare'
     | '/contact'
+    | '/cookies'
+    | '/copyright'
+    | '/data-retention'
+    | '/legal'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
+    | '/security'
     | '/services'
+    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/team'
@@ -318,13 +428,24 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/acceptable-use'
+    | '/ai-transparency'
     | '/auth'
+    | '/cancellation'
     | '/compare'
     | '/contact'
+    | '/cookies'
+    | '/copyright'
+    | '/data-retention'
+    | '/legal'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
+    | '/security'
     | '/services'
+    | '/terms'
     | '/business-profile'
     | '/dashboard'
     | '/team'
@@ -349,13 +470,24 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/acceptable-use'
+    | '/ai-transparency'
     | '/auth'
+    | '/cancellation'
     | '/compare'
     | '/contact'
+    | '/cookies'
+    | '/copyright'
+    | '/data-retention'
+    | '/legal'
     | '/payment-success'
     | '/pricing'
+    | '/privacy'
+    | '/refunds'
     | '/reset-password'
+    | '/security'
     | '/services'
+    | '/terms'
     | '/_authenticated/business-profile'
     | '/_authenticated/dashboard'
     | '/_authenticated/team'
@@ -381,13 +513,24 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AcceptableUseRoute: typeof AcceptableUseRoute
+  AiTransparencyRoute: typeof AiTransparencyRoute
   AuthRoute: typeof AuthRoute
+  CancellationRoute: typeof CancellationRoute
   CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
+  CookiesRoute: typeof CookiesRoute
+  CopyrightRoute: typeof CopyrightRoute
+  DataRetentionRoute: typeof DataRetentionRoute
+  LegalRoute: typeof LegalRoute
   PaymentSuccessRoute: typeof PaymentSuccessRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundsRoute: typeof RefundsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SecurityRoute: typeof SecurityRoute
   ServicesRoute: typeof ServicesRoute
+  TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthInviteRoute: typeof AuthInviteRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -424,11 +567,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/acceptable-use': {
+      id: '/acceptable-use'
+      path: '/acceptable-use'
+      fullPath: '/acceptable-use'
+      preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-transparency': {
+      id: '/ai-transparency'
+      path: '/ai-transparency'
+      fullPath: '/ai-transparency'
+      preLoaderRoute: typeof AiTransparencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cancellation': {
+      id: '/cancellation'
+      path: '/cancellation'
+      fullPath: '/cancellation'
+      preLoaderRoute: typeof CancellationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compare': {
@@ -445,6 +609,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/copyright': {
+      id: '/copyright'
+      path: '/copyright'
+      fullPath: '/copyright'
+      preLoaderRoute: typeof CopyrightRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-retention': {
+      id: '/data-retention'
+      path: '/data-retention'
+      fullPath: '/data-retention'
+      preLoaderRoute: typeof DataRetentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/payment-success': {
       id: '/payment-success'
       path: '/payment-success'
@@ -459,6 +651,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -466,11 +672,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services': {
       id: '/services'
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/business-profile': {
@@ -638,13 +858,24 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AcceptableUseRoute: AcceptableUseRoute,
+  AiTransparencyRoute: AiTransparencyRoute,
   AuthRoute: AuthRoute,
+  CancellationRoute: CancellationRoute,
   CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
+  CookiesRoute: CookiesRoute,
+  CopyrightRoute: CopyrightRoute,
+  DataRetentionRoute: DataRetentionRoute,
+  LegalRoute: LegalRoute,
   PaymentSuccessRoute: PaymentSuccessRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundsRoute: RefundsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SecurityRoute: SecurityRoute,
   ServicesRoute: ServicesRoute,
+  TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthInviteRoute: AuthInviteRoute,
   InviteTokenRoute: InviteTokenRoute,

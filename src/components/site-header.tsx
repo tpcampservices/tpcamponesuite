@@ -131,6 +131,16 @@ export function SiteFooter() {
             Contact
           </Link>
         </div>
+        <nav aria-label="Legal" className="pt-4">
+          <p className="font-mono text-xs tracking-[0.2em] text-accent">LEGAL</p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <a href="/legal" className="hover:text-foreground">Legal &amp; Policies</a>
+            <a href="/privacy" className="hover:text-foreground">Privacy Policy</a>
+            <a href="/terms" className="hover:text-foreground">Terms of Service</a>
+            <a href="/refunds" className="hover:text-foreground">Refund Policy</a>
+            <a href="/cancellation" className="hover:text-foreground">Cancellation Policy</a>
+          </div>
+        </nav>
       </div>
     </footer>
   );
