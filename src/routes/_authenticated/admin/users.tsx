@@ -144,10 +144,17 @@ function AdminUsersPage() {
   };
 
   const { data: account } = useQuery({ queryKey: ["account"], queryFn: () => fetchAccount() });
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError: usersFailed,
+    isFetching: usersFetching,
+    refetch: retryUsers,
+  } = useQuery({
     queryKey: ["platform-users", query],
     queryFn: () => fetchUsers({ data: { query } }),
     enabled: Boolean(account?.isSuperAdmin),
+    retry: 1,
   });
   const { data: audit } = useQuery({
     queryKey: ["access-audit"],
@@ -528,9 +535,33 @@ function AdminUsersPage() {
               Search
             </button>
             <span className="text-xs text-muted-foreground">
-              {isLoading ? "Loading…" : `${users.length} of ${data?.total ?? 0} accounts`}
+              {usersFailed
+                ? "Not loaded"
+                : isLoading
+                  ? "Loading…"
+                  : `${users.length} of ${data?.total ?? 0} accounts`}
             </span>
           </div>
+
+          {usersFailed && (
+            <div
+              role="alert"
+              className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
+            >
+              <span>
+                The account list couldn't be loaded from the sign-in service. No data was changed.
+                Try again, and if it keeps failing, check the server logs for
+                <span className="font-mono"> admin_users_list_failed</span>.
+              </span>
+              <button
+                onClick={() => retryUsers()}
+                disabled={usersFetching}
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium transition-colors hover:border-accent/60 disabled:opacity-60"
+              >
+                {usersFetching ? "Retrying…" : "Retry"}
+              </button>
+            </div>
+          )}
 
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[1000px] text-left text-sm">

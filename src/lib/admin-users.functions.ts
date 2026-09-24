@@ -56,7 +56,11 @@ export const listPlatformUsers = createServerFn({ method: "POST" })
 
     for (let page = 1; page <= 10; page++) {
       const { data: res, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Safe code only — never forward the raw auth-service message.
+        console.error("[admin-users] admin_users_list_failed", { page, status: (error as any).status ?? null });
+        throw new Error("admin_users_list_failed");
+      }
       for (const u of res.users) {
         authUsers.push({
           id: u.id,
