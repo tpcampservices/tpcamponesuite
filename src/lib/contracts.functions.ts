@@ -1,17 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  coreDeleteContract,
+  coreGetBusinessProfile,
+  coreGetContract,
+  coreListContracts,
+  coreSaveBusinessProfile,
+  coreSaveContract,
+  type CoreDeps,
+} from "./contracts.core";
+
+// Every action goes through the gated core; the gate runs before any database access.
+async function deps(context: { supabase: CoreDeps["db"]; userId: string }): Promise<CoreDeps> {
+  const { requireContractBuilder } = await import("./contract-access.server");
+  return { db: context.supabase, userId: context.userId, gate: requireContractBuilder };
+}
 
 export const getBusinessProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("business_profiles")
-      .select("*")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ?? null;
-  });
+  .handler(async ({ context }) => coreGetBusinessProfile(await deps(context)));
 
 export type BusinessProfileInput = {
   legal_name: string;
@@ -47,41 +54,16 @@ export const saveBusinessProfile = createServerFn({ method: "POST" })
       governing_law: str(data?.governing_law, 200) || "Republic of Trinidad and Tobago",
     };
   })
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("business_profiles")
-      .upsert({ ...data, user_id: context.userId }, { onConflict: "user_id" })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return row;
-  });
+  .handler(async ({ data, context }) => coreSaveBusinessProfile(await deps(context), data));
 
 export const listContracts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("contracts")
-      .select("id, template_id, template_title, title, counterparty, status, generated_at, updated_at")
-      .eq("user_id", context.userId)
-      .order("updated_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+  .handler(async ({ context }) => coreListContracts(await deps(context)));
 
 export const getContract = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => ({ id: String(data?.id ?? "") }))
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("contracts")
-      .select("*")
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return row ?? null;
-  });
+  .handler(async ({ data, context }) => coreGetContract(await deps(context), data));
 
 export const saveContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -112,48 +94,9 @@ export const saveContract = createServerFn({ method: "POST" })
       };
     },
   )
-  .handler(async ({ data, context }) => {
-    const payload = {
-      user_id: context.userId,
-      template_id: data.template_id,
-      template_title: data.template_title,
-      title: data.title,
-      counterparty: data.counterparty || null,
-      values: data.values,
-      status: data.markGenerated ? "generated" : "draft",
-      ...(data.markGenerated ? { generated_at: new Date().toISOString() } : {}),
-    };
-
-    if (data.id) {
-      const { data: row, error } = await context.supabase
-        .from("contracts")
-        .update(payload)
-        .eq("id", data.id)
-        .eq("user_id", context.userId)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return row;
-    }
-
-    const { data: row, error } = await context.supabase
-      .from("contracts")
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return row;
-  });
+  .handler(async ({ data, context }) => coreSaveContract(await deps(context), data));
 
 export const deleteContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => ({ id: String(data?.id ?? "") }))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("contracts")
-      .delete()
-      .eq("id", data.id)
-      .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+  .handler(async ({ data, context }) => coreDeleteContract(await deps(context), data));

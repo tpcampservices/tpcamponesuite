@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Download, Save } from "lucide-react";
+import { ContractPlanNotice } from "@/components/contract-plan-notice";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { getBusinessProfile, getContract, saveContract } from "@/lib/contracts.functions";
 import {
@@ -51,12 +52,12 @@ function ContractBuilderPage() {
   const fetchProfile = useServerFn(getBusinessProfile);
   const persist = useServerFn(saveContract);
 
-  const { data: existing, isLoading: loadingContract } = useQuery({
+  const { data: existing, isLoading: loadingContract, error: contractError } = useQuery({
     queryKey: ["contract", contractId],
     queryFn: () => fetchContract({ data: { id: contractId } }),
     enabled: !isNew,
   });
-  const { data: profile } = useQuery({
+  const { data: profile, error: profileError } = useQuery({
     queryKey: ["business-profile"],
     queryFn: () => fetchProfile(),
   });
@@ -160,6 +161,7 @@ function ContractBuilderPage() {
       <div className="min-h-screen">
         <SiteHeader />
         <main className="mx-auto max-w-3xl px-5 pt-20 pb-20">
+          <ContractPlanNotice errors={[contractError, profileError]} />
           <p className="text-sm text-muted-foreground">
             {loadingContract ? "Loading contract…" : "That contract or template could not be found."}
           </p>
@@ -178,6 +180,7 @@ function ContractBuilderPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-5 pt-16 pb-20">
+        <ContractPlanNotice errors={[contractError, profileError]} />
         <Link to="/contracts" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Contract builder
         </Link>

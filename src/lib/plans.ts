@@ -32,6 +32,8 @@ export type PlanFeatures = {
   maxCustomRoles: number;
   permissionGroupsEnabled: boolean;
   advancedPermissionsEnabled: boolean;
+  /** Contract Builder is included in the plan (enforced server-side). */
+  contractBuilder: boolean;
 };
 
 export type PlanDefinition = {
@@ -67,6 +69,7 @@ export const PLANS: PlanDefinition[] = [
       maxCustomRoles: 0,
       permissionGroupsEnabled: false,
       advancedPermissionsEnabled: false,
+      contractBuilder: true,
     },
   },
   {
@@ -92,6 +95,7 @@ export const PLANS: PlanDefinition[] = [
       maxCustomRoles: 2,
       permissionGroupsEnabled: false,
       advancedPermissionsEnabled: false,
+      contractBuilder: true,
     },
   },
   {
@@ -116,6 +120,7 @@ export const PLANS: PlanDefinition[] = [
       maxCustomRoles: 5,
       permissionGroupsEnabled: true,
       advancedPermissionsEnabled: true,
+      contractBuilder: true,
     },
   },
   {
@@ -140,6 +145,7 @@ export const PLANS: PlanDefinition[] = [
       maxCustomRoles: 25,
       permissionGroupsEnabled: true,
       advancedPermissionsEnabled: true,
+      contractBuilder: true,
     },
   },
 ];

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Building2 } from "lucide-react";
+import { ContractPlanNotice } from "@/components/contract-plan-notice";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { getBusinessProfile, saveBusinessProfile } from "@/lib/contracts.functions";
 
@@ -45,7 +46,7 @@ function BusinessProfilePage() {
   const [formState, setFormState] = useState(empty);
   const [busy, setBusy] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: profileError } = useQuery({
     queryKey: ["business-profile"],
     queryFn: () => fetchProfile(),
   });
@@ -95,6 +96,7 @@ function BusinessProfilePage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 pt-16 pb-20">
+        <ContractPlanNotice errors={[profileError]} />
         <Link
           to="/contracts"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"

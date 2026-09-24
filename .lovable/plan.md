@@ -59,6 +59,7 @@ None. No database migration, no access-rule change, no secrets and no settings. 
 
 ## Files
 - New: `src/lib/contract-access.server.ts`
+- New: `src/lib/contracts.core.ts` (handler bodies with injected database client and gate)
 - New: `src/lib/contract-access.test.ts`
 - Edit: `src/lib/contracts.functions.ts` (one call at the top of each of the six handlers)
 - Edit: `src/lib/plans.ts` (add the `contractBuilder` flag)
@@ -71,9 +72,15 @@ None. No database migration, no access-rule change, no secrets and no settings. 
 4. Active Starter, Growth, Pro or Institutional plan: allowed.
 5. Staff with an active membership in a covered workspace: allowed. Staff whose membership is suspended or removed: refused. Staff whose workspace plan expired: refused. Staff in an uncovered workspace: refused, even if they own a separate plan elsewhere that isn't their current workspace's.
 6. Workspace isolation: a plan record linked to a different workspace doesn't cover this one. Every contract and profile query still filters by the caller's own user ID (checked by inspecting the handler source).
-7. Direct calls: all six handlers call `requireContractBuilder` before any database access. This is a static check over `contracts.functions.ts`, so a new handler without the check fails the test.
+7. Direct calls, tested by behavior for all six actions (`getBusinessProfile`, `saveBusinessProfile`, `listContracts`, `getContract`, `saveContract`, `deleteContract`). The handler bodies move into `src/lib/contracts.core.ts`, a thin core with an injected database client and gate. The server actions call that same core, so the tests exercise the real code path. For each action, invoked as a signed-in user whose current workspace has no qualifying plan:
+   - it fails with exactly "Your plan doesn't include Contract Builder.";
+   - a recording fake database proves that no contract or business-profile read, insert, update or delete happened;
+   - supplying another user's or workspace's IDs in the input (`user_id`, `workspace_id`, another contract ID) doesn't bypass the check, and the gate is always evaluated for the signed-in user;
+   - it is refused for suspended and removed members, and for an expired, inactive, unknown-plan or mismatched-workspace plan.
+   The static guard test stays as extra protection: every `createServerFn` in `contracts.functions.ts` must go through the gated core.
+   Successful read and write, tested by behavior: an entitled Owner and an entitled Staff member can each list contracts and save one, and both calls reach the database scoped to their own user ID.
 8. Existing paid users: an active paid owner (like the CMMG RECORDS Growth plan) and its active Staff are allowed. Currently there are 0 contracts and 1 business profile in the database, so no existing work is lost.
-9. Super Admin allowed. The refusal message is exactly "Your plan doesn't include Contract Builder." and contains no internal details.
+9. Super Admin: allowed (tested separately, including a Super Admin with no plan). The refusal message is exactly "Your plan doesn't include Contract Builder." and contains no internal details.
 10. All 74 existing tests still pass.
 
 ## After approval
