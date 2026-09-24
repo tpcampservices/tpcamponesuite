@@ -8,6 +8,7 @@
  * authorized inviter, so it uses no send allowance.
  */
 import { inviteLink } from "./invitation-links";
+import type { SeatAccounting } from "./workspace.server";
 
 export const INVITE_PLAN_REFUSED = "Your plan must be active to invite team members.";
 export const INVITE_RATE_LIMITED = "Too many invitations right now. Try again later.";
@@ -59,7 +60,7 @@ export type InviteDeps = {
     roleKey: string;
     displayName: string | null;
     appAccess: Record<string, string> | null;
-  }) => Promise<{ invitationId: string; token: string; expiresAt: string; seats: unknown }>;
+  }) => Promise<{ invitationId: string; token: string; expiresAt: string; seats: SeatAccounting }>;
   resendInvitation: (a: { workspaceId: string; invitationId: string }) => Promise<{ token: string; expiresAt: string }>;
   sendEmail: (email: string, redirectTo: string) => Promise<boolean>;
   audit: (row: { workspaceId: string; action: string; maskedEmail: string; limit: string | null }) => Promise<void>;
