@@ -9,7 +9,7 @@ import addFormats from "ajv-formats";
 import catalogSchema from "../../docs/registration-feed/catalog.work.snapshot.v1.schema.json";
 import splitsSchema from "../../docs/registration-feed/splits.composition.snapshot.v1.schema.json";
 import { exampleCatalogEvent, exampleSplitsEvent } from "../../docs/registration-feed/examples";
-import { CatalogFeedEventSchema, SplitsFeedEventSchema, FEED_RESPONSES } from "./registration-feed.contract";
+import { CatalogFeedEventSchema, SplitsFeedEventSchema, FEED_RESPONSES, catalogRelationshipIssues } from "./registration-feed.contract";
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
@@ -28,9 +28,10 @@ describe("Catalog feed contract v1.0", () => {
   it("accepts the example", () => expect(both(vCatalog, CatalogFeedEventSchema, exampleCatalogEvent)).toBe(true));
   it("accepts an event where every optional value is empty (null)", () => {
     const e = clone(exampleCatalogEvent);
-    for (const k of Object.keys(e.payload)) if (!["title", "alternate_titles", "recordings"].includes(k)) e.payload[k] = null;
+    for (const k of Object.keys(e.payload)) if (!["title", "alternate_titles", "recordings", "releases"].includes(k)) e.payload[k] = null;
     e.payload.alternate_titles = [];
     e.payload.recordings = [];
+    e.payload.releases = [];
     expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(true);
   });
   for (const f of ["event_id", "workspace_id", "work_uid", "source_record_id", "source_revision", "schema_version"]) {
@@ -55,10 +56,10 @@ describe("Catalog feed contract v1.0", () => {
       expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
     });
   }
-  for (const f of ["catalog_number", "track_number", "disc_number", "upc"]) {
+  for (const f of ["catalog_number", "upc", "cline"]) {
     it(`rejects a release that omits ${f}`, () => {
       const e = clone(exampleCatalogEvent);
-      delete e.payload.recordings[0].releases[0][f];
+      delete e.payload.releases[0][f];
       expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
     });
   }
@@ -66,7 +67,8 @@ describe("Catalog feed contract v1.0", () => {
     const p = CatalogFeedEventSchema.parse(exampleCatalogEvent).payload;
     expect(p.genre).toBe("Soca");
     expect(p.copyright_owner).toBe("Sample Music Publishing");
-    expect(p.recordings[0].releases[0]).toMatchObject({ catalog_number: "SR-001", track_number: 1, disc_number: 1 });
+    expect(p.releases[0].catalog_number).toBe("SR-001");
+    expect(p.recordings[0].release_links[0]).toEqual({ release_id: "cat-rel-3333", track_number: 1, disc_number: 1 });
   });
   it("rejects a wrong event type", () => {
     const e = clone(exampleCatalogEvent);
@@ -81,7 +83,7 @@ describe("Catalog feed contract v1.0", () => {
   it("rejects ownership or rights sent from Catalog", () => {
     for (const [where, key] of [["work", "ownership"], ["work", "performing_share"], ["rec", "mechanical_share"], ["rel", "sync_share"]]) {
       const e = clone(exampleCatalogEvent);
-      const target = where === "work" ? e.payload : where === "rec" ? e.payload.recordings[0] : e.payload.recordings[0].releases[0];
+      const target = where === "work" ? e.payload : where === "rec" ? e.payload.recordings[0] : e.payload.releases[0];
       target[key] = 50;
       expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
     }
@@ -91,16 +93,81 @@ describe("Catalog feed contract v1.0", () => {
     e.payload.alternate_titles[0].type = "AT";
     expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
   });
-  it("rejects a malformed ISRC, bad date and non-uuid workspace", () => {
+  it("keeps a malformed identifier as a string for the Hub to flag, but rejects bad dates and a non-uuid workspace", () => {
     const e = clone(exampleCatalogEvent);
     e.payload.recordings[0].isrc = "ZZ-X00-00-00001";
-    expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
+    expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(true);
     const c = clone(exampleCatalogEvent);
-    c.payload.copyright_date = "15/01/2026";
-    expect(both(vCatalog, CatalogFeedEventSchema, c)).toBe(false);
+    for (const bad of ["15/01/2026", "2026-02-31", "2026-1-5", ""]) {
+      c.payload.copyright_date = bad;
+      expect(both(vCatalog, CatalogFeedEventSchema, c)).toBe(false);
+    }
     const w = clone(exampleCatalogEvent);
     w.workspace_id = "my-workspace";
     expect(both(vCatalog, CatalogFeedEventSchema, w)).toBe(false);
+  });
+  it("rejects empty strings where null is required", () => {
+    for (const [obj, key] of [["w", "genre"], ["w", "iswc"], ["w", "work_code"], ["r", "isrc"], ["r", "studio"], ["l", "upc"]] as const) {
+      const e = clone(exampleCatalogEvent);
+      const target = obj === "w" ? e.payload : obj === "r" ? e.payload.recordings[0] : e.payload.releases[0];
+      target[key] = key === "isrc" || key === "upc" ? "  " : "";
+      expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
+    }
+  });
+  it("keeps types: string ids, integer seconds, boolean explicit, integer positions", () => {
+    const cases: [(e: any) => void][] = [
+      [(e) => (e.payload.duration_seconds = "214")],
+      [(e) => (e.payload.duration_seconds = 3.5)],
+      [(e) => (e.payload.recordings[0].explicit = "false")],
+      [(e) => (e.payload.recordings[0].explicit = null)],
+      [(e) => (e.payload.recordings[0].release_links[0].track_number = "1")],
+      [(e) => (e.payload.recordings[0].release_links[0].track_number = 0)],
+      [(e) => (e.payload.releases[0].upc = 1)],
+      [(e) => (e.payload.recordings[0].recording_id = 2222)],
+      [(e) => (e.payload.alternate_titles = "Example Bay Sunrise")],
+    ];
+    for (const [mut] of cases) {
+      const e = clone(exampleCatalogEvent);
+      mut(e);
+      expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
+    }
+  });
+  it("keeps leading zeros in identifiers", () => {
+    expect(CatalogFeedEventSchema.parse(exampleCatalogEvent).payload.releases[0].upc).toBe("000000000001");
+  });
+  it("checks relationships: duplicates, unknown release links and orphan releases", () => {
+    expect(catalogRelationshipIssues(CatalogFeedEventSchema.parse(exampleCatalogEvent).payload)).toEqual([]);
+    const a = clone(exampleCatalogEvent);
+    a.payload.recordings[0].release_links[0].release_id = "nope";
+    expect(catalogRelationshipIssues(CatalogFeedEventSchema.parse(a).payload).map((i: any) => i.message).join()).toMatch(/not in payload.releases/);
+    const b = clone(exampleCatalogEvent);
+    b.payload.recordings.push(clone(b.payload.recordings[0]));
+    b.payload.releases.push(clone(b.payload.releases[0]));
+    const msgs = catalogRelationshipIssues(CatalogFeedEventSchema.parse(b).payload).map((i: any) => i.message);
+    expect(msgs).toEqual(expect.arrayContaining(["Recording listed twice.", "Release listed twice."]));
+    const c = clone(exampleCatalogEvent);
+    c.payload.recordings[0].release_links = [];
+    expect(catalogRelationshipIssues(CatalogFeedEventSchema.parse(c).payload)[0].message).toMatch(/not linked/);
+  });
+  it("shares one release across many recordings with different track positions", () => {
+    const e = clone(exampleCatalogEvent);
+    e.payload.recordings = Array.from({ length: 12 }, (_, i) => ({ ...e.payload.recordings[0], recording_id: `r${i}`, release_links: [{ release_id: "cat-rel-3333", track_number: i + 1, disc_number: 1 }] }));
+    const p = CatalogFeedEventSchema.parse(e).payload;
+    expect(catalogRelationshipIssues(p)).toEqual([]);
+    expect(p.releases).toHaveLength(1);
+  });
+  it("rejects more recordings than the limit instead of truncating", () => {
+    const e = clone(exampleCatalogEvent);
+    e.payload.recordings = Array.from({ length: 501 }, (_, i) => ({ ...e.payload.recordings[0], recording_id: `r${i}` }));
+    expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(false);
+  });
+  it("fits a 500-recording, 1000-release work inside the body limit", () => {
+    const e = clone(exampleCatalogEvent);
+    e.payload.releases = Array.from({ length: 1000 }, (_, i) => ({ ...e.payload.releases[0], release_id: `rel${i}` }));
+    e.payload.recordings = Array.from({ length: 500 }, (_, i) => ({ ...e.payload.recordings[0], recording_id: `r${i}`, release_links: [{ release_id: `rel${i * 2}`, track_number: 1, disc_number: 1 }, { release_id: `rel${i * 2 + 1}`, track_number: 1, disc_number: 1 }] }));
+    expect(both(vCatalog, CatalogFeedEventSchema, e)).toBe(true);
+    expect(catalogRelationshipIssues(CatalogFeedEventSchema.parse(e).payload)).toEqual([]);
+    expect(new TextEncoder().encode(JSON.stringify(e)).length).toBeLessThan(5_000_000);
   });
   it("carries every linked recording without truncation", () => {
     const e = clone(exampleCatalogEvent);

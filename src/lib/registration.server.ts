@@ -141,7 +141,7 @@ async function ensureWork(workspaceId: string, workUid: string, links: { catalog
 async function latestSnapshot(workspaceId: string, workUid: string, app: "catalog" | "splits") {
   const { data } = await supabaseAdmin
     .from("registration_source_snapshots")
-    .select("id, source_app, source_revision, ownership_revision, payload, received_at")
+    .select("id, source_app, source_revision, ownership_revision, payload, received_at, source_entity_id")
     .eq("workspace_id", workspaceId)
     .eq("work_uid", workUid)
     .eq("source_app", app)
