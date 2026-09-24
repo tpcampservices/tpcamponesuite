@@ -8,3 +8,5 @@
 ## HubSpot Phase 3
 - [x] Queue table, triggers, processor endpoint, hourly backstop, backoff, backfill, admin controls (auto-sync flag OFF)
 - [ ] Live tests A–J with controlled accounts (needs Super Admin to turn automation on and publish)
+
+- [ ] Registration feed: per-app dev/prod credentials + safeguards (awaiting plan approval)
