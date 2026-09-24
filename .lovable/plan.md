@@ -54,7 +54,12 @@ A slot that is empty, malformed or too short counts as inactive configuration: i
 The body is read as a stream, counting the actual bytes received. Reading stops, and the request is rejected whole with 413, the moment it passes 5,000,000 bytes. `Content-Length` is only used as an early reject; it is never trusted to allow a request. Exactly 5,000,000 bytes is accepted, and 5,000,001 is rejected. Nothing is ever truncated.
 
 ## Logging
-Logs record only the app slug, the error code and the environment label. They never include keys, headers, hashes or slot values. A test captures `console.*` output and checks that none of the credential values appear in it.
+Logs record only the error code and the environment label, never keys, headers, hashes or slot values. Logging rule:
+- Before authentication, the source is always logged as the fixed value `unknown`.
+- `catalog` or `splits` is logged only after the credential has authenticated and the header agrees with it.
+- The raw unauthenticated `x-tpcamp-app` header is never logged.
+
+ A test captures `console.*` output and checks that none of the credential values appear in it.
 
 ## Files
 - New: `src/lib/registration-auth.server.ts`, containing the pure function `authenticateFeed(headers, env)` and `readBodyLimited(request, limit)`.
@@ -75,7 +80,15 @@ Logs record only the app slug, the error code and the environment label. They ne
 9. A reused event ID with different content returns 409 `event_id_reused`.
 10. A work that belongs to a different workspace returns 409 `work_workspace_conflict`.
 11. Captured logs contain no key values or the header value.
-12. All 56 existing contract and parity tests still pass.
+12. Two active slots holding the same credential return `503 feed_misconfigured`, and neither identity authenticates, whether the request uses the Catalog or the Split Sheets header.
+13. Configured credentials that are empty, too short, padded with whitespace, contain invalid characters or are otherwise malformed stay inactive: presenting them returns 401.
+14. A single invalid UUID in `REG_FEED_TEST_WORKSPACES` returns `503 feed_misconfigured`.
+15. An empty test-workspace list lets no workspace accept development credentials (403).
+16. An unauthorized request with a body over 5 MB returns 401. A spy on the body stream proves it was never read, streamed or buffered.
+17. An authenticated request with an unsupported content type returns 415, and the spy proves the body was not read.
+18. `application/json` and `application/json; charset=utf-8` are both accepted.
+19. An unknown or malicious `x-tpcamp-app` header (a unique marker string) never appears in captured logs; logs show `unknown` instead.
+20. All 56 existing contract and parity tests still pass.
 
 ## Not in scope
 - COTT
