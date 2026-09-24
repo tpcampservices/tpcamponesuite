@@ -4,8 +4,9 @@
  * client and gate are injected so the server actions and the tests exercise
  * the same code path. The user id always comes from the verified session.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Db = any;
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+type Db = SupabaseClient<Database>;
 export type CoreDeps = { db: Db; userId: string; gate: (userId: string) => Promise<void> };
 
 export type BusinessProfileData = {

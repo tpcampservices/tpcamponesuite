@@ -11,7 +11,7 @@ import {
 } from "./contracts.core";
 
 // Every action goes through the gated core; the gate runs before any database access.
-async function deps(context: { supabase: unknown; userId: string }): Promise<CoreDeps> {
+async function deps(context: { supabase: CoreDeps["db"]; userId: string }): Promise<CoreDeps> {
   const { requireContractBuilder } = await import("./contract-access.server");
   return { db: context.supabase, userId: context.userId, gate: requireContractBuilder };
 }

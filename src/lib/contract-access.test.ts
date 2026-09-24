@@ -48,7 +48,7 @@ function fakeDb() {
     return chain;
   };
   const op0 = (table: string) => (table === "contracts" ? [{ id: "c1" }] : { id: "p1" });
-  return { db: { from: vi.fn(from) }, ops };
+  return { db: { from: vi.fn(from) } as any, ops };
 }
 
 const profile = {
