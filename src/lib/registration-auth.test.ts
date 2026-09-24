@@ -135,7 +135,7 @@ describe("registration feed authentication", () => {
     expect(await run(req({ key: K.catDev, app: "splits", body: withWs(exampleSplitsEvent, TEST_WS) }), env)).toMatchObject({ status: 503, body: { error: "feed_misconfigured" } });
   });
   it("13. empty, short, padded, invalid-character and malformed configured credentials stay inactive", async () => {
-    const bad = ["", "short", ` ${K.catDev}`, `${K.catDev} `, K.catDev.slice(0, 42), "a".repeat(40) + "!@#", "a".repeat(129), "a".repeat(40) + "é€"];
+    const bad = ["", "short", ` ${K.catDev}`, `${K.catDev} `, K.catDev.slice(0, 42), "a".repeat(40) + "!@#", "a".repeat(129), "a".repeat(40) + "+/=", "a".repeat(20) + "\tb" + "a".repeat(30)];
     for (const v of bad) {
       const r = await run(req({ key: v, app: "catalog", body: exampleCatalogEvent }), { ...baseEnv(), REG_FEED_KEY_CATALOG_DEV: v });
       expect(r.status).toBe(401);
