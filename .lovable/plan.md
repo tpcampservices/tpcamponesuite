@@ -1,90 +1,92 @@
-# Contract Builder: server-side plan check
+# Fix: "Any workspace member can email anyone"
 
-## What changes
-Every contract and business-profile server action checks, on the server, that the caller's current OneSuite workspace has an active plan that includes Contract Builder. If it doesn't, the action refuses with: "Your plan doesn't include Contract Builder." Page visibility and navigation are not relied on. Direct calls that skip the page are refused the same way.
+## Findings (current invitation flow)
 
-Decision (answered): team members follow the workspace plan only. Any active member of a workspace whose active plan includes Contract Builder may use it. No new permission and no database change.
+**Files and actions**
+- `src/lib/invitations.functions.ts` — `inviteWorkspaceMember` (sends the email), `resendWorkspaceInvitation`, `cancelWorkspaceInvitation`, `previewWorkspaceInvitation`, `acceptWorkspaceInvitation`. They're called through the normal internal server-call endpoint, not a public API route.
+- `src/lib/invitations.server.ts` — `assertMayInvite`, `assertRoleAssignable`, `createInvitation`, `resendInvitation`, `cancelInvitation`.
+- Database function `create_workspace_invitation` (migration 20260914201709) — locks the workspace's seat count, catches duplicates and existing members, and enforces the seat limit.
+- `src/routes/_authenticated/team.tsx` — the invite form. It sends `window.location.origin` as `origin`.
 
-## Affected server actions (all in `src/lib/contracts.functions.ts`)
-| Action | Used by | Existing checks today | Plan check today |
-|---|---|---|---|
-| `getBusinessProfile` | contracts pages, business profile page | sign-in required; row filtered to caller's own user ID; database access rules | none |
-| `saveBusinessProfile` | business profile page | sign-in required; writes only caller's own row; input validated | none |
-| `listContracts` | contracts list | sign-in required; filtered to caller's own user ID; database access rules | none |
-| `getContract` | contract editor | sign-in required; ID + own user ID filter | none |
-| `saveContract` (create and update) | contract editor | sign-in required; update filtered to own user ID; input validated | none |
-| `deleteContract` | contracts list | sign-in required; filtered to own user ID | none |
+**Who can invite:** Owner and Administrator, plus anyone given an explicit Allow for `workspace.team.invite`. Manager, Staff, Viewer and Auditor can't.
 
-No other server actions touch the `contracts` or `business_profiles` tables. (The CRM payload builder reads business profiles through its own Super Admin-only path. It is not part of the contract builder and is unchanged.)
+**Server or page check:** the check runs on the server (`assertMayInvite` runs before anything is written). The sender must be an active member of the workspace.
 
-All existing checks stay exactly as they are. The plan check is added before them.
+**Workspace ID:** it's worked out on the server from the sender's session (`resolveCurrentWorkspace`). The browser can't supply or change it.
 
-## Proposed shared check
-New server-only file `src/lib/contract-access.server.ts`:
+**Roles that can be assigned:** never Owner, only roles on the invitable list, and never a role ranked above the sender's own.
 
-```ts
-export const CONTRACT_BUILDER_DENIED = "Your plan doesn't include Contract Builder.";
+**Invitation link:** a random 32-byte token. Only its SHA-256 hash is stored, it expires after 7 days, and it can be used once (accepting it changes the status).
 
-// Pure decision, unit-tested.
-export function decideContractAccess(input: {
-  isSuperAdmin: boolean;
-  workspace: { id: string; status: string } | null;       // caller's current workspace
-  activeMember: boolean;                                   // active membership in it
-  entitlement: { plan_id: string | null; status: string; access_expiry_date: string | null } | null;
-  now?: number;
-}): { ok: true; workspaceId: string | null } | { ok: false };
+**Existing controls:**
+- One pending invitation per workspace and email address.
+- Existing members can't be re-invited.
+- Pending invitations count against the seat limit.
+- Every create, resend and cancel is written to the audit log without the token.
+- There is **no rate limit** of any kind.
 
-// Loads the inputs, then calls decideContractAccess. Throws the plain message on refusal.
-export async function requireContractBuilder(userId: string): Promise<{ workspaceId: string | null }>;
-```
+**What the browser can supply:**
+- The recipient email, role, display name and app access (all checked on the server).
+- An `origin`. **It's only checked to start with "http"**, and it becomes both the link in the email and the address the sign-up email sends people to afterwards.
+- Email wording, sender name and reply-to can't be supplied; the email template is fixed.
 
-Each of the six handlers calls `await requireContractBuilder(context.userId)` first. It's loaded inside the handler with a dynamic import, so no server-only code reaches the browser.
+**Direct calls:** calling the action directly, without the page, sends the same email if the caller passes the checks above.
 
-### How it decides
-1. **Current workspace:** the existing `resolveCurrentWorkspace(userId)`. This is the same resolver used by the dashboard and single sign-on. It only picks active memberships in active workspaces, and prefers a workspace the user owns. Nothing comes from the browser.
-2. **Membership:** the resolver only returns workspaces where the caller has an `active` membership. Suspended or removed members get nothing.
-3. **Active plan:** the existing `workspaceEntitlementRow(workspaceId)`. It reads the workspace owner's plan record (the same record billing writes), refreshes expiry, and ignores a record linked to a different workspace. The plan must pass the existing `deriveAccess` rule: the status is active or trial, the expiry is in the future (or there is none), and a plan exists.
-4. **Feature included:** a new code-only flag `contractBuilder: boolean` in `PlanFeatures` in `src/lib/plans.ts`. It is `true` for Starter, Growth, Pro and Institutional, because every published plan already advertises the contract builder and has a monthly contract allowance. An unknown plan ID means the feature is not included. The workspace's allowed-apps list is not used, because Contract Builder is a OneSuite feature, not a child app.
-5. **User permission:** the plan decides alone, as you chose. Staff in a covered workspace are allowed, and the existing own-user-ID filters still apply.
-6. **Super Admin:** allowed, matching the existing platform rule (`has_tier_access` already lets super admins through).
+**The misuse the scan found, plus two related gaps:**
+1. **Unlimited emails.** An Owner or Administrator (including any trial or free-plan owner) can invite any address. Cancelling and re-inviting frees the pending slot and the seat, so repeating the loop sends unlimited official OneSuite emails to any list of addresses.
+2. **Phishing link (more serious).** A direct call with `origin: "https://evil.example"` puts an attacker's link inside a real OneSuite invitation email. Whether the sign-in service's allowed-address list blocks the final redirect isn't confirmed, and the link we build and return is attacker-controlled either way.
+3. **Resend** returns a fresh link built from the browser-supplied origin in the same way. It doesn't send an email itself.
 
-Contracts and business profiles stay scoped to the caller's own user ID, as today. A user can never read or change another person's contracts or profile, in any workspace.
+## Proposed fix (server-side only, no database change)
 
-### Error handling
-- On refusal, the handler throws an error whose message is exactly the plain sentence. The server log records the fixed code `contract_builder_not_entitled`, with no user data.
-- The contracts, contract editor and business profile pages show that message with a "See plans" link, instead of a raw error.
+1. **Server-owned link address.** Remove `origin` from the invite and resend inputs; the server ignores it if sent anyway. Build every link from a fixed server allowlist:
+   - Published: `https://tpcamponesuite.app`. Also allow `https://www.tpcamponesuite.app` and `https://tpcamponesuite.lovable.app`.
+   - Preview: the preview address.
+   - The link is chosen from the request's own host only when that host is on the allowlist; otherwise it falls back to the main domain.
+2. **Rate limits**, counted from existing records (invitation rows and the audit log), so no new table is needed:
+   - Per sender: at most 20 invitation emails per hour and 50 per day.
+   - Per workspace: at most 50 per day.
+   - Per email address, across all workspaces: at most 3 per day.
+   - Re-inviting the same address in the same workspace after cancelling: at most 3 per day.
+   - Refusals use plain messages such as "Too many invitations right now. Try again later."
+3. **Repeat controls:** the existing pending-invitation and member checks stay. The per-email and re-invite limits close the cancel-and-re-invite loop.
+4. **Paid plan required to send email.** The workspace must have an active plan (the same `deriveAccess` check the rest of the app uses). Trial counts as active. Without one, the refusal reads "Your plan must be active to invite team members."
+5. **Keep as is:** the permission check, server-side workspace, role limits, hashed expiring single-use tokens, fixed email template, and the resend flow's existing cap on repeat sends.
+6. **Audit:**
+   - Every refusal is logged as a new audit action, `invitation_refused_rate_limited` or `invitation_refused_plan`, with the recipient's email and no token.
+   - The server log records only safe codes.
+   - Raw sign-in service errors no longer reach the browser: the `emailError` field is replaced by a plain message.
+7. **Per-IP limit: not proposed.** It would mean storing visitor IP addresses, a new privacy practice not covered by the current policies. The per-user and per-workspace limits already cover the misuse, since sending requires a signed-in account.
 
-## Migration / configuration
-None. No database migration, no access-rule change, no secrets and no settings. The existing plan records are sufficient.
+To make testing possible, the checks move into a small gated core (same pattern as the Contract Builder fix). The recording database and email sender are passed in, so the tests use the real code path.
 
-## Files
-- New: `src/lib/contract-access.server.ts`
-- New: `src/lib/contracts.core.ts` (handler bodies with injected database client and gate)
-- New: `src/lib/contract-access.test.ts`
-- Edit: `src/lib/contracts.functions.ts` (one call at the top of each of the six handlers)
-- Edit: `src/lib/plans.ts` (add the `contractBuilder` flag)
-- Edit: `src/routes/_authenticated/contracts/index.tsx`, `src/routes/_authenticated/contracts/$contractId.tsx` and `src/routes/_authenticated/business-profile.tsx`, to show the plain refusal message
+## Affected files
+- `src/lib/invitations.functions.ts` — remove `origin`; delegate to the core.
+- `src/lib/invitations.core.ts` (new) — the permission, plan, rate-limit and link-address checks, then create or resend, then send the email.
+- `src/lib/invitation-links.server.ts` (new) — the fixed allowlist of link addresses.
+- `src/lib/invitations.server.ts` — small change: return the plain error instead of the raw one.
+- `src/routes/_authenticated/team.tsx` — stop sending `origin`; show the new plain messages.
+- `src/lib/invitations.test.ts` (new).
 
-## Tests (vitest, in-memory fakes, no real data)
-1. No plan: refused.
-2. Expired plan: refused. Cancelled, pending or suspended plan: refused.
-3. Active plan whose definition has `contractBuilder: false` (test fixture), or an unknown plan ID: refused.
-4. Active Starter, Growth, Pro or Institutional plan: allowed.
-5. Staff with an active membership in a covered workspace: allowed. Staff whose membership is suspended or removed: refused. Staff whose workspace plan expired: refused. Staff in an uncovered workspace: refused, even if they own a separate plan elsewhere that isn't their current workspace's.
-6. Workspace isolation: a plan record linked to a different workspace doesn't cover this one. Every contract and profile query still filters by the caller's own user ID (checked by inspecting the handler source).
-7. Direct calls, tested by behavior for all six actions (`getBusinessProfile`, `saveBusinessProfile`, `listContracts`, `getContract`, `saveContract`, `deleteContract`). The handler bodies move into `src/lib/contracts.core.ts`, a thin core with an injected database client and gate. The server actions call that same core, so the tests exercise the real code path. For each action, invoked as a signed-in user whose current workspace has no qualifying plan:
-   - it fails with exactly "Your plan doesn't include Contract Builder.";
-   - a recording fake database proves that no contract or business-profile read, insert, update or delete happened;
-   - supplying another user's or workspace's IDs in the input (`user_id`, `workspace_id`, another contract ID) doesn't bypass the check, and the gate is always evaluated for the signed-in user;
-   - it is refused for suspended and removed members, and for an expired, inactive, unknown-plan or mismatched-workspace plan.
-   The static guard test stays as extra protection: every `createServerFn` in `contracts.functions.ts` must go through the gated core.
-   Successful read and write, tested by behavior: an entitled Owner and an entitled Staff member can each list contracts and save one, and both calls reach the database scoped to their own user ID.
-8. Existing paid users: an active paid owner (like the CMMG RECORDS Growth plan) and its active Staff are allowed. Currently there are 0 contracts and 1 business profile in the database, so no existing work is lost.
-9. Super Admin: allowed (tested separately, including a Super Admin with no plan). The refusal message is exactly "Your plan doesn't include Contract Builder." and contains no internal details.
-10. All 74 existing tests still pass.
+No migration, no access-rule changes, no secrets, no registration or delivery changes.
 
-## After approval
-Run all tests, type check, production build and a fresh deep security scan. Report whether "Unpaid users can use the contract builder" is cleared.
+## Acceptance tests (direct calls to the core; no real email is sent)
+1. A Staff, Manager, Viewer or Auditor caller is refused, and no email is sent.
+2. A suspended or removed member is refused.
+3. Identifiers for another workspace in the input are ignored; the invitation goes to the sender's own workspace.
+4. The Owner role can't be assigned; a role above the sender's own is refused.
+5. An `origin` pointing to evil.example is ignored; the email link and the returned link use the allowlisted domain.
+6. A request host not on the allowlist falls back to the main domain.
+7. The 21st invitation from one sender within an hour is refused, and no email is sent.
+8. The workspace daily limit is enforced.
+9. The per-email limit across workspaces is enforced.
+10. The cancel-and-re-invite loop stops after 3 invitations per day.
+11. A workspace with an expired or no plan is refused; a trial is allowed.
+12. Refusals are written to the audit log with no token or hash.
+13. A raw sign-in service error never reaches the result.
+14. A legitimate Owner or Administrator invitation succeeds, and exactly one email is sent.
+15. Resend links use the allowlisted domain.
+16. Static guard: every invite action goes through the core.
+17. All existing tests still pass, plus a type check, a production build and a fresh security scan.
 
-## Not in scope
-Registration feed code, credentials, workspaces, database access rules, delivery settings, customer data, legal pages, contract monthly limits, publishing.
+Not in scope: publishing, sending a real invitation, customer data, credentials, registration delivery.
