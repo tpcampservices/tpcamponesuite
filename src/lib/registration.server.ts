@@ -51,7 +51,32 @@ export async function ingestSourceSnapshot(input: {
   eventId: string | null;
   payload: Record<string, unknown>;
 }) {
-  const checksum = sha256(canonicalJson(input.payload));
+  const checksum = sha256(
+    canonicalJson({
+      payload: input.payload,
+      source_revision: input.sourceRevision,
+      ownership_revision: input.ownershipRevision,
+      work_uid: input.workUid,
+    }),
+  );
+
+  // Same event id: identical content is a duplicate; different content is a reuse error.
+  if (input.eventId) {
+    const { data: byEvent } = await supabaseAdmin
+      .from("registration_source_snapshots")
+      .select("id, checksum")
+      .eq("workspace_id", input.workspaceId)
+      .eq("source_app", input.sourceApp)
+      .eq("source_event_id", input.eventId)
+      .limit(1)
+      .maybeSingle();
+    if (byEvent) {
+      return byEvent.checksum === checksum
+        ? { snapshotId: byEvent.id, duplicate: true, conflict: false }
+        : { snapshotId: null, duplicate: false, conflict: true };
+    }
+  }
+
   const { data: existing } = await supabaseAdmin
     .from("registration_source_snapshots")
     .select("id")
@@ -61,7 +86,7 @@ export async function ingestSourceSnapshot(input: {
     .eq("source_entity_id", input.entityId)
     .eq("checksum", checksum)
     .maybeSingle();
-  if (existing) return { snapshotId: existing.id, duplicate: true };
+  if (existing) return { snapshotId: existing.id, duplicate: true, conflict: false };
 
   const { data: snap, error } = await supabaseAdmin
     .from("registration_source_snapshots")
