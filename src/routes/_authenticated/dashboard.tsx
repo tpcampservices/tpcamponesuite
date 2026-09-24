@@ -405,6 +405,12 @@ function DashboardPage() {
               Business profile
             </Link>
             <Link
+              to="/registrations"
+              className="rounded-lg border border-border px-5 py-3 text-sm font-medium transition-colors hover:border-accent/60"
+            >
+              Rights registrations
+            </Link>
+            <Link
               to="/contracts"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
             >
