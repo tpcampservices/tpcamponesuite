@@ -1,4 +1,6 @@
-# Rights Registration Hub — Source Feed Contract v1.0
+# Rights Registration Hub — Source Feed Contract v1.0 (pre-production revision 2)
+
+Revision 2 replaces revision 1 of the Catalog feed before any real delivery. Catalog events built for revision 1 are now rejected (`invalid_body`) until the Catalog builder is updated.
 
 Audience: engineers of **TP-CAMP Catalog** and **TP-CAMP Split Sheets**.
 OneSuite only *receives* these events. It never edits Catalog or Split Sheets records through this feed.
@@ -61,8 +63,60 @@ Unknown fields are rejected everywhere, so mistakes surface instead of being sil
 
 ## 5. Payloads
 
-**Catalog** `payload`: `title` (required); optional `iswc`, `language`, `duration_seconds`, `alternate_titles[] {title, type}`, `recordings[] {recording_id (req), recording_uid, isrc, title, artist, version, duration_seconds, release_date, primary, releases[] {release_id (req), upc, title, release_date, label}}`.
-Contributors are **not** sent by Catalog — composition ownership comes only from Split Sheets.
+### Catalog payload (pre-production revision 2)
+
+Rule: every field below that Catalog stores is a **required key**. Send `null` when the value is empty in Catalog. The Hub reports an empty value as *missing* (fix it in Catalog) and a field Catalog cannot supply as *unsupported* (needs a Catalog change). Never omit a stored key. Catalog never sends ownership, performing, mechanical or synchronization rights, and never sends contributors.
+
+| Catalog column | Contract field | Key | Value | Destination use |
+| --- | --- | --- | --- | --- |
+| `works.title` | `payload.title` | required | required | Work title on every society form |
+| `works.alternate_titles` (split on `;`) | `payload.alternate_titles[].title` | required | may be `[]` | AKA titles (COTT/ECCO/COSCAP forms, CWR ALT) |
+| `works.iswc` | `payload.iswc` | required | nullable | Work identifier; matching |
+| `works.language` | `payload.language` | required | nullable | Language of lyrics (CWR, EBR) |
+| `works.genre` | `payload.genre` | required | nullable | Genre / category on society forms |
+| `works.duration_seconds` | `payload.duration_seconds` | required | nullable | Work duration |
+| `works.creation_date` | `payload.creation_date` | required | nullable | Date written / created |
+| `works.copyright_date` | `payload.copyright_date` | required | nullable | Copyright date |
+| `works.copyright_owner` | `payload.copyright_owner` | required | nullable | Copyright owner as recorded (information only, not ownership) |
+| `works.work_type` | `payload.work_type` | required | nullable | Original / arrangement etc. |
+| `works.version_type` | `payload.version_type` | required | nullable | Version type (CWR version, forms) |
+| `works.territory` | `payload.territory` | required | nullable | Descriptive territory (not a rights territory) |
+| `works.work_code` | `payload.work_code` | required | nullable | Submitter work code |
+| `works.publisher_reference` | `payload.publisher_reference` | required | nullable | Publisher's own reference |
+| `recordings.id` (via `work_recordings`) | `recordings[].recording_id` | required | required | Stable recording id |
+| `recordings.recording_uid` | `recordings[].recording_uid` | required | nullable | Shared recording id |
+| `recordings.title` | `recordings[].title` | required | nullable | Recording title |
+| `recordings.artist` | `recordings[].artist` | required | nullable | Artist credit / performer |
+| `recordings.isrc` | `recordings[].isrc` | required | nullable | ISRC (CWR REC, EBR) |
+| `recordings.version` | `recordings[].version` | required | nullable | Version title |
+| `recordings.duration_seconds` | `recordings[].duration_seconds` | required | nullable | Recording duration |
+| `recordings.recording_date` | `recordings[].recording_date` | required | nullable | Recording date |
+| `recordings.release_date` | `recordings[].release_date` | required | nullable | First release date |
+| `recordings.label` | `recordings[].label` | required | nullable | Record label |
+| `recordings.studio` | `recordings[].studio` | required | nullable | Studio |
+| `recordings.genre` | `recordings[].genre` | required | nullable | Recording genre |
+| `recordings.language` | `recordings[].language` | required | nullable | Recording language |
+| `recordings.explicit` | `recordings[].explicit` | required | boolean | Explicit flag |
+| `recordings.pline` | `recordings[].pline` | required | nullable | (P) line |
+| `releases.id` (via `release_recordings`) | `recordings[].releases[].release_id` | required | required | Stable release id |
+| `releases.title` | `…releases[].title` | required | nullable | Release title |
+| `releases.upc` | `…releases[].upc` | required | nullable | UPC/EAN |
+| `releases.catalog_number` | `…releases[].catalog_number` | required | nullable | Catalogue number |
+| `releases.release_date` | `…releases[].release_date` | required | nullable | Release date |
+| `releases.release_type` | `…releases[].release_type` | required | nullable | Single / EP / album |
+| `releases.label` | `…releases[].label` | required | nullable | Label |
+| `releases.distributor` | `…releases[].distributor` | required | nullable | Distributor |
+| `releases.territory` | `…releases[].territory` | required | nullable | Release territory text |
+| `releases.genre` | `…releases[].genre` | required | nullable | Release genre |
+| `releases.pline` / `cline` | `…releases[].pline` / `cline` | required | nullable | (P)/(C) lines |
+| `release_recordings.track_number` | `…releases[].track_number` | required | nullable | Track position |
+| `release_recordings.disc_number` | `…releases[].disc_number` | required | nullable | Disc position |
+
+Send **every** linked recording and every release it appears on. Nothing is truncated.
+
+Deliberately excluded: `works.society_registration` (registration status belongs to the Hub), `lyrics`, `lyrics_file_path`, `notes`, `status`, artwork, `work_contributors` and `recording_contributors` (ownership/credits come from Split Sheets).
+
+Not supplied by the current Catalog schema (reported as *unsupported*): alternate-title type, primary-recording flag, recording country, first-release country, text/music relationship.
 
 **Split Sheets** `payload`: `sheet_type: "composition"`, `ownership_validated_at` (ISO or `null` if not yet approved — must be present), `writers[]` with `id` (your contributor id), `legalName`, `sharePercent` (0–100) required, and optional `role`, `ipiNumber` (9–11 digits), `cmo`, `publisher`, `publisherIpi`.
 Send **every** writer. Do not send performing / mechanical / sync shares — the Hub records those separately and never derives them from `sharePercent`.

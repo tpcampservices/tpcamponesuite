@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tpcamponesuite.app/contracts/registration/catalog.work.snapshot.v1.schema.json",
-  "title": "Catalog work snapshot (Rights Registration Hub feed v1.0)",
+  "title": "Catalog work snapshot (Rights Registration Hub feed v1.0, pre-production revision 2)",
+  "description": "Every field Catalog stores is a required key; null means the value is empty in Catalog. Catalog never sends ownership, performing, mechanical or synchronization rights.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "event_type", "event_id", "occurred_at", "workspace_id", "work_uid", "source_record_id", "source_revision", "payload"],
@@ -17,51 +18,79 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title"],
+      "required": ["title", "alternate_titles", "iswc", "language", "genre", "duration_seconds", "creation_date", "copyright_date", "copyright_owner", "work_type", "version_type", "territory", "work_code", "publisher_reference", "recordings"],
       "properties": {
-        "title": { "type": "string", "minLength": 1, "maxLength": 500 },
-        "iswc": { "type": ["string", "null"], "pattern": "^T-?\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d$" },
-        "language": { "type": ["string", "null"], "maxLength": 20 },
-        "duration_seconds": { "type": ["integer", "null"], "minimum": 0 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "\\S" },
         "alternate_titles": {
           "type": "array", "maxItems": 100,
-          "items": {
-            "type": "object", "additionalProperties": false, "required": ["title"],
-            "properties": { "title": { "type": "string", "minLength": 1, "maxLength": 500 }, "type": { "type": ["string", "null"], "maxLength": 10 } }
-          }
+          "items": { "type": "object", "additionalProperties": false, "required": ["title"], "properties": { "title": { "type": "string", "minLength": 1, "maxLength": 500 } } }
         },
+        "iswc": { "type": ["string", "null"], "pattern": "^T-?\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d$" },
+        "language": { "$ref": "#/$defs/t20" },
+        "genre": { "$ref": "#/$defs/t100" },
+        "duration_seconds": { "$ref": "#/$defs/int" },
+        "creation_date": { "$ref": "#/$defs/date" },
+        "copyright_date": { "$ref": "#/$defs/date" },
+        "copyright_owner": { "$ref": "#/$defs/t300" },
+        "work_type": { "$ref": "#/$defs/t50" },
+        "version_type": { "$ref": "#/$defs/t50" },
+        "territory": { "$ref": "#/$defs/t200" },
+        "work_code": { "$ref": "#/$defs/t100" },
+        "publisher_reference": { "$ref": "#/$defs/t200" },
         "recordings": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/recording" } }
       }
     }
   },
   "$defs": {
-    "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "id": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" },
     "date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "int": { "type": ["integer", "null"], "minimum": 0 },
+    "t20": { "type": ["string", "null"], "maxLength": 20 },
+    "t50": { "type": ["string", "null"], "maxLength": 50 },
+    "t100": { "type": ["string", "null"], "maxLength": 100 },
+    "t200": { "type": ["string", "null"], "maxLength": 200 },
+    "t300": { "type": ["string", "null"], "maxLength": 300 },
+    "t500": { "type": ["string", "null"], "maxLength": 500 },
     "recording": {
-      "type": "object", "additionalProperties": false, "required": ["recording_id"],
+      "type": "object", "additionalProperties": false,
+      "required": ["recording_id", "recording_uid", "title", "artist", "isrc", "version", "duration_seconds", "recording_date", "release_date", "label", "studio", "genre", "language", "explicit", "pline", "releases"],
       "properties": {
         "recording_id": { "$ref": "#/$defs/id" },
-        "recording_uid": { "type": ["string", "null"], "minLength": 1, "maxLength": 200 },
+        "recording_uid": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "title": { "$ref": "#/$defs/t500" },
+        "artist": { "$ref": "#/$defs/t500" },
         "isrc": { "type": ["string", "null"], "pattern": "^[A-Z]{2}[A-Z0-9]{3}\\d{7}$" },
-        "title": { "type": ["string", "null"], "maxLength": 500 },
-        "artist": { "type": ["string", "null"], "maxLength": 500 },
-        "version": { "type": ["string", "null"], "maxLength": 200 },
-        "duration_seconds": { "type": ["integer", "null"], "minimum": 0 },
+        "version": { "$ref": "#/$defs/t200" },
+        "duration_seconds": { "$ref": "#/$defs/int" },
+        "recording_date": { "$ref": "#/$defs/date" },
         "release_date": { "$ref": "#/$defs/date" },
-        "primary": { "type": "boolean" },
-        "releases": {
-          "type": "array", "maxItems": 500,
-          "items": {
-            "type": "object", "additionalProperties": false, "required": ["release_id"],
-            "properties": {
-              "release_id": { "$ref": "#/$defs/id" },
-              "upc": { "type": ["string", "null"], "maxLength": 20 },
-              "title": { "type": ["string", "null"], "maxLength": 500 },
-              "release_date": { "$ref": "#/$defs/date" },
-              "label": { "type": ["string", "null"], "maxLength": 300 }
-            }
-          }
-        }
+        "label": { "$ref": "#/$defs/t300" },
+        "studio": { "$ref": "#/$defs/t300" },
+        "genre": { "$ref": "#/$defs/t100" },
+        "language": { "$ref": "#/$defs/t20" },
+        "explicit": { "type": "boolean" },
+        "pline": { "$ref": "#/$defs/t300" },
+        "releases": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/release" } }
+      }
+    },
+    "release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["release_id", "title", "upc", "catalog_number", "release_date", "release_type", "label", "distributor", "territory", "genre", "pline", "cline", "track_number", "disc_number"],
+      "properties": {
+        "release_id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/t500" },
+        "upc": { "$ref": "#/$defs/t20" },
+        "catalog_number": { "$ref": "#/$defs/t100" },
+        "release_date": { "$ref": "#/$defs/date" },
+        "release_type": { "$ref": "#/$defs/t50" },
+        "label": { "$ref": "#/$defs/t300" },
+        "distributor": { "$ref": "#/$defs/t300" },
+        "territory": { "$ref": "#/$defs/t200" },
+        "genre": { "$ref": "#/$defs/t100" },
+        "pline": { "$ref": "#/$defs/t300" },
+        "cline": { "$ref": "#/$defs/t300" },
+        "track_number": { "$ref": "#/$defs/int" },
+        "disc_number": { "$ref": "#/$defs/int" }
       }
     }
   }
