@@ -1,92 +1,177 @@
-# Fix: "Any workspace member can email anyone"
+# Fix: "Any workspace member can email anyone" (revision 2)
 
-## Findings (current invitation flow)
+## Findings (unchanged from revision 1, summarized)
 
 **Files and actions**
-- `src/lib/invitations.functions.ts` — `inviteWorkspaceMember` (sends the email), `resendWorkspaceInvitation`, `cancelWorkspaceInvitation`, `previewWorkspaceInvitation`, `acceptWorkspaceInvitation`. They're called through the normal internal server-call endpoint, not a public API route.
-- `src/lib/invitations.server.ts` — `assertMayInvite`, `assertRoleAssignable`, `createInvitation`, `resendInvitation`, `cancelInvitation`.
-- Database function `create_workspace_invitation` (migration 20260914201709) — locks the workspace's seat count, catches duplicates and existing members, and enforces the seat limit.
-- `src/routes/_authenticated/team.tsx` — the invite form. It sends `window.location.origin` as `origin`.
+- `src/lib/invitations.functions.ts`: `inviteWorkspaceMember` and `resendWorkspaceInvitation`.
+- `src/lib/invitations.server.ts`: `assertMayInvite`, `assertRoleAssignable`, `createInvitation`, `resendInvitation`.
+- Database function `create_workspace_invitation`.
+- `src/routes/_authenticated/team.tsx`.
 
-**Who can invite:** Owner and Administrator, plus anyone given an explicit Allow for `workspace.team.invite`. Manager, Staff, Viewer and Auditor can't.
+**What is already in place**
+- Only the Owner, an Administrator, or someone with an explicit Allow for `workspace.team.invite` can invite. The sender must be an active member.
+- The workspace comes from the server, not the browser.
+- Owner can never be granted, and a sender can't assign a role above their own.
+- Invitation links use a random 32-byte token. Only its hash is stored; it expires after 7 days and works once.
+- There is one pending invitation per workspace and address, and the seat limit applies.
 
-**Server or page check:** the check runs on the server (`assertMayInvite` runs before anything is written). The sender must be an active member of the workspace.
+**Gaps**
+- No rate limit.
+- A cancel-and-re-invite loop can repeat without end.
+- The link address comes from the browser (`origin`), checked only to start with "http".
 
-**Workspace ID:** it's worked out on the server from the sender's session (`resolveCurrentWorkspace`). The browser can't supply or change it.
+**When an email is actually sent today**
+- `inviteWorkspaceMember` sends an email **only when the address has no OneSuite account**. It uses the sign-in service's invite email.
+- For an address that already has an account, **no email is sent**; the inviter gets the link to share.
+- `resendWorkspaceInvitation` **never sends an email**. It rotates the token, extends the expiry and returns a new link. It already requires the invite permission and the invitation must belong to the sender's own workspace.
 
-**Roles that can be assigned:** never Owner, only roles on the invitable list, and never a role ranked above the sender's own.
+## Revised design
 
-**Invitation link:** a random 32-byte token. Only its SHA-256 hash is stored, it expires after 7 days, and it can be used once (accepting it changes the status).
+### 1. Atomic send allowance (small migration: disclosed below)
+A new ledger table records each **attempt to send an invitation email**. A database function reserves a slot inside one transaction before the email is sent.
 
-**Existing controls:**
-- One pending invitation per workspace and email address.
-- Existing members can't be re-invited.
-- Pending invitations count against the seat limit.
-- Every create, resend and cancel is written to the audit log without the token.
-- There is **no rate limit** of any kind.
+**Concurrency rule:** the function takes transaction locks for the sender, the workspace and the recipient, always in that same order to avoid deadlocks. It then counts and inserts under those locks. Simultaneous requests are processed one at a time, so none can pass on the same count.
 
-**What the browser can supply:**
-- The recipient email, role, display name and app access (all checked on the server).
-- An `origin`. **It's only checked to start with "http"**, and it becomes both the link in the email and the address the sign-up email sends people to afterwards.
-- Email wording, sender name and reply-to can't be supplied; the email template is fixed.
+**What counts.** Only ledger rows with status `reserved` or `sent` count, within a rolling window. Rules:
+- **Initial send:** a slot is reserved immediately before `inviteUserByEmail` runs.
+- **Delivery succeeded:** the slot becomes `sent` and keeps counting.
+- **Delivery failed:** the slot becomes `failed` and **stops counting**, because no email went out. To stop repeated failures being used to probe addresses, a separate cap allows 10 failed attempts per sender per day.
+- **Server stopped before recording the result:** a reservation older than 10 minutes that was never finalized still counts. It's treated as sent to be safe.
+- **Invitations to existing accounts** send no email, so they reserve nothing and don't count.
+- **Resend** sends no email today, so it doesn't count. If resend ever starts sending email, it must use the same reservation with type `resend`, and the tests cover that path already (see 9–10).
+- **Never counted:** previewing, cancelling, accepting, or creating an invitation record with no email.
 
-**Direct calls:** calling the action directly, without the page, sends the same email if the caller passes the checks above.
+**Limits (rolling windows, counted on reserved and sent slots):**
 
-**The misuse the scan found, plus two related gaps:**
-1. **Unlimited emails.** An Owner or Administrator (including any trial or free-plan owner) can invite any address. Cancelling and re-inviting frees the pending slot and the seat, so repeating the loop sends unlimited official OneSuite emails to any list of addresses.
-2. **Phishing link (more serious).** A direct call with `origin: "https://evil.example"` puts an attacker's link inside a real OneSuite invitation email. Whether the sign-in service's allowed-address list blocks the final redirect isn't confirmed, and the link we build and return is attacker-controlled either way.
-3. **Resend** returns a fresh link built from the browser-supplied origin in the same way. It doesn't send an email itself.
+| Limit | Window | Key |
+|---|---|---|
+| 20 per sender | 1 hour | sender user ID |
+| 50 per sender | 24 hours | sender user ID |
+| 50 per workspace | 24 hours | workspace ID |
+| 3 per recipient | 24 hours | recipient email hash, across all workspaces |
+| 3 re-invitations per recipient per workspace | 24 hours | workspace ID + recipient email hash |
 
-## Proposed fix (server-side only, no database change)
+### 2. Email normalization
+Every duplicate check, limit and hash uses one shared function: `normalizeEmail`, which trims and lowercases. The pending-invitation check and the database function already use this form. The ledger stores `sha256(normalizeEmail(email))`, never the address itself.
 
-1. **Server-owned link address.** Remove `origin` from the invite and resend inputs; the server ignores it if sent anyway. Build every link from a fixed server allowlist:
-   - Published: `https://tpcamponesuite.app`. Also allow `https://www.tpcamponesuite.app` and `https://tpcamponesuite.lovable.app`.
-   - Preview: the preview address.
-   - The link is chosen from the request's own host only when that host is on the allowlist; otherwise it falls back to the main domain.
-2. **Rate limits**, counted from existing records (invitation rows and the audit log), so no new table is needed:
-   - Per sender: at most 20 invitation emails per hour and 50 per day.
-   - Per workspace: at most 50 per day.
-   - Per email address, across all workspaces: at most 3 per day.
-   - Re-inviting the same address in the same workspace after cancelling: at most 3 per day.
-   - Refusals use plain messages such as "Too many invitations right now. Try again later."
-3. **Repeat controls:** the existing pending-invitation and member checks stay. The per-email and re-invite limits close the cancel-and-re-invite loop.
-4. **Paid plan required to send email.** The workspace must have an active plan (the same `deriveAccess` check the rest of the app uses). Trial counts as active. Without one, the refusal reads "Your plan must be active to invite team members."
-5. **Keep as is:** the permission check, server-side workspace, role limits, hashed expiring single-use tokens, fixed email template, and the resend flow's existing cap on repeat sends.
-6. **Audit:**
-   - Every refusal is logged as a new audit action, `invitation_refused_rate_limited` or `invitation_refused_plan`, with the recipient's email and no token.
-   - The server log records only safe codes.
-   - Raw sign-in service errors no longer reach the browser: the `emailError` field is replaced by a plain message.
-7. **Per-IP limit: not proposed.** It would mean storing visitor IP addresses, a new privacy practice not covered by the current policies. The per-user and per-workspace limits already cover the misuse, since sending requires a signed-in account.
+### 3. Exact trusted link addresses
+- A fixed list lives in code (not secrets):
+  - `https://tpcamponesuite.app`
+  - `https://www.tpcamponesuite.app`
+  - `https://tpcamponesuite.lovable.app`
+  - The exact preview address `https://id-preview--78e0852d-a4cf-409c-9124-a9a045dc4411.lovable.app`
+- Matching is exact on the whole string. There is no wildcard, suffix or partial match.
+- The `origin` input is removed from the invite and resend actions.
+- The request's Origin header is used only if it exactly equals a listed entry. Otherwise the link uses `https://tpcamponesuite.app`.
+- Host, Forwarded and X-Forwarded-Host are never read.
 
-To make testing possible, the checks move into a small gated core (same pattern as the Contract Builder fix). The recording database and email sender are passed in, so the tests use the real code path.
+### 4. Resend
+Resend stays link-only, with no email sent. The new link uses the trusted address. The permission and same-workspace checks run before the token is rotated, so an unauthorized caller gets a refusal, not a link.
+
+### 5. Plan check
+The workspace must have an active plan (the same rule as the rest of the app; trial counts) before any email is reserved.
+
+### 6. Audit and personal data
+- A refused send writes `invitation_refused_rate_limited` or `invitation_refused_plan` to `team_audit_log`. The entry holds the limit name, a masked email (for example `j***@gmail.com`) and the email hash.
+- It never holds a token, a token hash, the full address or raw errors.
+- **Why not the full email address:** it isn't needed. The masked form lets a workspace admin recognize the attempt, and the hash lets them match it against the ledger. That exposes less personal data.
+- **Hash limitation:** a plain SHA-256 of an email can be reversed by guessing likely addresses. Using a server secret (keyed hashing) would fix that, but it means creating a new secret, which isn't approved here. So the hash is stored only in the ledger, which no browser role can read at all, and in the refusal audit rows.
+- `team_audit_log` access is unchanged: only that workspace's team viewers can read it, through the existing rule.
+- Successful sends keep the existing `invitation_created` entry, which already holds the invitee's email as part of normal team records.
+
+## Migration (to be applied only after approval)
+
+```sql
+CREATE TABLE public.invitation_send_ledger (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id),
+  actor_user_id uuid NOT NULL,
+  email_hash text NOT NULL,
+  kind text NOT NULL CHECK (kind IN ('initial','resend')),
+  status text NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved','sent','failed')),
+  invitation_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  finalized_at timestamptz
+);
+GRANT ALL ON public.invitation_send_ledger TO service_role;   -- no anon/authenticated access
+ALTER TABLE public.invitation_send_ledger ENABLE ROW LEVEL SECURITY;  -- no policies = locked to browsers
+CREATE INDEX ON public.invitation_send_ledger (actor_user_id, created_at);
+CREATE INDEX ON public.invitation_send_ledger (workspace_id, created_at);
+CREATE INDEX ON public.invitation_send_ledger (email_hash, created_at);
+
+-- reserve_invitation_send(_workspace, _actor, _email_hash, _kind, _invitation_id) RETURNS uuid
+--   SECURITY DEFINER, search_path=public
+--   pg_advisory_xact_lock('inv-actor:'||actor), ('inv-ws:'||ws), ('inv-email:'||hash)  -- fixed order
+--   counts rows WHERE status='sent' OR (status='reserved') in each window
+--   (stale reservations count, being status='reserved')
+--   failed-attempt cap: 10 status='failed' per actor per 24h
+--   RAISE EXCEPTION 'invite_limit:<name>' on any breach; else INSERT reserved, return id
+-- finalize_invitation_send(_id uuid, _ok boolean) RETURNS void
+--   UPDATE status = CASE WHEN _ok THEN 'sent' ELSE 'failed' END, finalized_at=now()
+--   WHERE id=_id AND status='reserved'
+-- EXECUTE on both: REVOKE from PUBLIC/anon/authenticated; GRANT to service_role only.
+```
+
+The migration is additive only: it doesn't change existing tables, rules or data.
+
+**Rollback**
+1. Restore the previous app version from history. The old code doesn't use the ledger.
+2. Optionally remove the ledger through the SQL editor: `DROP FUNCTION finalize_invitation_send, reserve_invitation_send; DROP TABLE invitation_send_ledger;`. It holds only counters and hashes, no customer content.
+
+Invitations, memberships and audit history aren't affected either way.
 
 ## Affected files
-- `src/lib/invitations.functions.ts` — remove `origin`; delegate to the core.
-- `src/lib/invitations.core.ts` (new) — the permission, plan, rate-limit and link-address checks, then create or resend, then send the email.
-- `src/lib/invitation-links.server.ts` (new) — the fixed allowlist of link addresses.
-- `src/lib/invitations.server.ts` — small change: return the plain error instead of the raw one.
-- `src/routes/_authenticated/team.tsx` — stop sending `origin`; show the new plain messages.
-- `src/lib/invitations.test.ts` (new).
+- `src/lib/invitations.functions.ts`: remove `origin`, delegate to the core.
+- `src/lib/invitations.core.ts` (new): the permission, plan and trusted-address checks, then reserve, send, and finalize. The database and email sender are passed in so tests use the real path.
+- `src/lib/invitation-links.server.ts` (new): the exact address list and the Origin-header rule.
+- `src/lib/invitations.server.ts`: expose the reserve and finalize wrappers; return plain error messages.
+- `src/routes/_authenticated/team.tsx`: stop sending `origin`; show the plain limit messages.
+- `src/lib/invitations.test.ts` (new), plus a database-level concurrency script for tests 1–5 against the real function. It runs only against a fictional workspace and IDs created inside a rolled-back transaction, with no customer data and no email sent.
 
-No migration, no access-rule changes, no secrets, no registration or delivery changes.
+## Acceptance tests
+**Concurrency, run against the real database function with parallel calls:**
+1. 30 simultaneous sends from one sender: exactly 20 reserved, 10 refused as `sender_hourly`.
+2. Sender daily cap: with 45 sends already in the ledger outside the last hour, 10 simultaneous sends leave exactly 50 counted in the day.
+3. Workspace daily cap, spread across several senders: exactly 50.
+4. 6 simultaneous sends to one recipient across 3 workspaces: exactly 3.
+5. 6 simultaneous re-invitations of one recipient in one workspace: exactly 3.
 
-## Acceptance tests (direct calls to the core; no real email is sent)
-1. A Staff, Manager, Viewer or Auditor caller is refused, and no email is sent.
-2. A suspended or removed member is refused.
-3. Identifiers for another workspace in the input are ignored; the invitation goes to the sender's own workspace.
-4. The Owner role can't be assigned; a role above the sender's own is refused.
-5. An `origin` pointing to evil.example is ignored; the email link and the returned link use the allowlisted domain.
-6. A request host not on the allowlist falls back to the main domain.
-7. The 21st invitation from one sender within an hour is refused, and no email is sent.
-8. The workspace daily limit is enforced.
-9. The per-email limit across workspaces is enforced.
-10. The cancel-and-re-invite loop stops after 3 invitations per day.
-11. A workspace with an expired or no plan is refused; a trial is allowed.
-12. Refusals are written to the audit log with no token or hash.
-13. A raw sign-in service error never reaches the result.
-14. A legitimate Owner or Administrator invitation succeeds, and exactly one email is sent.
-15. Resend links use the allowlisted domain.
-16. Static guard: every invite action goes through the core.
-17. All existing tests still pass, plus a type check, a production build and a fresh security scan.
+**Normalization:**
 
-Not in scope: publishing, sending a real invitation, customer data, credentials, registration delivery.
+6. `"  Jane@Example.COM "` and `"jane@example.com"` share one hash, count as one recipient, and hit the duplicate-pending rule.
+
+**Send accounting:**
+
+7. A failed delivery releases its slot. The 11th failure in a day is refused. A stale reservation still counts.
+8. Inviting an existing account, cancelling or previewing uses no allowance.
+
+**Resend:**
+
+9. Concurrent resends send no email and use no allowance; each returns a trusted-address link to the authorized inviter.
+10. A resend from someone with no invite permission, from another workspace, or for someone else's invitation ID is refused, and no link or new token is created.
+
+**Trusted addresses:**
+
+11. An `origin` input of `https://evil.example` is ignored.
+12. Origin, Host, Forwarded and X-Forwarded-Host headers set to `evil.example` or `tpcamponesuite.app.evil.example` are all ignored; the link uses the main domain.
+13. The exact preview Origin is accepted.
+
+**Authorization:**
+
+14. Staff, Manager, Viewer and Auditor are refused, as are suspended and removed members. Identifiers for another workspace are ignored. Owner can't be assigned, and no role above the sender's own.
+15. A workspace with an expired plan or no plan is refused before any reservation.
+
+**Audit:**
+
+16. Refusal audit rows hold the masked email and its hash, with no token, token hash, full address or raw error.
+
+**Legitimate use:**
+
+17. An Owner or Administrator invitation sends exactly one email and records exactly one `sent` slot.
+
+**Guards and regression:**
+
+18. Static guard: every invite and resend action goes through the core.
+19. All existing tests pass, plus a type check, a production build and a fresh security scan.
+
+Not in scope: publishing, sending real invitations, customer data, credentials or secrets, registration delivery.

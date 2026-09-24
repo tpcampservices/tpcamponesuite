@@ -13,3 +13,5 @@
 - [ ] Registration feed credentials: values not created (awaiting approval to create/share with Catalog & Split Sheets)
 
 - [x] Contract Builder server-side plan check (6 actions, 106 new tests) — deep-scan re-check pending, not published
+
+- [ ] Invitation email abuse fix: revised plan (atomic send ledger, exact origins, concurrency tests) — awaiting approval
