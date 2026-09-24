@@ -161,6 +161,7 @@ function ContractBuilderPage() {
       <div className="min-h-screen">
         <SiteHeader />
         <main className="mx-auto max-w-3xl px-5 pt-20 pb-20">
+          <ContractPlanNotice errors={[contractError, profileError]} />
           <p className="text-sm text-muted-foreground">
             {loadingContract ? "Loading contract…" : "That contract or template could not be found."}
           </p>
