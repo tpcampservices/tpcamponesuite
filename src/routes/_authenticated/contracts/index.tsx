@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowRight, Building2, FileText, Lock, Plus, Trash2 } from "lucide-react";
+import { ContractPlanNotice } from "@/components/contract-plan-notice";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { getMyAccount } from "@/lib/account.functions";
 import { listContracts, deleteContract, getBusinessProfile } from "@/lib/contracts.functions";
@@ -44,12 +45,12 @@ function ContractsPage() {
   const unlocked = account?.unlockedTier ?? 0;
   const hasAccess = unlocked >= 1;
 
-  const { data: contracts } = useQuery({
+  const { data: contracts, error: contractsError } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
     enabled: hasAccess,
   });
-  const { data: profile } = useQuery({
+  const { data: profile, error: profileError } = useQuery({
     queryKey: ["business-profile"],
     queryFn: () => fetchProfile(),
     enabled: hasAccess,
@@ -69,6 +70,7 @@ function ContractsPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-5 pt-16 pb-16">
+        <ContractPlanNotice errors={[contractsError, profileError]} />
         <p className="eyebrow">OneSuite module</p>
         <h1 className="mt-4 text-4xl font-semibold">Contract builder</h1>
         <p className="mt-4 max-w-2xl text-muted-foreground">

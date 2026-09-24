@@ -10,7 +10,8 @@ import { getPlan } from "./plans";
  * their active membership in it, and that workspace's active plan. Team members
  * follow the workspace plan. Super Admins are allowed (platform rule).
  */
-export const CONTRACT_BUILDER_DENIED = "Your plan doesn't include Contract Builder.";
+import { CONTRACT_BUILDER_DENIED } from "./contracts.core";
+export { CONTRACT_BUILDER_DENIED };
 
 export class ContractBuilderDeniedError extends Error {
   constructor() {

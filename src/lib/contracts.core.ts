@@ -7,6 +7,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 type Db = SupabaseClient<Database>;
+
+/** Plain refusal shown to users; safe to import in the browser. */
+export const CONTRACT_BUILDER_DENIED = "Your plan doesn't include Contract Builder.";
 export type CoreDeps = { db: Db; userId: string; gate: (userId: string) => Promise<void> };
 
 export type BusinessProfileData = {
