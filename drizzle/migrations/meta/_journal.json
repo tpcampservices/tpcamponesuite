@@ -29,6 +29,13 @@
       "when": 1790223435878,
       "tag": "0003_rights_registration_hub_stage1",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790241265423,
+      "tag": "0004_invitation_send_ledger",
+      "breakpoints": true
     }
   ]
 }

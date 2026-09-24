@@ -15,3 +15,4 @@
 - [x] Contract Builder server-side plan check (6 actions, 106 new tests) — deep-scan re-check pending, not published
 
 - [ ] Invitation email abuse fix: revised plan (atomic send ledger, exact origins, concurrency tests) — awaiting approval
+- [ ] Invitation fix: apply hardened migration (empty search_path, owner, grants, 30-day ledger retention), implement, verify

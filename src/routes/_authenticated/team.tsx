@@ -232,23 +232,24 @@ function TeamPage() {
   const inviteMutation = useMutation({
     mutationFn: (input: { email: string; roleKey: string; displayName: string }) =>
       invite({
-        data: { ...input, appAccess: appAccessDraft, origin: window.location.origin },
+        data: { ...input, appAccess: appAccessDraft },
       }),
     onSuccess: (result) => {
       setLastLink(result.link);
-      toast.success(
-        result.emailSent
-          ? "Invitation sent by email."
-          : "Invitation created. Share the link below with your team member.",
-      );
+      if (result.emailError) toast.error(result.emailError);
+      else
+        toast.success(
+          result.emailSent
+            ? "Invitation sent by email."
+            : "Invitation created. Share the link below with your team member.",
+        );
       refresh();
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const resendMutation = useMutation({
-    mutationFn: (invitationId: string) =>
-      resend({ data: { invitationId, origin: window.location.origin } }),
+    mutationFn: (invitationId: string) => resend({ data: { invitationId } }),
     onSuccess: (result) => {
       setLastLink(result.link);
       toast.success("A new invitation link was created. The previous one no longer works.");
