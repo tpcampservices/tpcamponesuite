@@ -20,17 +20,31 @@ Supporting non-secret config (server env):
 
 If a slot is unset, it is simply inactive. We never fall back to `TPCAMP_SSO_KEY`.
 
-## Authentication flow
-1. Read `x-tpcamp-key` and `x-tpcamp-app`.
-2. Compare the key against all four active slots using a constant-time check: SHA-256 both sides, then `timingSafeEqual`. Every slot is always compared, so response timing doesn't reveal which slot matched.
-3. Each of these returns the same generic `401 {"error":"unauthorized"}`:
+### Required credential format (documented; no value is generated)
+- 43–128 characters, from the URL-safe set `A–Z a–z 0–9 - _`
+- At least 256 bits of randomness (for example, 32 random bytes in base64url)
+- No surrounding whitespace
+
+A slot that is empty, malformed or too short counts as inactive configuration: it never authenticates.
+
+### Configuration validation (checked before any request is authenticated)
+- If two active slots hold the same credential, the endpoint fails closed with `503 {"error":"feed_misconfigured"}`. Neither identity is accepted, and we never pick the first match.
+- `REG_FEED_TEST_WORKSPACES` is split on commas, trimmed, and each entry must be a valid UUID. If any entry is invalid, the endpoint fails closed with `503 feed_misconfigured`. An empty list means no workspace accepts development credentials.
+
+## Authentication flow (runs before the body is read)
+1. Validate the configuration (see above).
+2. Read `x-tpcamp-key` and `x-tpcamp-app`.
+3. Compare the key against all four active slots using a constant-time check: SHA-256 both sides, then `timingSafeEqual`. Every slot is always compared, so response timing doesn't reveal which slot matched.
+4. Each of these returns the same generic `401 {"error":"unauthorized"}`:
    - no match
    - revoked slot
    - unknown app name
    - missing key
    - header app differs from the credential's app
    - a production credential while production is disabled
-4. The authenticated app, not the header, decides the source used for ingestion.
+5. The authenticated app, not the header, decides the source used for ingestion.
+6. Only after authentication succeeds: require `Content-Type: application/json` (with an optional charset). Any other content type gets `415 {"error":"unsupported_media_type"}` before the body is read.
+7. Then the body is read under the byte limit. An unauthorized caller never causes the body to be streamed or buffered.
 
 ## Environment policy (proposed)
 - **Development credential:** the target workspace must be in `REG_FEED_TEST_WORKSPACES`. Otherwise it gets `403 {"error":"workspace_not_permitted"}`.
