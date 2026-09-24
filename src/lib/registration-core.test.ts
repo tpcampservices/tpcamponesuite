@@ -39,3 +39,26 @@ describe("registration core", () => {
     expect(isStale({ catalog_snapshot_id: "c1", splits_snapshot_id: "s1" }, { catalog: "c1", splits: "s1" })).toBe(false);
   });
 });
+
+describe("catalog readiness", () => {
+  const full = { title: "Song", genre: null, iswc: "T-1", recordings: [{ isrc: null, studio: "X", releases: [{ upc: "1" }] }] };
+  it("marks empty values as missing and absent keys as unsupported", () => {
+    const u = buildUrp("W", { ...cat, payload: full }, spl([{ legalName: "A", sharePercent: 100 }]));
+    const st = Object.fromEntries(u.catalog_fields.map((f) => [f.path, f.status]));
+    expect(st["work.genre"]).toBe("missing");
+    expect(st["work.iswc"]).toBe("present");
+    expect(st["work.copyright_owner"]).toBe("unsupported");
+    expect(st["recordings[0].isrc"]).toBe("missing");
+    expect(st["recordings[0].studio"]).toBe("present");
+    expect(st["recordings[0].releases[0].catalog_number"]).toBe("unsupported");
+    expect(st["work.alternate_titles[].type"]).toBe("unsupported");
+  });
+  it("gives different messages for missing and unsupported", () => {
+    const codes = validateUrp(buildUrp("W", { ...cat, payload: full }, spl([{ legalName: "A", sharePercent: 100 }])));
+    expect(codes.find((i) => i.path === "work.genre")?.code).toBe("catalog_value_missing");
+    expect(codes.find((i) => i.path === "work.copyright_owner")?.code).toBe("catalog_field_unsupported");
+  });
+  it("carries genre into the profile", () => {
+    expect(buildUrp("W", { ...cat, payload: { title: "S", genre: "Soca" } }, null).work.genre).toBe("Soca");
+  });
+});

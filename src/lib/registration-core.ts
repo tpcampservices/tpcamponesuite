@@ -1,3 +1,10 @@
+import {
+  CATALOG_RECORDING_FIELDS,
+  CATALOG_RELEASE_FIELDS,
+  CATALOG_UNSUPPORTED_FIELDS,
+  CATALOG_WORK_FIELDS,
+} from "./registration-feed.contract";
+
 /**
  * Rights Registration Hub — pure, deterministic core (no I/O).
  *
@@ -22,6 +29,30 @@ export type ValidationIssue = {
   message: string;
 };
 
+export type FieldStatus = { path: string; status: "present" | "missing" | "unsupported"; note?: string };
+
+const has = (o: Record<string, unknown>, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+const filled = (v: unknown) => v !== null && v !== undefined && !(typeof v === "string" && !v.trim()) && !(Array.isArray(v) && v.length === 0);
+
+/** Distinguishes "Catalog has the field but it is empty" from "Catalog cannot supply it". */
+export function catalogFieldStatus(payload: Record<string, unknown> | null): FieldStatus[] {
+  if (!payload) return [];
+  const out: FieldStatus[] = [];
+  const check = (o: Record<string, unknown>, prefix: string, fields: readonly string[]) => {
+    for (const f of fields)
+      out.push({ path: `${prefix}${f}`, status: !has(o, f) ? "unsupported" : filled(o[f]) ? "present" : "missing" });
+  };
+  check(payload, "work.", CATALOG_WORK_FIELDS);
+  const recs = Array.isArray(payload.recordings) ? (payload.recordings as Record<string, unknown>[]) : [];
+  recs.forEach((r, i) => {
+    check(r, `recordings[${i}].`, CATALOG_RECORDING_FIELDS);
+    const rels = Array.isArray(r.releases) ? (r.releases as Record<string, unknown>[]) : [];
+    rels.forEach((rel, j) => check(rel, `recordings[${i}].releases[${j}].`, CATALOG_RELEASE_FIELDS));
+  });
+  for (const u of CATALOG_UNSUPPORTED_FIELDS) out.push({ path: u.path, status: "unsupported", note: u.note });
+  return out;
+}
+
 export type Urp = {
   schema_version: "1.0";
   source_refs: {
@@ -38,7 +69,18 @@ export type Urp = {
     language: string | null;
     duration_seconds: number | null;
     alternate_titles: unknown[];
+    genre: string | null;
+    creation_date: string | null;
+    copyright_date: string | null;
+    copyright_owner: string | null;
+    work_type: string | null;
+    version_type: string | null;
+    territory: string | null;
+    work_code: string | null;
+    publisher_reference: string | null;
   };
+  /** Per Catalog field: value present, empty in Catalog, or not supplied by the source at all. */
+  catalog_fields: FieldStatus[];
   recordings: unknown[];
   writers: {
     source_contributor_id: string | null;
@@ -102,7 +144,17 @@ export function buildUrp(
       language: str(c.language),
       duration_seconds: num(c.duration_seconds),
       alternate_titles: Array.isArray(c.alternate_titles) ? c.alternate_titles : [],
+      genre: str(c.genre),
+      creation_date: str(c.creation_date),
+      copyright_date: str(c.copyright_date),
+      copyright_owner: str(c.copyright_owner),
+      work_type: str(c.work_type),
+      version_type: str(c.version_type),
+      territory: str(c.territory),
+      work_code: str(c.work_code),
+      publisher_reference: str(c.publisher_reference),
     },
+    catalog_fields: catalogFieldStatus(catalog ? c : null),
     recordings: Array.isArray(c.recordings) ? c.recordings : [],
     // Every contributor is kept; nothing is truncated or dropped here.
     writers: writersRaw.map((w) => ({
@@ -137,6 +189,17 @@ export function validateUrp(urp: Urp): ValidationIssue[] {
     add({ code: "missing_title", severity: "blocking", path: "work.title", message: "The work needs a title in Catalog." });
   if (urp.source_refs.splits_snapshot_id && urp.writers.length === 0)
     add({ code: "no_writers", severity: "blocking", path: "writers", message: "The split sheet lists no writers." });
+
+  // Catalog readiness: empty values and unsupported fields are reported differently.
+  const label = (p: string) => p.replace(/^work\./, "").replace(/_/g, " ");
+  for (const f of urp.catalog_fields) {
+    if (f.status === "missing" && /^work\.(iswc|language|genre|duration_seconds)$|\.isrc$/.test(f.path))
+      add({ code: "catalog_value_missing", severity: "warning", path: f.path, message: `${label(f.path)} is empty in Catalog. Add it in Catalog if the society needs it.` });
+    if (f.status === "unsupported" && !f.note)
+      add({ code: "catalog_field_unsupported", severity: "warning", path: f.path, message: `Catalog did not send ${label(f.path)}. This Catalog version cannot supply it; it cannot be fixed by editing the work.` });
+  }
+  if (urp.source_refs.catalog_snapshot_id && urp.recordings.length === 0)
+    add({ code: "no_recordings", severity: "warning", path: "recordings", message: "No recordings are linked to this work in Catalog." });
 
   let total = 0;
   urp.writers.forEach((w, i) => {
