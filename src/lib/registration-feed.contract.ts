@@ -16,82 +16,134 @@ export const FEED_EVENT_TYPES = {
 } as const;
 
 const id = z.string().trim().min(1).max(200);
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const isoDateTime = z.string().datetime({ offset: true });
 
 /**
- * Catalog payload rule: every field Catalog stores is a REQUIRED key whose value
- * may be null. `null` means "Catalog supports this field but it is empty"
- * (missing). A key that is not in this contract is something Catalog cannot
- * supply (unsupported) — see CATALOG_UNSUPPORTED_FIELDS.
- * Catalog never sends ownership, performing, mechanical or sync rights.
+ * Catalog payload rules (pre-production revision 3):
+ * - Every field Catalog stores is a REQUIRED key. JSON `null` = supported but empty.
+ *   Empty strings are rejected: never send "" for a missing value.
+ * - A field that is not in this contract is unsupported by Catalog
+ *   (CATALOG_UNSUPPORTED_FIELDS). "Unsupported" and "null" are never the same.
+ * - Identifiers are strings exactly as stored; the Hub checks their format and
+ *   reports an invalid value separately from a missing one.
+ * - Dates are calendar dates YYYY-MM-DD. Durations are integer seconds.
+ * - Releases are listed once at payload level; recordings point to them through
+ *   release_links, which carry track/disc position (many-to-many preserved).
+ * - Catalog never sends ownership, performing, mechanical or sync rights,
+ *   mandates, signing authority or registration status.
  */
-const t = (max: number) => z.string().max(max).nullable();
-const n = z.number().int().min(0).nullable();
-const d = isoDate.nullable();
+const text = (max: number) => z.string().max(max).regex(/\S/, "Send null instead of an empty value").nullable();
+const ident = (max: number) => z.string().max(max).regex(/^\S(.*\S)?$/, "Identifier must not be empty or padded").nullable();
+const seconds = z.number().int().min(0).max(360000).nullable();
+const position = z.number().int().min(1).max(9999).nullable();
+const date = z.string().date("Use a real calendar date, YYYY-MM-DD").nullable();
+
+export const CATALOG_LIMITS = {
+  recordings: 500,
+  releases: 1000,
+  release_links_per_recording: 500,
+  alternate_titles: 100,
+  /** Request body limit enforced by the Hub; larger bodies are refused, never cut. */
+  body_bytes: 5_000_000,
+} as const;
 
 export const CatalogReleaseSchema = z
   .object({
     release_id: id,
-    title: t(500),
-    upc: t(20),
-    catalog_number: t(100),
-    release_date: d,
-    release_type: t(50),
-    label: t(300),
-    distributor: t(300),
-    territory: t(200),
-    genre: t(100),
-    pline: t(300),
-    cline: t(300),
-    // Where this recording sits on this release (release_recordings).
-    track_number: n,
-    disc_number: n,
+    title: text(500),
+    upc: ident(20),
+    catalog_number: ident(100),
+    release_date: date,
+    release_type: text(50),
+    label: text(300),
+    distributor: text(300),
+    territory: text(200),
+    genre: text(100),
+    pline: text(300),
+    cline: text(300),
   })
+  .strict();
+
+export const CatalogReleaseLinkSchema = z
+  .object({ release_id: id, track_number: position, disc_number: position })
   .strict();
 
 export const CatalogRecordingSchema = z
   .object({
     recording_id: id,
     recording_uid: id.nullable(),
-    title: t(500),
-    artist: t(500),
-    isrc: z.string().regex(/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/, "ISRC must be 12 characters, no dashes").nullable(),
-    version: t(200),
-    duration_seconds: n,
-    recording_date: d,
-    release_date: d,
-    label: t(300),
-    studio: t(300),
-    genre: t(100),
-    language: t(20),
+    title: text(500),
+    artist: text(500),
+    isrc: ident(20),
+    version: text(200),
+    duration_seconds: seconds,
+    recording_date: date,
+    release_date: date,
+    label: text(300),
+    studio: text(300),
+    genre: text(100),
+    language: text(20),
     explicit: z.boolean(),
-    pline: t(300),
-    releases: z.array(CatalogReleaseSchema).max(500),
+    pline: text(300),
+    release_links: z.array(CatalogReleaseLinkSchema).max(CATALOG_LIMITS.release_links_per_recording),
   })
   .strict();
 
 export const CatalogWorkPayloadSchema = z
   .object({
     title: z.string().trim().min(1).max(500),
-    alternate_titles: z.array(z.object({ title: z.string().min(1).max(500) }).strict()).max(100),
-    iswc: z.string().regex(/^T-?\d{3}\.?\d{3}\.?\d{3}-?\d$/, "ISWC format T-123.456.789-0").nullable(),
-    language: t(20),
-    genre: t(100),
-    duration_seconds: n,
-    creation_date: d,
-    copyright_date: d,
-    copyright_owner: t(300),
-    work_type: t(50),
-    version_type: t(50),
-    territory: t(200),
-    work_code: t(100),
-    publisher_reference: t(200),
-    recordings: z.array(CatalogRecordingSchema).max(500),
+    alternate_titles: z
+      .array(z.object({ title: z.string().max(500).regex(/\S/, "Alternate title must not be empty") }).strict())
+      .max(CATALOG_LIMITS.alternate_titles),
+    iswc: ident(20),
+    language: text(20),
+    genre: text(100),
+    duration_seconds: seconds,
+    creation_date: date,
+    copyright_date: date,
+    copyright_owner: text(300),
+    work_type: text(50),
+    version_type: text(50),
+    territory: text(200),
+    work_code: ident(100),
+    publisher_reference: ident(200),
+    recordings: z.array(CatalogRecordingSchema).max(CATALOG_LIMITS.recordings),
+    releases: z.array(CatalogReleaseSchema).max(CATALOG_LIMITS.releases),
   })
   .strict();
 
-/** Registration-relevant Catalog fields, for readiness (present / missing / unsupported). */
+/**
+ * Relationship checks JSON Schema cannot express. The Hub runs these after the
+ * schema check and rejects the event (400 invalid_body) rather than dropping rows.
+ */
+export function catalogRelationshipIssues(payload: z.infer<typeof CatalogWorkPayloadSchema>) {
+  const issues: { path: string; message: string }[] = [];
+  const recIds = new Set<string>();
+  payload.recordings.forEach((r, i) => {
+    if (recIds.has(r.recording_id)) issues.push({ path: `payload.recordings.${i}.recording_id`, message: "Recording listed twice." });
+    recIds.add(r.recording_id);
+  });
+  const relIds = new Set<string>();
+  payload.releases.forEach((r, i) => {
+    if (relIds.has(r.release_id)) issues.push({ path: `payload.releases.${i}.release_id`, message: "Release listed twice." });
+    relIds.add(r.release_id);
+  });
+  const linked = new Set<string>();
+  payload.recordings.forEach((r, i) =>
+    r.release_links.forEach((l, j) => {
+      if (!relIds.has(l.release_id))
+        issues.push({ path: `payload.recordings.${i}.release_links.${j}.release_id`, message: "Links to a release that is not in payload.releases." });
+      linked.add(l.release_id);
+    }),
+  );
+  payload.releases.forEach((r, i) => {
+    if (!linked.has(r.release_id))
+      issues.push({ path: `payload.releases.${i}.release_id`, message: "Release is not linked to any recording of this work." });
+  });
+  return issues.slice(0, 50);
+}
+
+/** Registration-relevant Catalog fields, for readiness (present / missing / invalid / unsupported). */
 export const CATALOG_WORK_FIELDS = [
   "title", "alternate_titles", "iswc", "language", "genre", "duration_seconds", "creation_date",
   "copyright_date", "copyright_owner", "work_type", "version_type", "territory", "work_code", "publisher_reference",
@@ -100,16 +152,20 @@ export const CATALOG_RECORDING_FIELDS = [
   "title", "artist", "isrc", "version", "duration_seconds", "recording_date", "release_date", "label", "studio", "genre", "language", "pline",
 ] as const;
 export const CATALOG_RELEASE_FIELDS = [
-  "title", "upc", "catalog_number", "release_date", "release_type", "label", "distributor", "territory", "genre", "pline", "cline", "track_number", "disc_number",
+  "title", "upc", "catalog_number", "release_date", "release_type", "label", "distributor", "territory", "genre", "pline", "cline",
 ] as const;
+export const CATALOG_RELEASE_LINK_FIELDS = ["track_number", "disc_number"] as const;
 
-/** Registration fields the current Catalog schema has no column for. */
+/** Specification fields the current Catalog schema cannot supply (master spec §4). */
 export const CATALOG_UNSUPPORTED_FIELDS = [
-  { path: "work.alternate_titles[].type", note: "Catalog stores alternate titles as one semicolon-separated text, with no title type." },
-  { path: "recordings[].primary", note: "Catalog has no primary-recording flag on work_recordings." },
-  { path: "recordings[].recording_country", note: "Catalog does not store where a recording was made." },
-  { path: "releases[].release_country", note: "Catalog stores a territory text, not a first-release country." },
-  { path: "work.text_music_relationship", note: "Catalog does not record music/lyrics/both for a work." },
+  { path: "work.alternate_titles[].type", spec: "F04", note: "Catalog stores alternate titles as one semicolon-separated text, with no title type." },
+  { path: "work.alternate_titles[].language", spec: "F04", note: "Catalog has no language per alternate title." },
+  { path: "recordings[].artists[] (structured person/group)", spec: "F13", note: "Catalog stores one artist credit text, not structured artists." },
+  { path: "work.jingle", spec: "F36", note: "Catalog has no advertising/jingle fields." },
+  { path: "work.origin", spec: "F37", note: "Catalog has no intended-purpose, production or library fields." },
+  { path: "work.derivation", spec: "F38", note: "Catalog has no public-domain or arrangement details beyond version_type." },
+  { path: "work.components[]", spec: "F39", note: "Catalog has no sample, medley or translation links." },
+  { path: "work.performances[] / audiovisual_uses[]", spec: "F40", note: "Catalog has no performance or audiovisual-use records." },
 ] as const;
 
 export const SplitsWriterSchema = z
@@ -186,6 +242,7 @@ export const FEED_RESPONSES = {
   app_not_entitled: { status: 403, retry: false },
   workspace_not_found: { status: 404, retry: false },
   event_id_reused: { status: 409, retry: false },
+  payload_too_large: { status: 413, retry: false },
   work_workspace_conflict: { status: 409, retry: false },
   source_record_conflict: { status: 409, retry: false },
   sso_key_not_configured: { status: 503, retry: true },

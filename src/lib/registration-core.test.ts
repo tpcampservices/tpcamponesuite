@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUrp, canonicalJson, isStale, validateUrp, type SourceSnapshot } from "./registration-core";
+import { buildUrp, canonicalIswc, canonicalJson, isStale, validateUrp, type SourceSnapshot } from "./registration-core";
 
 const cat: SourceSnapshot = { id: "c1", source_app: "catalog", source_revision: "7", ownership_revision: null, received_at: "", payload: { title: "Song", iswc: "T-1", title_extra: 1 } };
 const spl = (writers: unknown[], validated = "2026-09-01"): SourceSnapshot => ({
@@ -41,24 +41,40 @@ describe("registration core", () => {
 });
 
 describe("catalog readiness", () => {
-  const full = { title: "Song", genre: null, iswc: "T-1", recordings: [{ isrc: null, studio: "X", releases: [{ upc: "1" }] }] };
-  it("marks empty values as missing and absent keys as unsupported", () => {
-    const u = buildUrp("W", { ...cat, payload: full }, spl([{ legalName: "A", sharePercent: 100 }]));
-    const st = Object.fromEntries(u.catalog_fields.map((f) => [f.path, f.status]));
-    expect(st["work.genre"]).toBe("missing");
+  const full = { title: "Song", genre: null, iswc: "T-000.000.001-0", recordings: [{ isrc: "bad", studio: "X", release_links: [{ release_id: "a", track_number: 1 }] }, { isrc: null }], releases: [{ upc: "000000000001" }] };
+  const u = buildUrp("W", { ...cat, source_entity_id: "cat-1", payload: full }, spl([{ legalName: "A", sharePercent: 100 }]));
+  const st = Object.fromEntries(u.catalog_fields.map((f) => [f.path, f.status]));
+  it("distinguishes present, missing, invalid and unsupported", () => {
     expect(st["work.iswc"]).toBe("present");
+    expect(st["work.genre"]).toBe("missing");
     expect(st["work.copyright_owner"]).toBe("unsupported");
-    expect(st["recordings[0].isrc"]).toBe("missing");
-    expect(st["recordings[0].studio"]).toBe("present");
-    expect(st["recordings[0].releases[0].catalog_number"]).toBe("unsupported");
+    expect(st["recordings[0].isrc"]).toBe("invalid");
+    expect(st["recordings[1].isrc"]).toBe("missing");
+    expect(st["recordings[0].release_links[0].track_number"]).toBe("present");
+    expect(st["recordings[0].release_links[0].disc_number"]).toBe("unsupported");
+    expect(st["releases[0].upc"]).toBe("present");
     expect(st["work.alternate_titles[].type"]).toBe("unsupported");
   });
-  it("gives different messages for missing and unsupported", () => {
-    const codes = validateUrp(buildUrp("W", { ...cat, payload: full }, spl([{ legalName: "A", sharePercent: 100 }])));
-    expect(codes.find((i) => i.path === "work.genre")?.code).toBe("catalog_value_missing");
-    expect(codes.find((i) => i.path === "work.copyright_owner")?.code).toBe("catalog_field_unsupported");
+  it("gives different codes for missing, invalid and unsupported", () => {
+    const issues = validateUrp(u);
+    expect(issues.find((i) => i.path === "work.genre")?.code).toBe("catalog_value_missing");
+    expect(issues.find((i) => i.path === "recordings[0].isrc")).toMatchObject({ code: "catalog_value_invalid", severity: "blocking" });
+    expect(issues.find((i) => i.path === "work.copyright_owner")?.code).toBe("catalog_field_unsupported");
+    expect(issues.some((i) => i.code === "primary_recording_unselected")).toBe(true);
   });
-  it("carries genre into the profile", () => {
-    expect(buildUrp("W", { ...cat, payload: { title: "S", genre: "Soca" } }, null).work.genre).toBe("Soca");
+  it("stores canonical identifiers, not display formats, and keeps both work ids", () => {
+    expect(u.work.iswc).toBe("T0000000010");
+    expect(u.releases[0].upc).toBe("000000000001");
+    expect(u.source_refs).toMatchObject({ work_uid: "W", catalog_work_id: "cat-1" });
+    expect(u.work.first_release_date).toBeNull();
+    expect(u.selected_recording_id).toBeNull();
+  });
+  it("verifies the ISWC check digit", () => {
+    expect(canonicalIswc("T-000.000.001-0")).toBe("T0000000010");
+    expect(canonicalIswc("T-000.000.001-9")).toBeNull();
+  });
+  it("carries genre and maps work_code to internal_code", () => {
+    const w = buildUrp("W", { ...cat, payload: { title: "S", genre: "Soca", work_code: "X1", territory: "World" } }, null).work;
+    expect(w).toMatchObject({ genre: "Soca", internal_code: "X1", catalog_territory: "World" });
   });
 });

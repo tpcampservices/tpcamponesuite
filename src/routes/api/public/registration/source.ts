@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { feedIssues, schemaForApp } from "@/lib/registration-feed.contract";
+import { CATALOG_LIMITS, catalogRelationshipIssues, feedIssues, schemaForApp } from "@/lib/registration-feed.contract";
 
 /**
  * Inbound feed from Catalog / Split Sheets into the Rights Registration Hub.
@@ -24,15 +24,25 @@ export const Route = createFileRoute("/api/public/registration/source")({
           return json({ error: auth.reason === "app_mismatch" ? "app_mismatch" : "unauthorized" }, 401);
         }
 
+        // Oversized bodies are refused whole; the Hub never truncates recordings or releases.
+        const declared = Number(request.headers.get("content-length") ?? "0");
+        if (declared > CATALOG_LIMITS.body_bytes) return json({ error: "payload_too_large", limit_bytes: CATALOG_LIMITS.body_bytes }, 413);
         let raw: unknown;
         try {
-          raw = await request.json();
+          const body = await request.text();
+          if (new TextEncoder().encode(body).length > CATALOG_LIMITS.body_bytes)
+            return json({ error: "payload_too_large", limit_bytes: CATALOG_LIMITS.body_bytes }, 413);
+          raw = JSON.parse(body);
         } catch {
           return json({ error: "invalid_body", issues: [{ path: "", message: "Body must be JSON." }] }, 400);
         }
         const parsed = schemaForApp(app).safeParse(raw);
         if (!parsed.success) return json({ error: "invalid_body", issues: feedIssues(parsed.error) }, 400);
         const ev = parsed.data;
+        if (ev.event_type === "catalog.work.snapshot") {
+          const rel = catalogRelationshipIssues(ev.payload);
+          if (rel.length) return json({ error: "invalid_body", issues: rel }, 400);
+        }
 
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
