@@ -1,6 +1,7 @@
 import {
   CATALOG_RECORDING_FIELDS,
   CATALOG_RELEASE_FIELDS,
+  CATALOG_RELEASE_LINK_FIELDS,
   CATALOG_UNSUPPORTED_FIELDS,
   CATALOG_WORK_FIELDS,
 } from "./registration-feed.contract";
@@ -20,6 +21,8 @@ export type SourceSnapshot = {
   ownership_revision: string | null;
   payload: Record<string, unknown>;
   received_at: string;
+  /** Catalog works.id / Splits sheet id. */
+  source_entity_id?: string | null;
 };
 
 export type ValidationIssue = {
@@ -29,27 +32,64 @@ export type ValidationIssue = {
   message: string;
 };
 
-export type FieldStatus = { path: string; status: "present" | "missing" | "unsupported"; note?: string };
+export type FieldStatus = {
+  path: string;
+  status: "present" | "missing" | "invalid" | "unsupported";
+  spec?: string;
+  note?: string;
+};
 
 const has = (o: Record<string, unknown>, k: string) => Object.prototype.hasOwnProperty.call(o, k);
 const filled = (v: unknown) => v !== null && v !== undefined && !(typeof v === "string" && !v.trim()) && !(Array.isArray(v) && v.length === 0);
 
-/** Distinguishes "Catalog has the field but it is empty" from "Catalog cannot supply it". */
+// ---- identifier canonicalisation (universal values; destinations format for display)
+
+/** ISWC → canonical "T" + 10 digits, or null if not a valid ISWC (check digit verified). */
+export function canonicalIswc(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const m = /^T-?(\d{3})\.?(\d{3})\.?(\d{3})-?(\d)$/.exec(v.trim().toUpperCase());
+  if (!m) return null;
+  const digits = (m[1] + m[2] + m[3]).split("").map(Number);
+  const sum = 1 + digits.reduce((acc, d, i) => acc + d * (i + 1), 0);
+  const check = (10 - (sum % 10)) % 10;
+  return check === Number(m[4]) ? `T${m[1]}${m[2]}${m[3]}${m[4]}` : null;
+}
+/** ISRC → 12 uppercase characters without separators, or null if malformed. */
+export function canonicalIsrc(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.replace(/[-\s]/g, "").toUpperCase();
+  return /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(t) ? t : null;
+}
+/** UPC/EAN → 12 or 13 digits, or null if malformed. Leading zeros are kept (string). */
+export function canonicalUpc(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.replace(/[-\s]/g, "");
+  return /^\d{12,13}$/.test(t) ? t : null;
+}
+const VALIDATORS: Record<string, (v: unknown) => string | null> = { iswc: canonicalIswc, isrc: canonicalIsrc, upc: canonicalUpc };
+
+/** Present / missing (null) / invalid (stored but malformed) / unsupported (Catalog cannot supply). */
 export function catalogFieldStatus(payload: Record<string, unknown> | null): FieldStatus[] {
   if (!payload) return [];
   const out: FieldStatus[] = [];
   const check = (o: Record<string, unknown>, prefix: string, fields: readonly string[]) => {
-    for (const f of fields)
-      out.push({ path: `${prefix}${f}`, status: !has(o, f) ? "unsupported" : filled(o[f]) ? "present" : "missing" });
+    for (const f of fields) {
+      if (!has(o, f)) { out.push({ path: `${prefix}${f}`, status: "unsupported" }); continue; }
+      if (!filled(o[f])) { out.push({ path: `${prefix}${f}`, status: "missing" }); continue; }
+      const v = VALIDATORS[f];
+      out.push({ path: `${prefix}${f}`, status: v && v(o[f]) === null ? "invalid" : "present" });
+    }
   };
   check(payload, "work.", CATALOG_WORK_FIELDS);
   const recs = Array.isArray(payload.recordings) ? (payload.recordings as Record<string, unknown>[]) : [];
   recs.forEach((r, i) => {
     check(r, `recordings[${i}].`, CATALOG_RECORDING_FIELDS);
-    const rels = Array.isArray(r.releases) ? (r.releases as Record<string, unknown>[]) : [];
-    rels.forEach((rel, j) => check(rel, `recordings[${i}].releases[${j}].`, CATALOG_RELEASE_FIELDS));
+    const links = Array.isArray(r.release_links) ? (r.release_links as Record<string, unknown>[]) : [];
+    links.forEach((l, j) => check(l, `recordings[${i}].release_links[${j}].`, CATALOG_RELEASE_LINK_FIELDS));
   });
-  for (const u of CATALOG_UNSUPPORTED_FIELDS) out.push({ path: u.path, status: "unsupported", note: u.note });
+  const rels = Array.isArray(payload.releases) ? (payload.releases as Record<string, unknown>[]) : [];
+  rels.forEach((rel, j) => check(rel, `releases[${j}].`, CATALOG_RELEASE_FIELDS));
+  for (const u of CATALOG_UNSUPPORTED_FIELDS) out.push({ path: u.path, status: "unsupported", spec: u.spec, note: u.note });
   return out;
 }
 
@@ -57,6 +97,7 @@ export type Urp = {
   schema_version: "1.0";
   source_refs: {
     work_uid: string;
+    catalog_work_id: string | null;
     catalog_snapshot_id: string | null;
     splits_snapshot_id: string | null;
     catalog_revision: string | null;
@@ -65,23 +106,31 @@ export type Urp = {
   };
   work: {
     title: string | null;
+    /** Structured alternate titles; type/language are unsupported by Catalog (null). */
+    alternate_titles: { title: string; type: null; language: null }[];
+    /** Canonical "T" + 10 digits; null when missing or invalid. */
     iswc: string | null;
     language: string | null;
-    duration_seconds: number | null;
-    alternate_titles: unknown[];
     genre: string | null;
+    duration_seconds: number | null;
     creation_date: string | null;
     copyright_date: string | null;
+    /** Information only; ownership comes from interested parties (Splits). */
     copyright_owner: string | null;
     work_type: string | null;
     version_type: string | null;
-    territory: string | null;
-    work_code: string | null;
+    /** Catalog's descriptive territory. Not a rights, collection or agreement territory. */
+    catalog_territory: string | null;
+    /** From works.work_code (spec F10). */
+    internal_code: string | null;
     publisher_reference: string | null;
+    /** Registration first-release date is confirmed in the Hub (F11); never derived here. */
+    first_release_date: null;
   };
-  /** Per Catalog field: value present, empty in Catalog, or not supplied by the source at all. */
-  catalog_fields: FieldStatus[];
-  recordings: unknown[];
+  /** Hub selection (F12); never the earliest or title-matched recording. */
+  selected_recording_id: null;
+  recordings: Record<string, unknown>[];
+  releases: Record<string, unknown>[];
   writers: {
     source_contributor_id: string | null;
     name: string | null;
@@ -132,6 +181,7 @@ export function buildUrp(
     schema_version: "1.0",
     source_refs: {
       work_uid: workUid,
+      catalog_work_id: catalog?.source_entity_id ?? null,
       catalog_snapshot_id: catalog?.id ?? null,
       splits_snapshot_id: splits?.id ?? null,
       catalog_revision: catalog?.source_revision ?? null,
@@ -140,22 +190,33 @@ export function buildUrp(
     },
     work: {
       title: str(c.title),
-      iswc: str(c.iswc),
+      alternate_titles: (Array.isArray(c.alternate_titles) ? (c.alternate_titles as Record<string, unknown>[]) : [])
+        .map((a) => str(a?.title))
+        .filter((t): t is string => !!t)
+        .map((title) => ({ title, type: null, language: null })),
+      iswc: canonicalIswc(c.iswc),
       language: str(c.language),
-      duration_seconds: num(c.duration_seconds),
-      alternate_titles: Array.isArray(c.alternate_titles) ? c.alternate_titles : [],
       genre: str(c.genre),
+      duration_seconds: num(c.duration_seconds),
       creation_date: str(c.creation_date),
       copyright_date: str(c.copyright_date),
       copyright_owner: str(c.copyright_owner),
       work_type: str(c.work_type),
       version_type: str(c.version_type),
-      territory: str(c.territory),
-      work_code: str(c.work_code),
+      catalog_territory: str(c.territory),
+      internal_code: str(c.work_code),
       publisher_reference: str(c.publisher_reference),
+      first_release_date: null,
     },
+    selected_recording_id: null,
+    recordings: (Array.isArray(c.recordings) ? (c.recordings as Record<string, unknown>[]) : []).map((r) => ({
+      ...r,
+      isrc: canonicalIsrc(r.isrc),
+      // Catalog stores one credit text; kept as a display credit, not a structured party.
+      artists: str(r.artist) ? [{ display_name: str(r.artist), party_type: null }] : [],
+    })),
+    releases: (Array.isArray(c.releases) ? (c.releases as Record<string, unknown>[]) : []).map((r) => ({ ...r, upc: canonicalUpc(r.upc) })),
     catalog_fields: catalogFieldStatus(catalog ? c : null),
-    recordings: Array.isArray(c.recordings) ? c.recordings : [],
     // Every contributor is kept; nothing is truncated or dropped here.
     writers: writersRaw.map((w) => ({
       source_contributor_id: str(w.id) ?? str(w.sourcePartyId),
@@ -169,6 +230,9 @@ export function buildUrp(
     provenance: [
       { path: "work", source_app: "catalog", snapshot_id: catalog?.id ?? null },
       { path: "recordings", source_app: "catalog", snapshot_id: catalog?.id ?? null },
+      { path: "releases", source_app: "catalog", snapshot_id: catalog?.id ?? null },
+      { path: "work.first_release_date", source_app: "hub", snapshot_id: null },
+      { path: "selected_recording_id", source_app: "hub", snapshot_id: null },
       { path: "writers", source_app: "splits", snapshot_id: splits?.id ?? null },
     ],
   };
@@ -190,14 +254,18 @@ export function validateUrp(urp: Urp): ValidationIssue[] {
   if (urp.source_refs.splits_snapshot_id && urp.writers.length === 0)
     add({ code: "no_writers", severity: "blocking", path: "writers", message: "The split sheet lists no writers." });
 
-  // Catalog readiness: empty values and unsupported fields are reported differently.
+  // Catalog readiness: missing, invalid and unsupported are reported differently.
   const label = (p: string) => p.replace(/^work\./, "").replace(/_/g, " ");
   for (const f of urp.catalog_fields) {
-    if (f.status === "missing" && /^work\.(iswc|language|genre|duration_seconds)$|\.isrc$/.test(f.path))
+    if (f.status === "invalid")
+      add({ code: "catalog_value_invalid", severity: "blocking", path: f.path, message: `${label(f.path)} in Catalog is not in a valid format. Correct it in Catalog.` });
+    else if (f.status === "missing" && /^work\.(iswc|language|genre|duration_seconds)$|\.isrc$/.test(f.path))
       add({ code: "catalog_value_missing", severity: "warning", path: f.path, message: `${label(f.path)} is empty in Catalog. Add it in Catalog if the society needs it.` });
-    if (f.status === "unsupported" && !f.note)
+    else if (f.status === "unsupported" && !f.note)
       add({ code: "catalog_field_unsupported", severity: "warning", path: f.path, message: `Catalog did not send ${label(f.path)}. This Catalog version cannot supply it; it cannot be fixed by editing the work.` });
   }
+  if (urp.recordings.length > 1 && !urp.selected_recording_id)
+    add({ code: "primary_recording_unselected", severity: "warning", path: "selected_recording_id", message: "This work has several recordings. Choose the registration recording in the Hub before packaging." });
   if (urp.source_refs.catalog_snapshot_id && urp.recordings.length === 0)
     add({ code: "no_recordings", severity: "warning", path: "recordings", message: "No recordings are linked to this work in Catalog." });
 
