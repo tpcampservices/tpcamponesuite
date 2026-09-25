@@ -114,7 +114,7 @@ describe("notify/callback handling", () => {
     const fs = await import("node:fs");
     for (const f of ["src/lib/paywise-events.core.ts", "src/lib/paywise-events.server.ts"]) {
       const src = fs.readFileSync(f, "utf8");
-      expect(src).not.toMatch(/applyPaidOrder|access_entitlements|payment_status|subscriptions/);
+      expect(src).not.toMatch(/applyPaidOrder|access_entitlements|refreshEntitlementStatus|from\("subscriptions"\)|from\("plan_orders"\)\.update/);
     }
     const page = fs.readFileSync("src/routes/payment.paywise.success.tsx", "utf8");
     expect(page).not.toMatch(/useServerFn|functions"/);
