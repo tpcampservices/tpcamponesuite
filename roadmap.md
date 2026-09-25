@@ -16,3 +16,8 @@
 
 - [x] Invitation email abuse fix: plan revised and approved
 - [x] Invitation fix implemented and verified (deep code scan from Security view still to run)
+
+## PayWise Phase 1 (sandbox)
+- [x] Hide PayPal checkout, PayWise notify/callback, success/error pages, diagnostics, tests
+- [ ] PAYWISE_SUBSCRIPTION_KEY, PAYWISE_BUSINESS_API_KEY, PAYWISE_IP_ADDRESS values (user to provide)
+- [ ] Publish so live URLs respond (awaiting approval)

@@ -145,7 +145,7 @@ function HomePage() {
                       </div>
                       <div className="rounded-xl border border-border bg-background/50 p-3">
                         <p className="eyebrow text-[0.55rem]">Currency</p>
-                        <p className="mt-1 font-display text-lg font-semibold">USD (PayPal)</p>
+                        <p className="mt-1 font-display text-lg font-semibold">USD</p>
                       </div>
                     </div>
 

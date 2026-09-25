@@ -587,6 +587,68 @@ export type Database = {
         }
         Relationships: []
       }
+      paywise_events: {
+        Row: {
+          channel: string
+          dedupe_key: string
+          duplicate_count: number
+          environment: string
+          error_message: string | null
+          event_type: string | null
+          id: string
+          last_duplicate_at: string | null
+          onesuite_reference: string | null
+          payload: Json | null
+          paywise_reference: string | null
+          plan_order_id: string | null
+          processing_status: string
+          received_at: string
+          verification_status: string
+        }
+        Insert: {
+          channel: string
+          dedupe_key: string
+          duplicate_count?: number
+          environment?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          last_duplicate_at?: string | null
+          onesuite_reference?: string | null
+          payload?: Json | null
+          paywise_reference?: string | null
+          plan_order_id?: string | null
+          processing_status?: string
+          received_at?: string
+          verification_status?: string
+        }
+        Update: {
+          channel?: string
+          dedupe_key?: string
+          duplicate_count?: number
+          environment?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          last_duplicate_at?: string | null
+          onesuite_reference?: string | null
+          payload?: Json | null
+          paywise_reference?: string | null
+          plan_order_id?: string | null
+          processing_status?: string
+          received_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paywise_events_plan_order_id_fkey"
+            columns: ["plan_order_id"]
+            isOneToOne: false
+            referencedRelation: "plan_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_limit_usage: {
         Row: {
           id: string
@@ -638,6 +700,10 @@ export type Database = {
           paypal_capture_id: string | null
           paypal_order_id: string | null
           plan_id: string
+          provider_reference: string | null
+          provider_status: string | null
+          provider_transaction_id: string | null
+          provider_verified_at: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -665,6 +731,10 @@ export type Database = {
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
           plan_id: string
+          provider_reference?: string | null
+          provider_status?: string | null
+          provider_transaction_id?: string | null
+          provider_verified_at?: string | null
           total_amount?: number
           updated_at?: string
           user_id: string
@@ -692,6 +762,10 @@ export type Database = {
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
           plan_id?: string
+          provider_reference?: string | null
+          provider_status?: string | null
+          provider_transaction_id?: string | null
+          provider_verified_at?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
