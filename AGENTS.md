@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- PayWise: inbound notify/callback only log to paywise_events (unique channel+dedupe_key); activation must re-verify via GET /payments/status server-side — payloads are unsigned.
