@@ -1,177 +1,90 @@
-# Fix: "Any workspace member can email anyone" (revision 2)
+# Phase 1 — PayWise sandbox infrastructure + hide PayPal
 
-## Findings (unchanged from revision 1, summarized)
+## Pre-change audit (current state)
 
-**Files and actions**
-- `src/lib/invitations.functions.ts`: `inviteWorkspaceMember` and `resendWorkspaceInvitation`.
-- `src/lib/invitations.server.ts`: `assertMayInvite`, `assertRoleAssignable`, `createInvitation`, `resendInvitation`.
-- Database function `create_workspace_invitation`.
-- `src/routes/_authenticated/team.tsx`.
+1. **PayPal checkout:** `/pricing` renders `PaypalPayButton` (`src/components/paypal-pay-button.tsx`). It is the only place a customer can start a payment. Renewal and add-ons use the same pricing screen. The dashboard only links to the admin "PayPal settings". `/payment-success` is the PayPal confirmation page.
+2. **Payment tables:** `plan_orders` (one row per checkout: user, organization, plan, term, amounts, add-ons, `payment_provider`, `payment_status`, `paypal_order_id`, `paypal_capture_id`, capture fields, `paid_at`, access dates, `last_error`). There are also `paypal_webhook_events` (verified PayPal event log with a duplicate flag), the legacy `subscriptions` and `integration_settings` (server-only credentials).
+3. **Activation:** `applyPaidOrder()` in `access.server.ts`, called only from `finalizeOrder()` after PayPal capture and an amount check. It is idempotent on `payment_status = 'paid'`.
+4. **Renewal / early renewal:** inside `applyPaidOrder()`. Unused days carry forward from the current expiry.
+5. **Entitlements:** `applyPaidOrder()` writes the entitlement row, and `refreshEntitlementStatus()` expires it. SSO reads from these.
+6. **Payment history:** `getAccessState()` → `plan_orders` for the user, shown on the dashboard. It shows `provider` and `reference` (currently `paypal_order_id`).
+7. **Reusable abstraction:** `plan_orders.payment_provider` already exists. There's no provider interface beyond that. PayWise will reuse `plan_orders` and not create a second billing system.
+8. **Files:** listed below.
+9. **Conflicts found (need your awareness, not blocking sandbox):**
+   - **PW-ip-address:** PayWise docs describe it as a *fixed institution IP* that is allow-listed. OneSuite's server has no fixed outbound IP. I'll read it from a server setting `PAYWISE_IP_ADDRESS` (no hard-coded value). If it's missing, outbound PayWise calls refuse with a clear message. Production may need a fixed-IP relay; please confirm this with PayWise.
+   - **No documented signature on notify/callback:** the inbound payloads can't be authenticated. That's fine for Phase 1 because they only log. Phase 2 activation must re-verify each payment via `GET /payments/status` and must not trust the payload.
+   - **Route paths:** `/api/payments/paywise/*` sits outside the `/api/public/*` prefix that normally bypasses site auth. The published site is public, so these URLs should still work. I'll create them exactly as you configured them and confirm with an unauthenticated probe.
 
-**What is already in place**
-- Only the Owner, an Administrator, or someone with an explicit Allow for `workspace.team.invite` can invite. The sender must be an active member.
-- The workspace comes from the server, not the browser.
-- Owner can never be granted, and a sender can't assign a role above their own.
-- Invitation links use a random 32-byte token. Only its hash is stored; it expires after 7 days and works once.
-- There is one pending invitation per workspace and address, and the seat limit applies.
-
-**Gaps**
-- No rate limit.
-- A cancel-and-re-invite loop can repeat without end.
-- The link address comes from the browser (`origin`), checked only to start with "http".
-
-**When an email is actually sent today**
-- `inviteWorkspaceMember` sends an email **only when the address has no OneSuite account**. It uses the sign-in service's invite email.
-- For an address that already has an account, **no email is sent**; the inviter gets the link to share.
-- `resendWorkspaceInvitation` **never sends an email**. It rotates the token, extends the expiry and returns a new link. It already requires the invite permission and the invitation must belong to the sender's own workspace.
-
-## Revised design
-
-### 1. Atomic send allowance (small migration: disclosed below)
-A new ledger table records each **attempt to send an invitation email**. A database function reserves a slot inside one transaction before the email is sent.
-
-**Concurrency rule:** the function takes transaction locks for the sender, the workspace and the recipient, always in that same order to avoid deadlocks. It then counts and inserts under those locks. Simultaneous requests are processed one at a time, so none can pass on the same count.
-
-**What counts.** Only ledger rows with status `reserved` or `sent` count, within a rolling window. Rules:
-- **Initial send:** a slot is reserved immediately before `inviteUserByEmail` runs.
-- **Delivery succeeded:** the slot becomes `sent` and keeps counting.
-- **Delivery failed:** the slot becomes `failed` and **stops counting**, because no email went out. To stop repeated failures being used to probe addresses, a separate cap allows 10 failed attempts per sender per day.
-- **Server stopped before recording the result:** a reservation older than 10 minutes that was never finalized still counts. It's treated as sent to be safe.
-- **Invitations to existing accounts** send no email, so they reserve nothing and don't count.
-- **Resend** sends no email today, so it doesn't count. If resend ever starts sending email, it must use the same reservation with type `resend`, and the tests cover that path already (see 9–10).
-- **Never counted:** previewing, cancelling, accepting, or creating an invitation record with no email.
-
-**Limits (rolling windows, counted on reserved and sent slots):**
-
-| Limit | Window | Key |
-|---|---|---|
-| 20 per sender | 1 hour | sender user ID |
-| 50 per sender | 24 hours | sender user ID |
-| 50 per workspace | 24 hours | workspace ID |
-| 3 per recipient | 24 hours | recipient email hash, across all workspaces |
-| 3 re-invitations per recipient per workspace | 24 hours | workspace ID + recipient email hash |
-
-### 2. Email normalization
-Every duplicate check, limit and hash uses one shared function: `normalizeEmail`, which trims and lowercases. The pending-invitation check and the database function already use this form. The ledger stores `sha256(normalizeEmail(email))`, never the address itself.
-
-### 3. Exact trusted link addresses
-- A fixed list lives in code (not secrets):
-  - `https://tpcamponesuite.app`
-  - `https://www.tpcamponesuite.app`
-  - `https://tpcamponesuite.lovable.app`
-  - The exact preview address `https://id-preview--78e0852d-a4cf-409c-9124-a9a045dc4411.lovable.app`
-- Matching is exact on the whole string. There is no wildcard, suffix or partial match.
-- The `origin` input is removed from the invite and resend actions.
-- The request's Origin header is used only if it exactly equals a listed entry. Otherwise the link uses `https://tpcamponesuite.app`.
-- Host, Forwarded and X-Forwarded-Host are never read.
-
-### 4. Resend
-Resend stays link-only, with no email sent. The new link uses the trusted address. The permission and same-workspace checks run before the token is rotated, so an unauthorized caller gets a refusal, not a link.
-
-### 5. Plan check
-The workspace must have an active plan (the same rule as the rest of the app; trial counts) before any email is reserved.
-
-### 6. Audit and personal data
-- A refused send writes `invitation_refused_rate_limited` or `invitation_refused_plan` to `team_audit_log`. The entry holds the limit name, a masked email (for example `j***@gmail.com`) and the email hash.
-- It never holds a token, a token hash, the full address or raw errors.
-- **Why not the full email address:** it isn't needed. The masked form lets a workspace admin recognize the attempt, and the hash lets them match it against the ledger. That exposes less personal data.
-- **Hash limitation:** a plain SHA-256 of an email can be reversed by guessing likely addresses. Using a server secret (keyed hashing) would fix that, but it means creating a new secret, which isn't approved here. So the hash is stored only in the ledger, which no browser role can read at all, and in the refusal audit rows.
-- `team_audit_log` access is unchanged: only that workspace's team viewers can read it, through the existing rule.
-- Successful sends keep the existing `invitation_created` entry, which already holds the invitee's email as part of normal team records.
-
-## Migration (to be applied only after approval)
+## Database change (one tracked migration)
 
 ```sql
-CREATE TABLE public.invitation_send_ledger (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES public.workspaces(id),
-  actor_user_id uuid NOT NULL,
-  email_hash text NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('initial','resend')),
-  status text NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved','sent','failed')),
-  invitation_id uuid,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  finalized_at timestamptz
-);
-GRANT ALL ON public.invitation_send_ledger TO service_role;   -- no anon/authenticated access
-ALTER TABLE public.invitation_send_ledger ENABLE ROW LEVEL SECURITY;  -- no policies = locked to browsers
-CREATE INDEX ON public.invitation_send_ledger (actor_user_id, created_at);
-CREATE INDEX ON public.invitation_send_ledger (workspace_id, created_at);
-CREATE INDEX ON public.invitation_send_ledger (email_hash, created_at);
+-- Provider-neutral PayWise reference columns on the existing order table
+ALTER TABLE public.plan_orders
+  ADD COLUMN provider_reference text,          -- OneSuite reference sent to PayWise
+  ADD COLUMN provider_transaction_id text,     -- PayWise transaction/request id
+  ADD COLUMN provider_status text,             -- raw PayWise status
+  ADD COLUMN provider_verified_at timestamptz; -- set only by server status check (Phase 2)
+CREATE UNIQUE INDEX plan_orders_provider_reference_uq
+  ON public.plan_orders (payment_provider, provider_reference) WHERE provider_reference IS NOT NULL;
+CREATE UNIQUE INDEX plan_orders_provider_txn_uq
+  ON public.plan_orders (payment_provider, provider_transaction_id) WHERE provider_transaction_id IS NOT NULL;
 
--- reserve_invitation_send(_workspace, _actor, _email_hash, _kind, _invitation_id) RETURNS uuid
---   SECURITY DEFINER, search_path=public
---   pg_advisory_xact_lock('inv-actor:'||actor), ('inv-ws:'||ws), ('inv-email:'||hash)  -- fixed order
---   counts rows WHERE status='sent' OR (status='reserved') in each window
---   (stale reservations count, being status='reserved')
---   failed-attempt cap: 10 status='failed' per actor per 24h
---   RAISE EXCEPTION 'invite_limit:<name>' on any breach; else INSERT reserved, return id
--- finalize_invitation_send(_id uuid, _ok boolean) RETURNS void
---   UPDATE status = CASE WHEN _ok THEN 'sent' ELSE 'failed' END, finalized_at=now()
---   WHERE id=_id AND status='reserved'
--- EXECUTE on both: REVOKE from PUBLIC/anon/authenticated; GRANT to service_role only.
+-- Inbound PayWise event log (diagnostics + idempotency foundation)
+CREATE TABLE public.paywise_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel text NOT NULL CHECK (channel IN ('notify','callback')),
+  environment text NOT NULL DEFAULT 'sandbox',
+  event_type text,
+  dedupe_key text NOT NULL,            -- event id / transaction id + status, else sha256 of body
+  paywise_reference text,
+  onesuite_reference text,
+  plan_order_id uuid REFERENCES public.plan_orders(id) ON DELETE SET NULL,
+  processing_status text NOT NULL DEFAULT 'logged',  -- logged | unmatched | error
+  verification_status text NOT NULL DEFAULT 'not_verified',
+  duplicate_count integer NOT NULL DEFAULT 0,
+  last_duplicate_at timestamptz,
+  error_message text,
+  payload jsonb,                       -- redacted: api_key / keys / tokens / card fields removed
+  received_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (channel, dedupe_key)
+);
+GRANT ALL ON public.paywise_events TO service_role;   -- no anon/authenticated grants
+ALTER TABLE public.paywise_events ENABLE ROW LEVEL SECURITY;
+-- No policies: browser roles cannot read or write. Super Admin reads via a server action
+-- that checks has_role(...,'admin') first.
 ```
 
-The migration is additive only: it doesn't change existing tables, rules or data.
+Existing PayPal columns, rows, `paypal_webhook_events` and settings stay untouched.
 
-**Rollback**
-1. Restore the previous app version from history. The old code doesn't use the ledger.
-2. Optionally remove the ledger through the SQL editor: `DROP FUNCTION finalize_invitation_send, reserve_invitation_send; DROP TABLE invitation_send_ledger;`. It holds only counters and hashes, no customer content.
+## Hide PayPal
 
-Invitations, memberships and audit history aren't affected either way.
+- `/pricing`: replace `PaypalPayButton` with a "PayWise checkout — coming soon (sandbox testing)" notice. No customer can start a PayPal payment. The component, server actions, webhook, secrets and admin screens stay in place.
+- Update the customer-facing copy that promises PayPal (pricing text, home "USD (PayPal)", the tiers comparison line) to neutral wording. Legal pages stay unchanged unless you ask.
+- A central flag `CUSTOMER_PAYMENT_PROVIDER = "paywise"` in `src/lib/payment-provider.ts`, and `createOrder` refuses PayPal server-side when the flag isn't PayPal. That way a direct call can't start PayPal either.
+- Payment history keeps showing PayPal rows with their provider and reference.
 
-## Affected files
-- `src/lib/invitations.functions.ts`: remove `origin`, delegate to the core.
-- `src/lib/invitations.core.ts` (new): the permission, plan and trusted-address checks, then reserve, send, and finalize. The database and email sender are passed in so tests use the real path.
-- `src/lib/invitation-links.server.ts` (new): the exact address list and the Origin-header rule.
-- `src/lib/invitations.server.ts`: expose the reserve and finalize wrappers; return plain error messages.
-- `src/routes/_authenticated/team.tsx`: stop sending `origin`; show the plain limit messages.
-- `src/lib/invitations.test.ts` (new), plus a database-level concurrency script for tests 1–5 against the real function. It runs only against a fictional workspace and IDs created inside a rolled-back transaction, with no customer data and no email sent.
+## PayWise pieces
 
-## Acceptance tests
-**Concurrency, run against the real database function with parallel calls:**
-1. 30 simultaneous sends from one sender: exactly 20 reserved, 10 refused as `sender_hourly`.
-2. Sender daily cap: with 45 sends already in the ledger outside the last hour, 10 simultaneous sends leave exactly 50 counted in the day.
-3. Workspace daily cap, spread across several senders: exactly 50.
-4. 6 simultaneous sends to one recipient across 3 workspaces: exactly 3.
-5. 6 simultaneous re-invitations of one recipient in one workspace: exactly 3.
+- **Secrets (names only):** `PAYWISE_SUBSCRIPTION_KEY` (header), `PAYWISE_BUSINESS_API_KEY` (body `api_key`), `PAYWISE_ENVIRONMENT=sandbox` (I'll set this one), `PAYWISE_IP_ADDRESS` (fixed institution IP from PayWise). I'll open the secure form for the first two and the IP.
+- **`src/lib/paywise.server.ts`:** sandbox-only client. It refuses anything except `sandbox` in Phase 1. Base `https://sandbox-api.paywise.co`, `?version=2024-10-01`. Headers: `content-type`, `PW-subscription-key`, `PW-ip-address`, `PW-origin-country: TT`, `PW-request-date` (UTC `YYYY-MM-DD HH:mm:ss`, server-generated), `User-Agent: TP-CAMP-OneSuite/1.0`. Functions: `createPaymentRequest()` (POST /payments/request, `api_key` in body) and `getPaymentStatus()` (GET /payments/status). Nothing calls them from customer flows yet. Errors are redacted.
+- **`src/lib/paywise-events.server.ts`:** size-capped (256 KB) safe parse of JSON or form bodies, redaction, dedupe key, insert-or-increment-duplicate, and order matching by `provider_reference` / `provider_transaction_id` (never by amount or title). It never touches entitlements or `applyPaidOrder`.
+- **Routes:** `POST /api/payments/paywise/notify` and `POST /api/payments/paywise/callback`. Both return `200 {"received":true}` for logged and duplicate events, 400 for unreadable bodies, and 413 when too large. Neither activates anything.
+- **Pages:** `/payment/paywise/success` ("Payment received. We're confirming your PayWise transaction." with no activation claim and no server call that changes state) and `/payment/paywise/error` (links back to Pricing and the Dashboard).
+- **Super Admin diagnostics:** `/admin/paywise` lists event type, PayWise reference, matched OneSuite order, received time, processing, verification, duplicate count and error. It is admin-checked on the server. Payloads are shown redacted, and a secret-presence panel shows yes/no only.
 
-**Normalization:**
+## Files
 
-6. `"  Jane@Example.COM "` and `"jane@example.com"` share one hash, count as one recipient, and hit the duplicate-pending rule.
+New: `src/lib/payment-provider.ts`, `src/lib/paywise.server.ts`, `src/lib/paywise-events.server.ts`, `src/lib/paywise.functions.ts`, `src/lib/paywise.test.ts`, `src/routes/api/payments/paywise/notify.ts`, `src/routes/api/payments/paywise/callback.ts`, `src/routes/payment.paywise.success.tsx`, `src/routes/payment.paywise.error.tsx`, `src/routes/_authenticated/admin/paywise.tsx`, migration.
+Edited: `src/routes/pricing.tsx`, `src/lib/billing.functions.ts` (server-side PayPal refusal only), `src/routes/index.tsx`, `src/lib/tiers.ts` (copy), and the dashboard admin link.
+Not touched: `access.server.ts` activation/renewal/entitlements, plans/pricing, SSO, the registration hub, and PayPal webhook/settings.
 
-**Send accounting:**
+## Tests
 
-7. A failed delivery releases its slot. The 11th failure in a day is refused. A stale reservation still counts.
-8. Inviting an existing account, cancelling or previewing uses no allowance.
-
-**Resend:**
-
-9. Concurrent resends send no email and use no allowance; each returns a trusted-address link to the authorized inviter.
-10. A resend from someone with no invite permission, from another workspace, or for someone else's invitation ID is refused, and no link or new token is created.
-
-**Trusted addresses:**
-
-11. An `origin` input of `https://evil.example` is ignored.
-12. Origin, Host, Forwarded and X-Forwarded-Host headers set to `evil.example` or `tpcamponesuite.app.evil.example` are all ignored; the link uses the main domain.
-13. The exact preview Origin is accepted.
-
-**Authorization:**
-
-14. Staff, Manager, Viewer and Auditor are refused, as are suspended and removed members. Identifiers for another workspace are ignored. Owner can't be assigned, and no role above the sender's own.
-15. A workspace with an expired plan or no plan is refused before any reservation.
-
-**Audit:**
-
-16. Refusal audit rows hold the masked email and its hash, with no token, token hash, full address or raw error.
-
-**Legitimate use:**
-
-17. An Owner or Administrator invitation sends exactly one email and records exactly one `sent` slot.
-
-**Guards and regression:**
-
-18. Static guard: every invite and resend action goes through the core.
-19. All existing tests pass, plus a type check, a production build and a fresh security scan.
-
-Not in scope: publishing, sending real invitations, customer data, credentials or secrets, registration delivery.
+- Headers: exact names, `TT`, date format, the subscription key only in the header and `api_key` only in the body, and non-sandbox refused.
+- Redaction: `api_key`, keys and tokens never stored or returned.
+- Notify/callback: a valid event is logged. The same event twice gives one row and duplicate_count = 1, with 200 both times. Malformed bodies get 400, oversize bodies get 413, and an unknown reference is logged as unmatched.
+- No side effects: after events, `plan_orders.payment_status`, entitlements and `applyPaidOrder` are never called (mocked spy).
+- The success page makes no state-changing server call.
+- `createOrder` refuses PayPal while PayWise is the active provider.
+- The admin diagnostics action refuses non-admins.
+- Then all tests, type check, production build and an unauthenticated probe of both endpoints on the preview. No payment is made and nothing is published.
