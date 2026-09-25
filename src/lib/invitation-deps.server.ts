@@ -31,6 +31,8 @@ export function liveInviteDeps(actorUserId: string, requestOrigin: string | null
         _invitation_id: null as never,
       });
       if (error) throw new Error(error.message);
+      // 30-day retention: best-effort cleanup on each send; never blocks the invite.
+      void supabaseAdmin.rpc("purge_invitation_send_ledger").then(() => {}, () => {});
       return String(data);
     },
     finalizeSend: async (id, ok) => {
