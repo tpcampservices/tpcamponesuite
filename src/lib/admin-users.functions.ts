@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { trustedInviteOrigin } from "./invitation-links";
 import {
   isEntitlementStatus,
   isPaymentStatus,
