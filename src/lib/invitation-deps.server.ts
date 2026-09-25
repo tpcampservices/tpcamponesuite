@@ -30,9 +30,10 @@ export function liveInviteDeps(actorUserId: string, requestOrigin: string | null
         _kind: kind,
         _invitation_id: null as never,
       });
+      // 30-day retention runs atomically inside reserve_invitation_send, in the
+      // same transaction as counting and reserving. A cleanup failure aborts the
+      // reservation here, so no send is ever counted as cleaned when it was not.
       if (error) throw new Error(error.message);
-      // 30-day retention: best-effort cleanup on each send; never blocks the invite.
-      void supabaseAdmin.rpc("purge_invitation_send_ledger").then(() => {}, () => {});
       return String(data);
     },
     finalizeSend: async (id, ok) => {
