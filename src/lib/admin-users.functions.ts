@@ -402,10 +402,8 @@ export const inviteUser = createServerFn({ method: "POST" })
   .inputValidator((data: { email?: string; redirectOrigin?: string }) => {
     const email = String(data?.email ?? "").trim().toLowerCase().slice(0, 255);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid email address");
-    const origin =
-      typeof data?.redirectOrigin === "string" && data.redirectOrigin.startsWith("http")
-        ? data.redirectOrigin.replace(/\/$/, "").slice(0, 200)
-        : "https://tpcamponesuite.app";
+    // Exact-match allowlist only; anything else falls back to the default origin.
+    const origin = trustedInviteOrigin(data?.redirectOrigin);
     return { email, origin };
   })
   .handler(async ({ data, context }) => {
