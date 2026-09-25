@@ -50,6 +50,13 @@
       "when": 1790371530374,
       "tag": "0006_paywise_phase1",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790373263299,
+      "tag": "0007_harden_paypal_plans_and_contact_messages_policies",
+      "breakpoints": true
     }
   ]
 }
