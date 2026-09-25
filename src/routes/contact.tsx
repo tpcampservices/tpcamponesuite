@@ -29,8 +29,13 @@ export const Route = createFileRoute("/contact")({
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  email: z.string().trim().email("Enter a valid email").max(255),
-  subject: z.string().trim().max(150).optional(),
+  email: z.string().trim().toLowerCase().email("Enter a valid email").max(255),
+  subject: z
+    .string()
+    .trim()
+    .max(150)
+    .optional()
+    .transform((v) => (v ? v : undefined)),
   message: z.string().trim().min(1, "Message is required").max(2000),
 });
 
