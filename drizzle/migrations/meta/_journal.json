@@ -36,6 +36,13 @@
       "when": 1790241265423,
       "tag": "0004_invitation_send_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790302077489,
+      "tag": "0005_atomic_invitation_ledger_cleanup",
+      "breakpoints": true
     }
   ]
 }
