@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, Check, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { PaypalPayButton } from "@/components/paypal-pay-button";
+import { PAYPAL_CHECKOUT_ENABLED } from "@/lib/payment-provider";
 import { useSession } from "@/hooks/use-session";
 import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getQuote } from "@/lib/billing.functions";
@@ -28,13 +29,13 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "Choose Starter, Growth, Pro or Institutional access for TP-CAMP OneSuite. Prices in USD, one-time PayPal payment, and you renew manually — never charged automatically.",
+          "Choose Starter, Growth, Pro or Institutional access for TP-CAMP OneSuite. Prices in USD, one-time payment, and you renew manually — never charged automatically.",
       },
       { property: "og:title", content: "TP-CAMP OneSuite Pricing" },
       {
         property: "og:description",
         content:
-          "Fixed-term access plans paid once by PayPal. No automatic renewals, no surprise charges.",
+          "Fixed-term access plans paid once. No automatic renewals, no surprise charges.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -87,8 +88,8 @@ function PricingPage() {
             Pay once for the access period you choose.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            Every plan is a one-time PayPal payment for a fixed access period. Nothing renews
-            automatically and PayPal never charges you again — we remind you before your access ends
+            Every plan is a one-time payment for a fixed access period. Nothing renews
+            automatically and you're never charged again. We remind you before your access ends
             and you renew when you're ready.
           </p>
 
@@ -273,13 +274,23 @@ function PricingPage() {
 
               <p className="mt-3 flex gap-2 text-xs text-muted-foreground">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                One-time payment for {periodLabel} of access. No automatic renewal — PayPal will not
-                charge you again.
+                One-time payment for {periodLabel} of access. No automatic renewal. You will not be
+                charged again.
               </p>
 
               {session ? (
                 <div className="mt-6">
-                  <PaypalPayButton selection={selection} />
+                  {PAYPAL_CHECKOUT_ENABLED ? (
+                    <PaypalPayButton selection={selection} />
+                  ) : (
+                    <div className="rounded-lg border border-border bg-surface p-4 text-sm">
+                      <p className="font-medium">Secure checkout by PayWise is coming soon</p>
+                      <p className="mt-1 text-muted-foreground">
+                        We're finishing PayWise card payments. To buy or renew now, please{" "}
+                        <Link to="/contact" className="text-accent">contact us</Link>.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Link

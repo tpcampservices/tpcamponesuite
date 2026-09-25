@@ -37,11 +37,16 @@ import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/t
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthInviteRouteImport } from './routes/auth_.invite'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AuthenticatedAdminPaywiseRouteImport } from './routes/_authenticated/admin/paywise'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminWebhooksRouteImport } from './routes/_authenticated/admin/webhooks'
 import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authenticated/contracts/index'
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
+import { Route as PaymentPaywiseErrorRouteImport } from './routes/payment.paywise.error'
+import { Route as PaymentPaywiseSuccessRouteImport } from './routes/payment.paywise.success'
+import { Route as ApiPaymentsPaywiseCallbackRouteImport } from './routes/api/payments/paywise/callback'
+import { Route as ApiPaymentsPaywiseNotifyRouteImport } from './routes/api/payments/paywise/notify'
 import { Route as ApiPublicCrmProcessRouteImport } from './routes/api/public/crm/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaypalWebhookRouteImport } from './routes/api/public/paypal/webhook'
@@ -193,6 +198,12 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminPaywiseRoute =
+  AuthenticatedAdminPaywiseRouteImport.update({
+    id: '/admin/paywise',
+    path: '/admin/paywise',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/admin/settings',
@@ -221,6 +232,28 @@ const AuthenticatedContractsContractIdRoute =
     id: '/contracts/$contractId',
     path: '/contracts/$contractId',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const PaymentPaywiseErrorRoute = PaymentPaywiseErrorRouteImport.update({
+  id: '/payment/paywise/error',
+  path: '/payment/paywise/error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentPaywiseSuccessRoute = PaymentPaywiseSuccessRouteImport.update({
+  id: '/payment/paywise/success',
+  path: '/payment/paywise/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPaymentsPaywiseCallbackRoute =
+  ApiPaymentsPaywiseCallbackRouteImport.update({
+    id: '/api/payments/paywise/callback',
+    path: '/api/payments/paywise/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsPaywiseNotifyRoute =
+  ApiPaymentsPaywiseNotifyRouteImport.update({
+    id: '/api/payments/paywise/notify',
+    path: '/api/payments/paywise/notify',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCrmProcessRoute = ApiPublicCrmProcessRouteImport.update({
   id: '/api/public/crm/process',
@@ -299,11 +332,16 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/admin/paywise': typeof AuthenticatedAdminPaywiseRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
+  '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
+  '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
+  '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
@@ -342,11 +380,16 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/admin/paywise': typeof AuthenticatedAdminPaywiseRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
+  '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
+  '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
+  '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
@@ -387,11 +430,16 @@ export interface FileRoutesById {
   '/auth_/callback': typeof AuthCallbackRoute
   '/auth_/invite': typeof AuthInviteRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/_authenticated/admin/paywise': typeof AuthenticatedAdminPaywiseRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/webhooks': typeof AuthenticatedAdminWebhooksRoute
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
+  '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
+  '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
+  '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
+  '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
   '/api/public/crm/process': typeof ApiPublicCrmProcessRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/paypal/webhook': typeof ApiPublicPaypalWebhookRoute
@@ -432,11 +480,16 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
+    | '/admin/paywise'
     | '/admin/settings'
     | '/admin/users'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/payment/paywise/error'
+    | '/payment/paywise/success'
     | '/contracts/'
+    | '/api/payments/paywise/callback'
+    | '/api/payments/paywise/notify'
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
@@ -475,11 +528,16 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/invite'
     | '/invite/$token'
+    | '/admin/paywise'
     | '/admin/settings'
     | '/admin/users'
     | '/admin/webhooks'
     | '/contracts/$contractId'
+    | '/payment/paywise/error'
+    | '/payment/paywise/success'
     | '/contracts'
+    | '/api/payments/paywise/callback'
+    | '/api/payments/paywise/notify'
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
@@ -519,11 +577,16 @@ export interface FileRouteTypes {
     | '/auth_/callback'
     | '/auth_/invite'
     | '/invite/$token'
+    | '/_authenticated/admin/paywise'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/webhooks'
     | '/_authenticated/contracts/$contractId'
+    | '/payment/paywise/error'
+    | '/payment/paywise/success'
     | '/_authenticated/contracts/'
+    | '/api/payments/paywise/callback'
+    | '/api/payments/paywise/notify'
     | '/api/public/crm/process'
     | '/api/public/payments/webhook'
     | '/api/public/paypal/webhook'
@@ -560,6 +623,10 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthInviteRoute: typeof AuthInviteRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  PaymentPaywiseErrorRoute: typeof PaymentPaywiseErrorRoute
+  PaymentPaywiseSuccessRoute: typeof PaymentPaywiseSuccessRoute
+  ApiPaymentsPaywiseCallbackRoute: typeof ApiPaymentsPaywiseCallbackRoute
+  ApiPaymentsPaywiseNotifyRoute: typeof ApiPaymentsPaywiseNotifyRoute
   ApiPublicCrmProcessRoute: typeof ApiPublicCrmProcessRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaypalWebhookRoute: typeof ApiPublicPaypalWebhookRoute
@@ -769,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/paywise': {
+      id: '/_authenticated/admin/paywise'
+      path: '/admin/paywise'
+      fullPath: '/admin/paywise'
+      preLoaderRoute: typeof AuthenticatedAdminPaywiseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
       path: '/admin/settings'
@@ -803,6 +877,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/contracts/$contractId'
       preLoaderRoute: typeof AuthenticatedContractsContractIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/payment/paywise/error': {
+      id: '/payment/paywise/error'
+      path: '/payment/paywise/error'
+      fullPath: '/payment/paywise/error'
+      preLoaderRoute: typeof PaymentPaywiseErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/paywise/success': {
+      id: '/payment/paywise/success'
+      path: '/payment/paywise/success'
+      fullPath: '/payment/paywise/success'
+      preLoaderRoute: typeof PaymentPaywiseSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/paywise/callback': {
+      id: '/api/payments/paywise/callback'
+      path: '/api/payments/paywise/callback'
+      fullPath: '/api/payments/paywise/callback'
+      preLoaderRoute: typeof ApiPaymentsPaywiseCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/paywise/notify': {
+      id: '/api/payments/paywise/notify'
+      path: '/api/payments/paywise/notify'
+      fullPath: '/api/payments/paywise/notify'
+      preLoaderRoute: typeof ApiPaymentsPaywiseNotifyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/crm/process': {
       id: '/api/public/crm/process'
@@ -875,6 +977,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedRegistrationsRoute: typeof AuthenticatedRegistrationsRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
+  AuthenticatedAdminPaywiseRoute: typeof AuthenticatedAdminPaywiseRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminWebhooksRoute: typeof AuthenticatedAdminWebhooksRoute
@@ -887,6 +990,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedRegistrationsRoute: AuthenticatedRegistrationsRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
+  AuthenticatedAdminPaywiseRoute: AuthenticatedAdminPaywiseRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminWebhooksRoute: AuthenticatedAdminWebhooksRoute,
@@ -922,6 +1026,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   AuthInviteRoute: AuthInviteRoute,
   InviteTokenRoute: InviteTokenRoute,
+  PaymentPaywiseErrorRoute: PaymentPaywiseErrorRoute,
+  PaymentPaywiseSuccessRoute: PaymentPaywiseSuccessRoute,
+  ApiPaymentsPaywiseCallbackRoute: ApiPaymentsPaywiseCallbackRoute,
+  ApiPaymentsPaywiseNotifyRoute: ApiPaymentsPaywiseNotifyRoute,
   ApiPublicCrmProcessRoute: ApiPublicCrmProcessRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaypalWebhookRoute: ApiPublicPaypalWebhookRoute,

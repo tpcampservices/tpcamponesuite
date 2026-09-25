@@ -51,6 +51,10 @@ export const createOrder = createServerFn({ method: "POST" })
     const { createPaypalOrder, paypalOrdersConfigured } = await import("./access.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const { PAYPAL_CHECKOUT_ENABLED } = await import("./payment-provider");
+    if (!PAYPAL_CHECKOUT_ENABLED) {
+      throw new Error("PayPal checkout is no longer available. Please contact TP-CAMP support.");
+    }
     const price = quotePrice(data);
     if (!(await paypalOrdersConfigured())) {
       throw new Error("PayPal is not configured yet. Please contact TP-CAMP support.");

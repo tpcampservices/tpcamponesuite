@@ -106,7 +106,7 @@ export const compareGroups: CompareGroup[] = [
     group: "Access",
     rows: [
       { feature: "Included applications", included: "All 5 apps" },
-      { feature: "Fixed-term payment", included: "One-time PayPal order" },
+      { feature: "Fixed-term payment", included: "One-time payment" },
       { feature: "Auto-renewal", included: "None — manual renewal" },
     ],
   },
