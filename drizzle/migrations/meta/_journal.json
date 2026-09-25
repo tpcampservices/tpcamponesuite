@@ -43,6 +43,13 @@
       "when": 1790302077489,
       "tag": "0005_atomic_invitation_ledger_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790371530374,
+      "tag": "0006_paywise_phase1",
+      "breakpoints": true
     }
   ]
 }
