@@ -242,6 +242,12 @@ export type AppAuthorizationResponse = {
   authorized: boolean;
   user_id: string;
   workspace_id: string | null;
+  /**
+   * Additive display field: the name of the SAME workspace as `workspace_id`,
+   * read server-side. Null when no workspace was resolved. Optional for
+   * consumers — ignoring it is fully supported.
+   */
+  workspace_name: string | null;
   workspace_status: string | null;
   membership_id: string | null;
   app_slug: string | null;
@@ -295,16 +301,34 @@ function legacyReason(reason: string | null): string | null {
   return reason;
 }
 
+/**
+ * Display name of the workspace the resolver ALREADY selected. The id comes only
+ * from the resolver result (never from the request), and only the `name`
+ * column is read, so no other workspace metadata can leak.
+ */
+export async function workspaceNameFor(workspaceId: string | null): Promise<string | null> {
+  if (!workspaceId) return null;
+  const { data } = await supabaseAdmin
+    .from("workspaces")
+    .select("id, name")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (!data || data.id !== workspaceId) return null;
+  return typeof data.name === "string" ? data.name : null;
+}
+
 export async function authorizationFor(
   userId: string,
   appSlug: string,
 ): Promise<AppAuthorizationResponse> {
   const { resolveAppAuthorization, reasonCode } = await import("./workspace.server");
   const authz = await resolveAppAuthorization(userId, appSlug);
+  const workspaceName = await workspaceNameFor(authz.workspaceId);
   return {
     authorized: authz.authorized,
     user_id: userId,
     workspace_id: authz.workspaceId,
+    workspace_name: workspaceName,
     workspace_status: authz.workspaceStatus,
     membership_id: authz.membershipId,
     app_slug: authz.appSlug,
