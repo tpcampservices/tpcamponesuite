@@ -222,7 +222,8 @@ export function buildUrp(
     // Every contributor is kept; nothing is truncated or dropped here.
     writers: writersRaw.map((w) => ({
       source_contributor_id: str(w.id) ?? str(w.sourcePartyId),
-      name: str(w.legalName) ?? str(w.name),
+      // Legal name only. Never falls back to a stage/professional name.
+      name: str(w.legalName),
       role: str(w.role),
       ipi: str(w.ipiNumber),
       society: str(w.cmo) ?? str(w.society),
@@ -295,4 +296,61 @@ export function isStale(
 ) {
   if (!profile) return false;
   return profile.catalog_snapshot_id !== latest.catalog || profile.splits_snapshot_id !== latest.splits;
+}
+
+
+/* ---------------- ownership revisions (Split Sheets) ---------------- */
+
+/** Parses a contract ownership revision ("0", "12"); anything else is null. Never compared as text. */
+export function parseOwnershipRevision(v: unknown): number | null {
+  if (typeof v !== "string" || !/^(0|[1-9]\d{0,14})$/.test(v)) return null;
+  return Number(v);
+}
+
+export type OwnershipPrior = {
+  event_id: string | null;
+  checksum: string;
+  ownership_revision: string | null;
+};
+
+export type OwnershipDecision = "duplicate" | "event_id_reused" | "stale" | "ownership_revision_conflict" | "accept";
+
+/**
+ * Decides what to do with an incoming Split Sheets snapshot, given every earlier
+ * snapshot for the SAME workspace + work_uid (the caller must scope the list).
+ * Gaps in revision numbers are allowed.
+ */
+export function classifyOwnershipEvent(
+  prior: OwnershipPrior[],
+  incoming: { eventId: string | null; checksum: string; revision: number },
+): OwnershipDecision {
+  if (incoming.eventId) {
+    const same = prior.find((p) => p.event_id === incoming.eventId);
+    if (same) return same.checksum === incoming.checksum ? "duplicate" : "event_id_reused";
+  }
+  if (prior.some((p) => p.checksum === incoming.checksum)) return "duplicate";
+  let max: number | null = null;
+  for (const p of prior) {
+    const r = parseOwnershipRevision(p.ownership_revision);
+    if (r !== null && (max === null || r > max)) max = r;
+  }
+  if (max === null || incoming.revision > max) return "accept";
+  return incoming.revision < max ? "stale" : "ownership_revision_conflict";
+}
+
+/**
+ * The current ownership source is the highest numeric revision, never the most
+ * recently received. Ties (not normally possible) fall back to arrival order.
+ */
+export function pickCurrentOwnership<T extends { ownership_revision: string | null; received_at: string }>(snaps: T[]): T | null {
+  let best: T | null = null;
+  let bestRev = -1;
+  for (const s of snaps) {
+    const r = parseOwnershipRevision(s.ownership_revision) ?? -1;
+    if (!best || r > bestRev || (r === bestRev && s.received_at > best.received_at)) {
+      best = s;
+      bestRev = r;
+    }
+  }
+  return best;
 }

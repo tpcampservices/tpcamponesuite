@@ -14,7 +14,7 @@
     "work_uid": { "$ref": "#/$defs/id" },
     "source_record_id": { "$ref": "#/$defs/id" },
     "source_revision": { "$ref": "#/$defs/id" },
-    "ownership_revision": { "$ref": "#/$defs/id" },
+    "ownership_revision": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,14})$" },
     "payload": {
       "type": "object",
       "additionalProperties": false,
@@ -29,7 +29,7 @@
             "type": "object", "additionalProperties": false, "required": ["id", "legalName", "sharePercent"],
             "properties": {
               "id": { "$ref": "#/$defs/id" },
-              "legalName": { "type": "string", "minLength": 1, "maxLength": 300 },
+              "legalName": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S" },
               "role": { "type": ["string", "null"], "maxLength": 100 },
               "ipiNumber": { "type": ["string", "null"], "pattern": "^\\d{9,11}$" },
               "cmo": { "type": ["string", "null"], "maxLength": 100 },

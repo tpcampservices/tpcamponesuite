@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { exampleCatalogEvent, exampleSplitsEvent } from "../../docs/registration-feed/examples";
 import { handleSourceFeed, type FeedDeps, type IngestInput } from "./registration-feed-handler.server";
 import { canonicalJson } from "./registration-core";
+import { signFeedBody } from "./registration-auth.server";
 
 // Fictional test-only values. Not real credentials.
 const K = {
@@ -69,8 +70,14 @@ describe("registration feed authentication", () => {
   it("1. Catalog credential + matching header is accepted", async () => {
     expect((await run(req({ key: K.catDev, app: "catalog", body: exampleCatalogEvent }))).status).toBe(201);
   });
-  it("2. Split Sheets credential + matching header is accepted", async () => {
-    expect((await run(req({ key: K.splDev, app: "splits", body: withWs(exampleSplitsEvent, TEST_WS) }))).status).toBe(201);
+  it("2. Split Sheets: signed request accepted; its key as a bare header is refused", async () => {
+    const ev = withWs(exampleSplitsEvent, TEST_WS);
+    const raw = JSON.stringify(ev);
+    const ts = String(Math.floor(Date.now() / 1000));
+    const h = new Headers({ "content-type": "application/json", "x-tpcamp-app": "splits", "x-tp-camp-timestamp": ts, "x-tp-camp-event-id": ev.event_id, "x-tp-camp-signature": signFeedBody(K.splDev, ts, raw) });
+    const res = await handleSourceFeed(new Request("http://x/", { method: "POST", headers: h, body: raw }), baseEnv(), memoryDeps().deps);
+    expect(res.status).toBe(201);
+    expect((await run(req({ key: K.splDev, app: "splits", body: ev }))).status).toBe(401);
   });
   it("3. cross-app claims are rejected", async () => {
     expect((await run(req({ key: K.catDev, app: "splits", body: exampleSplitsEvent }))).status).toBe(401);

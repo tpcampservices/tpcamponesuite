@@ -71,7 +71,7 @@ export const exampleSplitsEvent = {
   work_uid: "wrk_example_sunrise_0001",
   source_record_id: "spl-sheet-4444",
   source_revision: "spl-rev-3",
-  ownership_revision: "own-rev-2",
+  ownership_revision: "2",
   payload: {
     sheet_type: "composition",
     ownership_validated_at: "2026-09-20T09:00:00Z",
