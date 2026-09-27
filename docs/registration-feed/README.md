@@ -29,7 +29,16 @@ Server-to-server only. Never call it from a browser.
 | Header | Value |
 | --- | --- |
 | `x-tpcamp-app` | `catalog` or `splits`. Must agree with the credential. |
-| `x-tpcamp-key` | Your app's own registration-feed credential (not the SSO key) |
+| `x-tpcamp-key` | **Catalog only.** Catalog's own registration-feed credential (not the SSO key) |
+
+**Split Sheets signs every request instead of sending its key** (HMAC-SHA256, same pattern as the Catalog↔Splits integration, but with its own dedicated OneSuite key). A Split Sheets key sent in `x-tpcamp-key` is refused.
+
+| Header (Split Sheets) | Value |
+|---|---|
+| `x-tpcamp-app` | `splits` |
+| `X-TP-CAMP-Timestamp` | Unix seconds; must be within 5 minutes of OneSuite's clock |
+| `X-TP-CAMP-Event-ID` | Must equal the body `event_id` |
+| `X-TP-CAMP-Signature` | Lowercase hex HMAC-SHA256 of `${timestamp}.${rawBody}` using `REG_FEED_KEY_SPLITS_DEV` / `_PROD` |
 | `Content-Type` | `application/json` (optional `charset=utf-8`), otherwise 415 |
 
 Each source app has its own credential per environment. OneSuite holds them in server-side secret slots:
@@ -77,7 +86,7 @@ Each event is a **full snapshot** of the current state, not a diff. Send one aft
 | `work_uid` | yes | Stable shared work id (Catalog `works.work_uid` = Splits `sheets.source_work_id`). Never a title. |
 | `source_record_id` | yes | Your own primary key for the record (Catalog work id / Splits sheet id) |
 | `source_revision` | yes | Your record revision (e.g. `works.source_revision`, `sheets.source_revision`) |
-| `ownership_revision` | Splits only, yes | `sheets.ownership_revision` |
+| `ownership_revision` | Splits only, yes | `sheets.ownership_revision` as a decimal string, e.g. `"12"` (no leading zeros). Compared as a number; gaps allowed. Older than the held revision → `200 outcome: "stale"` (kept as history, never current). Same revision, different content → `409 ownership_revision_conflict`. A newer snapshot with `ownership_validated_at: null` replaces a validated one. |
 | `payload` | yes | Feed-specific, below |
 
 Unknown fields are rejected everywhere, so mistakes surface instead of being silently dropped.

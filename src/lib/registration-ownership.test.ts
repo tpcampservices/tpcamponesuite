@@ -195,10 +195,7 @@ describe("HMAC authentication", () => {
   it("15–19. bad signature, expired timestamp, altered body, wrong key and Catalog key all get the same 401", async () => {
     const s = store();
     const e = event("1");
-    const cases = [
-      signed(e, { tamper: (r) => r }), // placeholder replaced below
-    ];
-    cases.length = 0;
+    const cases: Request[] = [];
     const badSig = signed(e);
     badSig.headers.set("x-tp-camp-signature", "0".repeat(64));
     cases.push(
