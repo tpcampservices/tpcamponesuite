@@ -171,7 +171,8 @@ export const CATALOG_UNSUPPORTED_FIELDS = [
 export const SplitsWriterSchema = z
   .object({
     id,
-    legalName: z.string().trim().min(1).max(300),
+    // Registration identity. Never substituted with a stage name; blank is refused.
+    legalName: z.string().trim().min(1, "Legal name is required").max(300),
     role: z.string().max(100).nullable().optional(),
     ipiNumber: z.string().regex(/^\d{9,11}$/, "IPI name number is 9–11 digits").nullable().optional(),
     cmo: z.string().max(100).nullable().optional(),
@@ -189,6 +190,13 @@ export const SplitsCompositionPayloadSchema = z
     writers: z.array(SplitsWriterSchema).max(1000),
   })
   .strict();
+
+/**
+ * Split Sheets `sheets.ownership_revision` (integer) sent as a decimal string.
+ * Compared numerically by the Hub; gaps are allowed; no leading zeros so one
+ * number has exactly one spelling.
+ */
+export const OWNERSHIP_REVISION_PATTERN = /^(0|[1-9]\d{0,14})$/;
 
 const envelope = {
   schema_version: z.literal(FEED_SCHEMA_VERSION),
@@ -212,7 +220,9 @@ export const SplitsFeedEventSchema = z
   .object({
     ...envelope,
     event_type: z.literal(FEED_EVENT_TYPES.splits),
-    ownership_revision: id,
+    ownership_revision: z
+      .string()
+      .regex(OWNERSHIP_REVISION_PATTERN, "Ownership revision must be a whole number without leading zeros, e.g. \"12\""),
     payload: SplitsCompositionPayloadSchema,
   })
   .strict();
@@ -235,6 +245,9 @@ export function feedIssues(error: z.ZodError) {
 export const FEED_RESPONSES = {
   created: { status: 201, retry: false },
   duplicate: { status: 200, retry: false },
+  /** Older ownership revision than the one held: stored as history, never current. */
+  stale: { status: 200, retry: false },
+  ownership_revision_conflict: { status: 409, retry: false },
   invalid_app_slug: { status: 400, retry: false },
   invalid_body: { status: 400, retry: false },
   unauthorized: { status: 401, retry: false },
