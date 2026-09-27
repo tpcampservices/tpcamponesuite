@@ -1,7 +1,16 @@
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { resolveAppAuthorization } from "./workspace.server";
-import { buildUrp, canonicalJson, isStale, validateUrp, type SourceSnapshot } from "./registration-core";
+import {
+  buildUrp,
+  canonicalJson,
+  classifyOwnershipEvent,
+  isStale,
+  parseOwnershipRevision,
+  pickCurrentOwnership,
+  validateUrp,
+  type SourceSnapshot,
+} from "./registration-core";
 
 export type RegistrationPermission =
   | "splits.registration.prepare"
@@ -60,6 +69,33 @@ export async function ingestSourceSnapshot(input: {
     }),
   );
 
+  // Split Sheets ownership: numeric revision rules, scoped to this workspace + work.
+  let stale = false;
+  if (input.sourceApp === "splits") {
+    const revision = parseOwnershipRevision(input.ownershipRevision);
+    if (revision === null) throw new Error("invalid ownership revision");
+    const { data: prior, error: priorErr } = await supabaseAdmin
+      .from("registration_source_snapshots")
+      .select("id, source_event_id, checksum, ownership_revision")
+      .eq("workspace_id", input.workspaceId)
+      .eq("work_uid", input.workUid)
+      .eq("source_app", "splits")
+      .limit(5000);
+    if (priorErr) throw new Error(priorErr.message);
+    const rows = prior ?? [];
+    const decision = classifyOwnershipEvent(
+      rows.map((r) => ({ event_id: r.source_event_id, checksum: r.checksum, ownership_revision: r.ownership_revision })),
+      { eventId: input.eventId, checksum, revision },
+    );
+    if (decision === "event_id_reused") return { snapshotId: null, duplicate: false, conflict: true };
+    if (decision === "ownership_revision_conflict") return { snapshotId: null, duplicate: false, revisionConflict: true };
+    if (decision === "duplicate") {
+      const hit = rows.find((r) => (input.eventId && r.source_event_id === input.eventId) || r.checksum === checksum);
+      return { snapshotId: hit?.id ?? null, duplicate: true };
+    }
+    stale = decision === "stale";
+  }
+
   // Same event id: identical content is a duplicate; different content is a reuse error.
   if (input.eventId) {
     const { data: byEvent } = await supabaseAdmin
@@ -113,9 +149,15 @@ export async function ingestSourceSnapshot(input: {
     workspace_id: input.workspaceId,
     registration_work_id: work.id,
     state: "source_received",
-    details: { source_app: input.sourceApp, snapshot_id: snap.id, source_revision: input.sourceRevision } as never,
+    details: {
+      source_app: input.sourceApp,
+      snapshot_id: snap.id,
+      source_revision: input.sourceRevision,
+      ownership_revision: input.ownershipRevision,
+      ...(stale ? { stale: true, note: "Older ownership revision kept as history; not used as current." } : {}),
+    } as never,
   });
-  return { snapshotId: snap.id, duplicate: false };
+  return { snapshotId: snap.id, duplicate: false, stale };
 }
 
 async function ensureWork(workspaceId: string, workUid: string, links: { catalog_work_id?: string; split_sheet_id?: string }) {
@@ -139,6 +181,25 @@ async function ensureWork(workspaceId: string, workUid: string, links: { catalog
 }
 
 async function latestSnapshot(workspaceId: string, workUid: string, app: "catalog" | "splits") {
+  if (app === "splits") {
+    // Current ownership = highest numeric revision, never the latest arrival.
+    const { data: revs } = await supabaseAdmin
+      .from("registration_source_snapshots")
+      .select("id, ownership_revision, received_at")
+      .eq("workspace_id", workspaceId)
+      .eq("work_uid", workUid)
+      .eq("source_app", "splits")
+      .limit(5000);
+    const current = pickCurrentOwnership(revs ?? []);
+    if (!current) return null;
+    const { data } = await supabaseAdmin
+      .from("registration_source_snapshots")
+      .select("id, source_app, source_revision, ownership_revision, payload, received_at, source_entity_id")
+      .eq("id", current.id)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    return (data as SourceSnapshot | null) ?? null;
+  }
   const { data } = await supabaseAdmin
     .from("registration_source_snapshots")
     .select("id, source_app, source_revision, ownership_revision, payload, received_at, source_entity_id")
