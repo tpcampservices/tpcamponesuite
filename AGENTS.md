@@ -9,3 +9,4 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - PayWise: inbound notify/callback only log to paywise_events (unique channel+dedupe_key); activation must re-verify via GET /payments/status server-side — payloads are unsigned.
+- Registration Identity (public.registration_identities, one row per workspace) is written only via server functions after an Owner/Administrator role check on the server-resolved workspace; not a splits.* permission, because it is OneSuite admin data.
