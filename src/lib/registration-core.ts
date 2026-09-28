@@ -142,7 +142,11 @@ export type Urp = {
     /** Ownership exactly as approved in Split Sheets, as a decimal string. */
     ownership_share: string | null;
     publisher: string | null;
+    /** Split Sheets writer.publisherIpi, verbatim authority; null when absent. */
+    publisher_ipi: string | null;
   }[];
+  /** OneSuite Registration Identity (ONESUITE_ADMIN). Null when not configured. */
+  submitting_party: SubmittingParty | null;
   provenance: { path: string; source_app: string; snapshot_id: string | null }[];
 };
 
@@ -170,10 +174,62 @@ export function shareString(v: unknown): string | null {
   return n.toFixed(4);
 }
 
+export type SubmittingParty = {
+  legal_name: string | null;
+  trading_name: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  address: { street: string | null; city: string | null; country: string | null; postal_code: string | null };
+  signatory: { name: string | null; title: string | null };
+  identity_updated_at: string | null;
+};
+
+/** Row shape of public.registration_identities (only the fields used by the URP). */
+export type RegistrationIdentityRow = {
+  legal_name: string | null;
+  trading_name?: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone?: string | null;
+  address_street?: string | null;
+  address_city?: string | null;
+  address_country: string | null;
+  address_postal_code?: string | null;
+  signatory_name: string | null;
+  signatory_title: string | null;
+  updated_at: string | null;
+};
+
+export function submittingPartyFrom(row: RegistrationIdentityRow | null | undefined): SubmittingParty | null {
+  if (!row) return null;
+  return {
+    legal_name: str(row.legal_name),
+    trading_name: str(row.trading_name),
+    contact_name: str(row.contact_name),
+    contact_email: str(row.contact_email),
+    contact_phone: str(row.contact_phone),
+    address: {
+      street: str(row.address_street),
+      city: str(row.address_city),
+      country: str(row.address_country),
+      postal_code: str(row.address_postal_code),
+    },
+    signatory: { name: str(row.signatory_name), title: str(row.signatory_title) },
+    identity_updated_at: row.updated_at ?? null,
+  };
+}
+
+/** Required submitting-party fields; any missing makes the identity incomplete. */
+export function identityComplete(p: SubmittingParty | null): boolean {
+  return !!(p && p.legal_name && p.contact_name && p.contact_email && p.address.country && p.signatory.name && p.signatory.title);
+}
+
 export function buildUrp(
   workUid: string,
   catalog: SourceSnapshot | null,
   splits: SourceSnapshot | null,
+  identity: RegistrationIdentityRow | null = null,
 ): Urp {
   const c = (catalog?.payload ?? {}) as Record<string, unknown>;
   const s = (splits?.payload ?? {}) as Record<string, unknown>;
@@ -229,7 +285,11 @@ export function buildUrp(
       society: str(w.cmo) ?? str(w.society),
       ownership_share: shareString(w.sharePercent),
       publisher: str(w.publisher),
+      publisher_ipi: str(w.publisherIpi),
     })),
+    // Built last and in its own block: identity never populates work, recordings,
+    // releases, writers or ownership fields.
+    submitting_party: submittingPartyFrom(identity),
     provenance: [
       { path: "work", source_app: "catalog", snapshot_id: catalog?.id ?? null },
       { path: "recordings", source_app: "catalog", snapshot_id: catalog?.id ?? null },
@@ -237,6 +297,7 @@ export function buildUrp(
       { path: "work.first_release_date", source_app: "hub", snapshot_id: null },
       { path: "selected_recording_id", source_app: "hub", snapshot_id: null },
       { path: "writers", source_app: "splits", snapshot_id: splits?.id ?? null },
+      { path: "submitting_party", source_app: "onesuite_admin", snapshot_id: null },
     ],
   };
 }
@@ -252,6 +313,8 @@ export function validateUrp(urp: Urp): ValidationIssue[] {
     add({ code: "no_splits_source", severity: "blocking", path: "source_refs", message: "No approved split sheet has been received for this work yet." });
   else if (!urp.source_refs.ownership_validated_at)
     add({ code: "ownership_not_validated", severity: "blocking", path: "source_refs", message: "The split sheet has not been validated and approved in Split Sheets." });
+  if (!identityComplete(urp.submitting_party ?? null))
+    add({ code: "missing_registration_identity", severity: "blocking", path: "submitting_party", message: "The submitting entity for this workspace is not set up. A workspace owner or administrator must configure the Registration Identity in the Registration Hub." });
   if (!urp.work.title)
     add({ code: "missing_title", severity: "blocking", path: "work.title", message: "The work needs a title in Catalog." });
   if (urp.source_refs.splits_snapshot_id && urp.writers.length === 0)
@@ -291,11 +354,15 @@ export function validateUrp(urp: Urp): ValidationIssue[] {
 }
 
 export function isStale(
-  profile: { catalog_snapshot_id: string | null; splits_snapshot_id: string | null } | null,
-  latest: { catalog: string | null; splits: string | null },
+  profile: { catalog_snapshot_id: string | null; splits_snapshot_id: string | null; urp?: unknown } | null,
+  latest: { catalog: string | null; splits: string | null; identityUpdatedAt?: string | null },
 ) {
   if (!profile) return false;
-  return profile.catalog_snapshot_id !== latest.catalog || profile.splits_snapshot_id !== latest.splits;
+  if (profile.catalog_snapshot_id !== latest.catalog || profile.splits_snapshot_id !== latest.splits) return true;
+  if (latest.identityUpdatedAt === undefined) return false;
+  const built = (profile.urp as { submitting_party?: { identity_updated_at?: string | null } | null } | undefined)?.submitting_party?.identity_updated_at ?? null;
+  const norm = (v: string | null) => (v ? new Date(v).toISOString() : null);
+  return norm(built) !== norm(latest.identityUpdatedAt);
 }
 
 

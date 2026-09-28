@@ -37,7 +37,37 @@ export async function registrationContext(userId: string) {
     permissions: perms as RegistrationPermission[],
     canRead: auth.authorized && perms.some((p) => READ_PERMS.includes(p as RegistrationPermission)),
     reason: auth.reason,
+    roleKey: auth.roleKey,
+    /** Registration Identity is workspace administration: Owner/Administrator only. */
+    canManageIdentity: auth.authorized && !!auth.workspaceId && (auth.roleKey === "owner" || auth.roleKey === "administrator"),
   };
+}
+
+export async function loadIdentity(workspaceId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("registration_identities")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export type IdentityInput = {
+  legal_name: string; trading_name: string | null; contact_name: string; contact_email: string; contact_phone: string | null;
+  address_street: string | null; address_city: string | null; address_country: string; address_postal_code: string | null;
+  signatory_name: string; signatory_title: string;
+};
+
+/** workspaceId MUST be the server-resolved workspace, never a browser value. */
+export async function saveIdentity(workspaceId: string, input: IdentityInput) {
+  const { data, error } = await supabaseAdmin
+    .from("registration_identities")
+    .upsert({ workspace_id: workspaceId, ...input }, { onConflict: "workspace_id" })
+    .select("*")
+    .single();
+  if (error) throw new Error("The Registration Identity could not be saved. Check the fields and try again.");
+  return data;
 }
 
 export async function requireRegistrationPermission(userId: string, perm: RegistrationPermission) {
@@ -222,11 +252,12 @@ export async function buildProfile(workspaceId: string, workId: string, actor: s
     .maybeSingle();
   if (!work) throw new Error("Work not found in this workspace.");
 
-  const [cat, spl] = await Promise.all([
+  const [cat, spl, identity] = await Promise.all([
     latestSnapshot(workspaceId, work.work_uid, "catalog"),
     latestSnapshot(workspaceId, work.work_uid, "splits"),
+    loadIdentity(workspaceId),
   ]);
-  const urp = buildUrp(work.work_uid, cat, spl);
+  const urp = buildUrp(work.work_uid, cat, spl, identity);
   const fingerprint = sha256(canonicalJson(urp));
 
   const { data: same } = await supabaseAdmin
@@ -290,6 +321,7 @@ export async function listWorks(workspaceId: string) {
     .eq("workspace_id", workspaceId)
     .order("updated_at", { ascending: false })
     .limit(200);
+  const identity = await loadIdentity(workspaceId);
   const out = [];
   for (const w of works ?? []) {
     const [cat, spl, prof] = await Promise.all([
@@ -317,7 +349,7 @@ export async function listWorks(workspaceId: string) {
       catalogReceivedAt: cat?.received_at ?? null,
       splitsReceivedAt: spl?.received_at ?? null,
       profileRevision: p?.profile_revision ?? null,
-      stale: isStale(p, { catalog: cat?.id ?? null, splits: spl?.id ?? null }),
+      stale: isStale(p, { catalog: cat?.id ?? null, splits: spl?.id ?? null, identityUpdatedAt: identity?.updated_at ?? null }),
       validationPassed: v?.passed ?? null,
       issues: (v?.issues as { severity: string; message: string }[] | undefined) ?? [],
     });
