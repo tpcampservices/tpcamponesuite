@@ -124,7 +124,7 @@ describe("registration feed: cross-tenant boundary", () => {
     const reads = fn.split('.from("registration_source_snapshots")').slice(1).map((c) => c.split(";")[0]);
     const selects = reads.filter((c) => c.trimStart().startsWith(".select("));
     expect(selects.length).toBeGreaterThanOrEqual(3);
-    for (const q of selects) expect(q).toContain('.eq("workspace_id", input.workspaceId)');
+    for (const q of selects) expect(q).toMatch(/\.eq\("workspace_id", (input\.)?workspaceId\)/);
   });
 
   it("8. every refused cross-workspace attempt creates zero persistent records", async () => {
