@@ -8,6 +8,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { buildRegistrationProfile, getRegistrationHub } from "@/lib/registration.functions";
+import { RegistrationIdentityPanel } from "@/components/registration-identity-panel";
 
 export const Route = createFileRoute("/_authenticated/registrations")({
   head: () => ({
@@ -65,6 +66,8 @@ function RegistrationHubPage() {
             </p>
           </div>
         </div>
+
+        {data?.allowed && <RegistrationIdentityPanel />}
 
         {isLoading && <p className="text-muted-foreground">Loading…</p>}
         {data && !data.allowed && (

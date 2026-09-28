@@ -57,6 +57,20 @@
       "when": 1790373263299,
       "tag": "0007_harden_paypal_plans_and_contact_messages_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790639446108,
+      "tag": "0008_registration_identities",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790639597126,
+      "tag": "0009_registration_identities_revoke_client_writes",
+      "breakpoints": true
     }
   ]
 }
