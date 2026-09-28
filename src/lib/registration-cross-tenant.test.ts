@@ -122,7 +122,7 @@ describe("registration feed: cross-tenant boundary", () => {
     const body = src.slice(src.indexOf("export async function ingestSourceSnapshot"));
     const fn = body.slice(0, body.indexOf("\nexport ", 10));
     const reads = fn.split('.from("registration_source_snapshots")').slice(1).map((c) => c.split(";")[0]);
-    const selects = reads.filter((c) => c.includes(".select("));
+    const selects = reads.filter((c) => c.trimStart().startsWith(".select("));
     expect(selects.length).toBeGreaterThanOrEqual(3);
     for (const q of selects) expect(q).toContain('.eq("workspace_id", input.workspaceId)');
   });
