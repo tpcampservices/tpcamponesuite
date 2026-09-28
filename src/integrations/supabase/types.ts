@@ -1083,6 +1083,65 @@ export type Database = {
           },
         ]
       }
+      registration_identities: {
+        Row: {
+          address_city: string | null
+          address_country: string
+          address_postal_code: string | null
+          address_street: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          legal_name: string
+          signatory_name: string
+          signatory_title: string
+          trading_name: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_country: string
+          address_postal_code?: string | null
+          address_street?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          legal_name: string
+          signatory_name: string
+          signatory_title: string
+          trading_name?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          address_city?: string | null
+          address_country?: string
+          address_postal_code?: string | null
+          address_street?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          legal_name?: string
+          signatory_name?: string
+          signatory_title?: string
+          trading_name?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_identities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       registration_interests: {
         Row: {
           controlled: boolean | null
