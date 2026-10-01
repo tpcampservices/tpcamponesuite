@@ -56,6 +56,7 @@ import { Route as ApiPublicSsoEntitlementRouteImport } from './routes/api/public
 import { Route as ApiPublicSsoExchangeRouteImport } from './routes/api/public/sso/exchange'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as ApiPublicPaymentsWamWebhookRouteImport } from './routes/api/public/payments/wam/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -303,6 +304,12 @@ const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
   path: '/lovable/email/auth/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWamWebhookRoute =
+  ApiPublicPaymentsWamWebhookRouteImport.update({
+    id: '/api/public/payments/wam/webhook',
+    path: '/api/public/payments/wam/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/api/public/payments/wam/webhook': typeof ApiPublicPaymentsWamWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -399,6 +407,7 @@ export interface FileRoutesByTo {
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/api/public/payments/wam/webhook': typeof ApiPublicPaymentsWamWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -449,6 +458,7 @@ export interface FileRoutesById {
   '/api/public/sso/exchange': typeof ApiPublicSsoExchangeRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
+  '/api/public/payments/wam/webhook': typeof ApiPublicPaymentsWamWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -499,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/api/public/payments/wam/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/api/public/payments/wam/webhook'
   id:
     | '__root__'
     | '/'
@@ -596,6 +608,7 @@ export interface FileRouteTypes {
     | '/api/public/sso/exchange'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
+    | '/api/public/payments/wam/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -636,6 +649,7 @@ export interface RootRouteChildren {
   ApiPublicSsoExchangeRoute: typeof ApiPublicSsoExchangeRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
+  ApiPublicPaymentsWamWebhookRoute: typeof ApiPublicPaymentsWamWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -969,6 +983,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/wam/webhook': {
+      id: '/api/public/payments/wam/webhook'
+      path: '/api/public/payments/wam/webhook'
+      fullPath: '/api/public/payments/wam/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWamWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1039,6 +1060,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSsoExchangeRoute: ApiPublicSsoExchangeRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
+  ApiPublicPaymentsWamWebhookRoute: ApiPublicPaymentsWamWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
