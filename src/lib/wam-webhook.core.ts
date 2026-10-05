@@ -1,6 +1,6 @@
 // Pure WAM webhook decision logic. No I/O, no database access, no secrets.
 // Phase 1A: the receiver verifies and acknowledges only. It never activates
-// access, never calls applyPaidOrder() and never marks an order paid.
+// access, never calls the paid-order activation path and never marks an order paid.
 
 /** The only WAM events this phase prepares for. */
 export const WAM_SUPPORTED_EVENT_TYPES = [
