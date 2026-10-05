@@ -11,6 +11,8 @@
 
 export const SUBSCRIPTION_SOURCES = [
   "paypal",
+  "wam",
+  "paywise",
   "manual_admin",
   "complimentary",
   "promotional",
@@ -46,6 +48,8 @@ export const ACCESS_GRANTING_STATUSES: EntitlementStatus[] = ["active", "trial"]
 
 export const SOURCE_LABELS: Record<SubscriptionSource, string> = {
   paypal: "PayPal payment",
+  wam: "WAM payment",
+  paywise: "PayWise payment",
   manual_admin: "Manual (admin)",
   complimentary: "Complimentary",
   promotional: "Promotional",

@@ -18,6 +18,11 @@ import {
   type EntitlementStatus,
   type SubscriptionSource,
 } from "./entitlement-model";
+import {
+  paypalVerifiedPayment,
+  planPaidOrderWrites,
+  type VerifiedPayment,
+} from "./paid-order.core";
 import { getPaypalCredentials, paypalApiBase } from "./subscription.server";
 
 export type AccessStatus = "none" | "active" | "expired";
@@ -224,11 +229,17 @@ export async function refreshEntitlementStatus(userId: string) {
 }
 
 /**
- * Activate or extend access after a verified payment. Idempotent: an order row
- * already marked `paid` is never applied twice, so duplicate webhook deliveries
- * and a webhook racing the server-side capture are both safe.
+ * Activate or extend access after a verified payment — provider-neutral.
+ * Idempotent: an order row already marked `paid` is never applied twice, so
+ * duplicate webhook deliveries and a webhook racing the capture are both safe.
+ *
+ * `payment` is the verified provider facts. Legacy PayPal callers may still
+ * pass a capture id string (or null); it is mapped to provider `paypal`.
  */
-export async function applyPaidOrder(orderRowId: string, captureId: string | null) {
+export async function applyPaidOrder(
+  orderRowId: string,
+  payment: VerifiedPayment | string | null,
+) {
   const { data: order } = await supabaseAdmin
     .from("plan_orders")
     .select("*")
@@ -239,80 +250,25 @@ export async function applyPaidOrder(orderRowId: string, captureId: string | nul
     return { applied: false as const, reason: "duplicate" as const, order };
   }
 
-  const period = (order.billing_period === "monthly" ? "monthly" : "yearly") as BillingPeriod;
+  const verified =
+    payment && typeof payment === "object" ? payment : paypalVerifiedPayment(order, payment);
+
   const existing = await readEntitlement(order.user_id);
-  const now = new Date();
-
-  // Early renewal: stack the new period on top of the unused remainder.
-  const base =
-    existing?.access_expiry_date && new Date(existing.access_expiry_date).getTime() > now.getTime()
-      ? new Date(existing.access_expiry_date)
-      : now;
-  const start =
-    existing?.access_start_date && base.getTime() > now.getTime()
-      ? existing.access_start_date
-      : now.toISOString();
-  const expiry = addPeriod(base, period).toISOString();
-
-  const addons = Array.isArray(order.addons) ? (order.addons as SelectedAddOn[]) : [];
-  const extraSeats = addons
-    .filter((a) => a.id === "team_add")
-    .reduce((sum, a) => sum + (a.quantity ?? 0), 0);
 
   // Every entitlement written from here on is linked to the buyer's workspace,
   // resolved server-side from the canonical user id (never from the browser).
   const { ensureUserWorkspaceId } = await import("./workspace.server");
   const workspaceId = await ensureUserWorkspaceId(order.user_id);
 
-  await supabaseAdmin.from("access_entitlements").upsert(
-    {
-      user_id: order.user_id,
-      workspace_id: workspaceId,
-      plan_id: order.plan_id,
-      billing_period: period,
-      currency: order.currency,
-      addons,
-      seats_extra: extraSeats,
-      access_status: "active",
-      // A verified PayPal capture writes into the same entitlement layer as a
-      // manual grant — one authoritative access record per user.
-      status: "active",
-      subscription_source: "paypal",
-      payment_status: "paid",
-      access_start_date: start,
-      access_expiry_date: expiry,
-    },
-    { onConflict: "user_id" },
-  );
+  // Throws on provider mismatch before any write happens.
+  const plan = planPaidOrderWrites({ order, existing, workspaceId, payment: verified });
 
-  await supabaseAdmin
-    .from("plan_orders")
-    .update({
-      payment_status: "paid",
-      paypal_capture_id: captureId,
-      paid_at: now.toISOString(),
-      access_start_date: start,
-      access_expiry_date: expiry,
-    })
-    .eq("id", orderRowId);
-
+  await supabaseAdmin.from("access_entitlements").upsert(plan.entitlement, { onConflict: "user_id" });
+  await supabaseAdmin.from("plan_orders").update(plan.orderUpdate as never).eq("id", orderRowId);
   // Keep the legacy subscriptions table in step so existing app gating still works.
-  await supabaseAdmin.from("subscriptions").upsert(
-    {
-      user_id: order.user_id,
-      tier: 3,
-      status: "active",
-      currency: order.currency,
-      amount: order.total_amount,
-      payment_reference: order.paypal_order_id,
-      payment_provider: "paypal",
-      started_at: start,
-      expires_at: expiry,
-    },
-    { onConflict: "payment_reference" },
-  );
+  await supabaseAdmin.from("subscriptions").upsert(plan.subscription, { onConflict: "payment_reference" });
 
-  return { applied: true as const, order, expiry, start };
+  return { applied: true as const, order, expiry: plan.expiry, start: plan.start };
 }
 
 /* ------------------------------------------------------------ Plan limits */
