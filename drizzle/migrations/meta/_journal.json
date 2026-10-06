@@ -78,6 +78,13 @@
       "when": 1791244877361,
       "tag": "0010_entitlement_sources_wam_paywise",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791245586982,
+      "tag": "0011_wam_phase_2c_checkout",
+      "breakpoints": true
     }
   ]
 }
