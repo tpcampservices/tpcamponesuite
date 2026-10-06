@@ -690,11 +690,16 @@ export type Database = {
           captured_currency: string | null
           created_at: string
           currency: string
+          exchange_rate: number | null
           id: string
           last_error: string | null
+          merchant_reference: string | null
           onboarding_fee: number
           organization_id: string | null
           paid_at: string | null
+          payment_amount: number | null
+          payment_amount_cents: number | null
+          payment_currency: string | null
           payment_provider: string
           payment_status: string
           paypal_capture_id: string | null
@@ -704,6 +709,7 @@ export type Database = {
           provider_status: string | null
           provider_transaction_id: string | null
           provider_verified_at: string | null
+          quote_fingerprint: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -721,11 +727,16 @@ export type Database = {
           captured_currency?: string | null
           created_at?: string
           currency: string
+          exchange_rate?: number | null
           id?: string
           last_error?: string | null
+          merchant_reference?: string | null
           onboarding_fee?: number
           organization_id?: string | null
           paid_at?: string | null
+          payment_amount?: number | null
+          payment_amount_cents?: number | null
+          payment_currency?: string | null
           payment_provider?: string
           payment_status?: string
           paypal_capture_id?: string | null
@@ -735,6 +746,7 @@ export type Database = {
           provider_status?: string | null
           provider_transaction_id?: string | null
           provider_verified_at?: string | null
+          quote_fingerprint?: string | null
           total_amount?: number
           updated_at?: string
           user_id: string
@@ -752,11 +764,16 @@ export type Database = {
           captured_currency?: string | null
           created_at?: string
           currency?: string
+          exchange_rate?: number | null
           id?: string
           last_error?: string | null
+          merchant_reference?: string | null
           onboarding_fee?: number
           organization_id?: string | null
           paid_at?: string | null
+          payment_amount?: number | null
+          payment_amount_cents?: number | null
+          payment_currency?: string | null
           payment_provider?: string
           payment_status?: string
           paypal_capture_id?: string | null
@@ -766,6 +783,7 @@ export type Database = {
           provider_status?: string | null
           provider_transaction_id?: string | null
           provider_verified_at?: string | null
+          quote_fingerprint?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
@@ -2012,6 +2030,80 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wam_events: {
+        Row: {
+          delivery_count: number
+          event_id: string
+          event_type: string
+          id: string
+          last_received_at: string
+          outcome: string
+          payment_id: string | null
+          plan_order_id: string | null
+          received_at: string
+        }
+        Insert: {
+          delivery_count?: number
+          event_id: string
+          event_type: string
+          id?: string
+          last_received_at?: string
+          outcome: string
+          payment_id?: string | null
+          plan_order_id?: string | null
+          received_at?: string
+        }
+        Update: {
+          delivery_count?: number
+          event_id?: string
+          event_type?: string
+          id?: string
+          last_received_at?: string
+          outcome?: string
+          payment_id?: string | null
+          plan_order_id?: string | null
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wam_events_plan_order_id_fkey"
+            columns: ["plan_order_id"]
+            isOneToOne: false
+            referencedRelation: "plan_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wam_rate_changes: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_value: string
+          old_value: string | null
+          reason: string | null
+          setting_key: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_value: string
+          old_value?: string | null
+          reason?: string | null
+          setting_key: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_value?: string
+          old_value?: string | null
+          reason?: string | null
+          setting_key?: string
         }
         Relationships: []
       }
