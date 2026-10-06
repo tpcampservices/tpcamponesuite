@@ -71,6 +71,13 @@
       "when": 1790639597126,
       "tag": "0009_registration_identities_revoke_client_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791244877361,
+      "tag": "0010_entitlement_sources_wam_paywise",
+      "breakpoints": true
     }
   ]
 }

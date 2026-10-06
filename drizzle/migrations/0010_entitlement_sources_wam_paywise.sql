@@ -1,0 +1,3 @@
+ALTER TABLE public.access_entitlements DROP CONSTRAINT IF EXISTS access_entitlements_subscription_source_check;
+ALTER TABLE public.access_entitlements ADD CONSTRAINT access_entitlements_subscription_source_check
+  CHECK (subscription_source = ANY (ARRAY['paypal'::text, 'wam'::text, 'paywise'::text, 'manual_admin'::text, 'complimentary'::text, 'promotional'::text, 'migration'::text, 'internal'::text, 'trial'::text]));

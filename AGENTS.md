@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - PayWise: inbound notify/callback only log to paywise_events (unique channel+dedupe_key); activation must re-verify via GET /payments/status server-side — payloads are unsigned.
 - Registration Identity (public.registration_identities, one row per workspace) is written only via server functions after an Owner/Administrator role check on the server-resolved workspace; not a splits.* permission, because it is OneSuite admin data.
+- Paid-order activation: every provider (PayPal, WAM, PayWise) goes through applyPaidOrder() with a VerifiedPayment planned by src/lib/paid-order.core.ts; the order's payment_provider must match the payment's provider, so one provider's metadata is never recorded as another's.
