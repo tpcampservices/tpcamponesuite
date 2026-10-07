@@ -22,6 +22,22 @@ export const SUBSCRIPTION_SOURCES = [
 ] as const;
 export type SubscriptionSource = (typeof SUBSCRIPTION_SOURCES)[number];
 
+/** Sources that only a verified provider payment may write. Never manually selectable. */
+export const EXTERNAL_PAYMENT_SOURCES = ["paypal", "wam", "paywise"] as const satisfies readonly SubscriptionSource[];
+/** Legitimate manual/admin grant sources. */
+export const MANUAL_GRANT_SOURCES = [
+  "manual_admin",
+  "complimentary",
+  "promotional",
+  "migration",
+  "internal",
+  "trial",
+] as const satisfies readonly SubscriptionSource[];
+
+export function isManualGrantSource(value: unknown): value is (typeof MANUAL_GRANT_SOURCES)[number] {
+  return (MANUAL_GRANT_SOURCES as readonly string[]).includes(String(value));
+}
+
 export const PAYMENT_STATUSES = [
   "paid",
   "not_required",
