@@ -32,7 +32,7 @@ import {
   PAYMENT_STATUS_LABELS,
   SOURCE_LABELS,
   STATUS_LABELS,
-  SUBSCRIPTION_SOURCES,
+  MANUAL_GRANT_SOURCES,
 } from "@/lib/entitlement-model";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
@@ -897,7 +897,7 @@ function AdminUsersPage() {
                     label="Subscription source"
                     value={form.subscriptionSource}
                     onChange={(v) => setForm({ ...form, subscriptionSource: v })}
-                    options={SUBSCRIPTION_SOURCES.filter((s) => s !== "paypal").map((s) => ({
+                    options={MANUAL_GRANT_SOURCES.map((s) => ({
                       value: s,
                       label: SOURCE_LABELS[s],
                     }))}

@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { trustedInviteOrigin } from "./invitation-links";
 import {
   isEntitlementStatus,
+  isManualGrantSource,
   isPaymentStatus,
   isSubscriptionSource,
   type EntitlementPaymentStatus,
@@ -191,10 +192,10 @@ function parseGrant(data: GrantInput) {
     throw new Error("Choose a valid subscription source");
   }
   if (!isPaymentStatus(data?.paymentStatus)) throw new Error("Choose a valid payment status");
-  if (data.subscriptionSource === "paypal") {
-    // Manual grants must never masquerade as a PayPal payment: no fake orders,
-    // captures, webhooks or invoices are ever written.
-    throw new Error("PayPal access can only be granted by a verified PayPal payment");
+  if (!isManualGrantSource(data.subscriptionSource)) {
+    // Manual grants must never masquerade as a provider payment (PayPal, WAM,
+    // PayWise): only a verified payment may write those sources.
+    throw new Error("Payment-provider access can only be granted by a verified payment");
   }
 
   return {

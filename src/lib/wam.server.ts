@@ -77,3 +77,13 @@ export const verifyWamWebhook: WamWebhookVerifier = ({
 
 export const WAM_SIGNATURE_HEADER = "x-wam-signature";
 export const WAM_TIMESTAMP_HEADER = "x-wam-timestamp";
+
+/** Official SDK client, restricted to staging/local by readWamConfig(). */
+export function createWamClient(env: Env = process.env) {
+  const cfg = readWamConfig(env);
+  return new WamPaymentSDK({
+    businessId: cfg.businessId,
+    apiKey: cfg.apiKey,
+    environment: cfg.environment,
+  });
+}
