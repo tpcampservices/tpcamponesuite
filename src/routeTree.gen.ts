@@ -45,6 +45,7 @@ import { Route as AuthenticatedContractsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedContractsContractIdRouteImport } from './routes/_authenticated/contracts/$contractId'
 import { Route as PaymentPaywiseErrorRouteImport } from './routes/payment.paywise.error'
 import { Route as PaymentPaywiseSuccessRouteImport } from './routes/payment.paywise.success'
+import { Route as PaymentWamResultRouteImport } from './routes/payment.wam.result'
 import { Route as ApiPaymentsPaywiseCallbackRouteImport } from './routes/api/payments/paywise/callback'
 import { Route as ApiPaymentsPaywiseNotifyRouteImport } from './routes/api/payments/paywise/notify'
 import { Route as ApiPublicCrmProcessRouteImport } from './routes/api/public/crm/process'
@@ -244,6 +245,11 @@ const PaymentPaywiseSuccessRoute = PaymentPaywiseSuccessRouteImport.update({
   path: '/payment/paywise/success',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentWamResultRoute = PaymentWamResultRouteImport.update({
+  id: '/payment/wam/result',
+  path: '/payment/wam/result',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPaymentsPaywiseCallbackRoute =
   ApiPaymentsPaywiseCallbackRouteImport.update({
     id: '/api/payments/paywise/callback',
@@ -346,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
   '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
+  '/payment/wam/result': typeof PaymentWamResultRoute
   '/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
   '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
   '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
+  '/payment/wam/result': typeof PaymentWamResultRoute
   '/contracts': typeof AuthenticatedContractsIndexRoute
   '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
   '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
@@ -446,6 +454,7 @@ export interface FileRoutesById {
   '/_authenticated/contracts/$contractId': typeof AuthenticatedContractsContractIdRoute
   '/payment/paywise/error': typeof PaymentPaywiseErrorRoute
   '/payment/paywise/success': typeof PaymentPaywiseSuccessRoute
+  '/payment/wam/result': typeof PaymentWamResultRoute
   '/_authenticated/contracts/': typeof AuthenticatedContractsIndexRoute
   '/api/payments/paywise/callback': typeof ApiPaymentsPaywiseCallbackRoute
   '/api/payments/paywise/notify': typeof ApiPaymentsPaywiseNotifyRoute
@@ -497,6 +506,7 @@ export interface FileRouteTypes {
     | '/contracts/$contractId'
     | '/payment/paywise/error'
     | '/payment/paywise/success'
+    | '/payment/wam/result'
     | '/contracts/'
     | '/api/payments/paywise/callback'
     | '/api/payments/paywise/notify'
@@ -546,6 +556,7 @@ export interface FileRouteTypes {
     | '/contracts/$contractId'
     | '/payment/paywise/error'
     | '/payment/paywise/success'
+    | '/payment/wam/result'
     | '/contracts'
     | '/api/payments/paywise/callback'
     | '/api/payments/paywise/notify'
@@ -596,6 +607,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contracts/$contractId'
     | '/payment/paywise/error'
     | '/payment/paywise/success'
+    | '/payment/wam/result'
     | '/_authenticated/contracts/'
     | '/api/payments/paywise/callback'
     | '/api/payments/paywise/notify'
@@ -638,6 +650,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   PaymentPaywiseErrorRoute: typeof PaymentPaywiseErrorRoute
   PaymentPaywiseSuccessRoute: typeof PaymentPaywiseSuccessRoute
+  PaymentWamResultRoute: typeof PaymentWamResultRoute
   ApiPaymentsPaywiseCallbackRoute: typeof ApiPaymentsPaywiseCallbackRoute
   ApiPaymentsPaywiseNotifyRoute: typeof ApiPaymentsPaywiseNotifyRoute
   ApiPublicCrmProcessRoute: typeof ApiPublicCrmProcessRoute
@@ -906,6 +919,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaymentPaywiseSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payment/wam/result': {
+      id: '/payment/wam/result'
+      path: '/payment/wam/result'
+      fullPath: '/payment/wam/result'
+      preLoaderRoute: typeof PaymentWamResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/payments/paywise/callback': {
       id: '/api/payments/paywise/callback'
       path: '/api/payments/paywise/callback'
@@ -1049,6 +1069,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   PaymentPaywiseErrorRoute: PaymentPaywiseErrorRoute,
   PaymentPaywiseSuccessRoute: PaymentPaywiseSuccessRoute,
+  PaymentWamResultRoute: PaymentWamResultRoute,
   ApiPaymentsPaywiseCallbackRoute: ApiPaymentsPaywiseCallbackRoute,
   ApiPaymentsPaywiseNotifyRoute: ApiPaymentsPaywiseNotifyRoute,
   ApiPublicCrmProcessRoute: ApiPublicCrmProcessRoute,
