@@ -32,20 +32,24 @@ export function realReconcileDeps(): ReconcileDeps {
       return data;
     },
     async claimForActivation(orderId) {
+      // Also reclaims an "activating" claim abandoned by an interrupted run.
+      // Safe: activation is a single locked transaction that refuses paid orders.
+      const staleBefore = new Date(Date.now() - WAM_STALE_CLAIM_MS).toISOString();
       const { data, error } = await supabaseAdmin
         .from("plan_orders")
         .update({ payment_status: "activating" })
         .eq("id", orderId)
         .eq("payment_provider", "wam")
-        .in("payment_status", ["created", "processing"])
+        .or(`payment_status.in.(created,processing),and(payment_status.eq.activating,updated_at.lt.${staleBefore})`)
         .select("id");
       if (error) throw new Error("claim_failed");
       return (data ?? []).length === 1;
     },
     async releaseClaim(orderId, backTo) {
+      const target = backTo === "activating" ? "processing" : backTo;
       await supabaseAdmin
         .from("plan_orders")
-        .update({ payment_status: backTo, last_error: "activation_failed" })
+        .update({ payment_status: target, last_error: "activation_failed" })
         .eq("id", orderId)
         .eq("payment_status", "activating");
     },
