@@ -177,3 +177,29 @@ export const setWamCheckoutRate = createServerFn({ method: "POST" })
     if (error) throw new Error("Rate could not be saved.");
     return { ok: true, value: data.rate };
   });
+
+/**
+ * Super Admin recovery for an order stuck in "activating" (or unconfirmed) after
+ * an interrupted run. Re-verifies with WAM's status API and goes through the same
+ * reconciliation path as the webhook; never activates an unverified payment and
+ * never applies a paid order twice.
+ */
+export const recoverWamOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId?: string }) => {
+    const id = String(data?.orderId ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid order.");
+    return { orderId: id };
+  })
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("plan_orders").select("id, provider_reference")
+      .eq("id", data.orderId).eq("payment_provider", "wam").maybeSingle();
+    if (!row?.provider_reference) return { outcome: "no_wam_payment_linked", accessChanged: false };
+    const { reconcileWamPayment } = await import("./wam-reconcile");
+    const { realReconcileDeps } = await import("./wam-reconcile.server");
+    const r = await reconcileWamPayment(realReconcileDeps(), { paymentId: row.provider_reference });
+    return { outcome: r.outcome, accessChanged: r.accessChanged };
+  });
