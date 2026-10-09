@@ -2478,6 +2478,16 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_paid_order_atomic: {
+        Args: {
+          _entitlement: Json
+          _order_id: string
+          _order_update: Json
+          _provider: string
+          _subscription: Json
+        }
+        Returns: string
+      }
       can_read_registrations: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
