@@ -5,8 +5,8 @@ import { quotePrice, type BillingPeriod, type PlanId, type SelectedAddOn } from 
 
 export type CheckoutOrderRow = {
   id: string;
-  payment_provider: string | null;
-  payment_status: string | null;
+  payment_provider: string;
+  payment_status: string;
   quote_fingerprint: string | null;
   created_at: string;
   payment_amount_cents: number | null;
