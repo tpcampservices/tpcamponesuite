@@ -2,6 +2,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { ReconcileDeps } from "./wam-reconcile";
 import { createWamClient } from "./wam.server";
+import { WAM_STALE_CLAIM_MS } from "./wam-checkout.core";
 
 const ORDER_COLS =
   "id, payment_provider, payment_status, provider_reference, merchant_reference, payment_currency, payment_amount_cents";

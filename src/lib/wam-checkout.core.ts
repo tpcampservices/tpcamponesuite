@@ -196,3 +196,17 @@ export function decideReconciliation(input: {
   if (mapped) return { action: "update_status", paymentStatus: mapped, providerStatus: status.status };
   return { action: "reject", reason: "unsupported_status" };
 }
+
+/** An "activating" claim older than this is treated as abandoned and may be reclaimed. */
+export const WAM_STALE_CLAIM_MS = 5 * 60 * 1000;
+
+export const WAM_TERMINAL_STATUSES = ["paid", "failed", "canceled", "expired"] as const;
+export const WAM_RESULT_LABELS: Record<string, string> = {
+  created: "Waiting for your payment to be confirmed.",
+  processing: "Your payment is being processed.",
+  activating: "Payment confirmed. Activating your access…",
+  paid: "Payment confirmed. Your access is active.",
+  failed: "The payment did not go through. No access was granted.",
+  canceled: "The payment was canceled. No access was granted.",
+  expired: "The payment session expired. No access was granted.",
+};

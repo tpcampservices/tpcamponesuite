@@ -5,6 +5,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { getWamOrderStatus } from "@/lib/wam-checkout.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { WAM_RESULT_LABELS, WAM_TERMINAL_STATUSES } from "@/lib/wam-checkout.core";
 
 export const Route = createFileRoute("/payment/wam/result")({
   validateSearch: (s: Record<string, unknown>) => ({ order: typeof s.order === "string" ? s.order : "" }),
@@ -22,16 +23,8 @@ export const Route = createFileRoute("/payment/wam/result")({
   component: ResultPage,
 });
 
-const TERMINAL = ["paid", "failed", "canceled", "expired"];
-const LABELS: Record<string, string> = {
-  created: "Waiting for your payment to be confirmed.",
-  processing: "Your payment is being processed.",
-  activating: "Payment confirmed. Activating your access…",
-  paid: "Payment confirmed. Your access is active.",
-  failed: "The payment did not go through. No access was granted.",
-  canceled: "The payment was canceled. No access was granted.",
-  expired: "The payment session expired. No access was granted.",
-};
+const TERMINAL: readonly string[] = WAM_TERMINAL_STATUSES;
+const LABELS = WAM_RESULT_LABELS;
 
 // Passive page: arriving here is never proof of payment and never activates access.
 function ResultPage() {
