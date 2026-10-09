@@ -7,6 +7,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { PaypalPayButton } from "@/components/paypal-pay-button";
 import { PAYPAL_CHECKOUT_ENABLED } from "@/lib/payment-provider";
 import { useSession } from "@/hooks/use-session";
+import { WamStagingCheckout, useWamStagingAvailable } from "@/components/wam-staging-checkout";
 import { suiteApps, BETA_LABEL } from "@/lib/tiers";
 import { getQuote } from "@/lib/billing.functions";
 import {
@@ -75,6 +76,7 @@ function PricingPage() {
     enabled: Boolean(session),
   });
   const quote = serverQuote ?? localQuote;
+  const wamStaging = useWamStagingAvailable(Boolean(session));
 
   const periodLabel = period === "yearly" ? "12 months" : "1 month";
 
@@ -280,7 +282,9 @@ function PricingPage() {
 
               {session ? (
                 <div className="mt-6">
-                  {PAYPAL_CHECKOUT_ENABLED ? (
+                  {wamStaging ? (
+                    <WamStagingCheckout selection={{ planId, billingPeriod: period, addons }} />
+                  ) : PAYPAL_CHECKOUT_ENABLED ? (
                     <PaypalPayButton selection={selection} />
                   ) : (
                     <div className="rounded-lg border border-border bg-surface p-4 text-sm">

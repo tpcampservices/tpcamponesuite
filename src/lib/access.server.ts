@@ -263,6 +263,23 @@ export async function applyPaidOrder(
   // Throws on provider mismatch before any write happens.
   const plan = planPaidOrderWrites({ order, existing, workspaceId, payment: verified });
 
+  if (verified.provider !== "paypal") {
+    // WAM / PayWise: one transaction with the order row locked. A paid order is
+    // never applied twice, and a crash can never leave access half-written.
+    const { data: outcome, error } = await supabaseAdmin.rpc("apply_paid_order_atomic", {
+      _order_id: orderRowId,
+      _provider: verified.provider,
+      _entitlement: plan.entitlement as never,
+      _order_update: plan.orderUpdate as never,
+      _subscription: plan.subscription as never,
+    });
+    if (error) throw new Error("activation_failed");
+    if (outcome === "duplicate") return { applied: false as const, reason: "duplicate" as const, order };
+    if (outcome !== "applied") return { applied: false as const, reason: "not_found" as const };
+    return { applied: true as const, order, expiry: plan.expiry, start: plan.start };
+  }
+
+  // PayPal path unchanged (hidden provider, legacy behaviour preserved).
   await supabaseAdmin.from("access_entitlements").upsert(plan.entitlement, { onConflict: "user_id" });
   await supabaseAdmin.from("plan_orders").update(plan.orderUpdate as never).eq("id", orderRowId);
   // Keep the legacy subscriptions table in step so existing app gating still works.

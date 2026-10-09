@@ -29,119 +29,83 @@ async function readRate() {
   return data?.value ?? null;
 }
 
+/** Staging access: Super Admin only, and only while WAM is configured for staging. */
+async function isStagingTester(context: { supabase: any; userId: string }) {
+  const env = String(process.env.WAM_ENVIRONMENT ?? "").trim().toLowerCase();
+  if (env !== "staging") return false;
+  const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" });
+  return !error && data === true;
+}
+
+/** Tells the pricing page whether to show the staging card checkout. */
+export const getWamCheckoutAvailability = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => ({ available: await isStagingTester(context) }));
+
+/** Read-only server quote for the disclosure panel. Creates nothing. */
+export const previewWamCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: Selection) => parseSelection(data))
+  .handler(async ({ data, context }) => {
+    const run = await import("./wam-checkout-run");
+    if (!(await isStagingTester(context))) throw new Error(run.CHECKOUT_UNAVAILABLE);
+    const core = await import("./wam-checkout.core");
+    try {
+      const q = await run.quoteWamCheckout({ readRate }, data);
+      return {
+        planName: q.price.planName, billingPeriod: q.price.billingPeriod, usdTotal: q.price.total,
+        exchangeRate: q.rate.text, ttdAmount: core.centsToDecimal(q.ttdCents),
+      };
+    } catch (e) {
+      if (e instanceof core.WamRateUnavailableError) throw new Error("Card checkout is temporarily unavailable.");
+      throw e;
+    }
+  });
+
 /** Creates (or reuses an identical) pending WAM order and its hosted payment intent. */
 export const createWamCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: Selection) => parseSelection(data))
   .handler(async ({ data, context }) => {
     const { createHash } = await import("crypto");
-    const core = await import("./wam-checkout.core");
-    const { quotePrice } = await import("./plans");
+    const { runWamCheckout } = await import("./wam-checkout-run");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { createWamClient } = await import("./wam.server");
     const { ensureUserWorkspaceId } = await import("./workspace.server");
     const { trustedInviteOrigin } = await import("./invitation-links");
     const { getRequestHeader } = await import("@tanstack/react-start/server");
 
-    // Fail closed before anything is written.
-    const rate = core.requireRate(await readRate());
-    const wam = createWamClient();
-
-    const price = quotePrice({ ...data, currency: "USD" });
-    const usdCents = core.usdToCents(price.total);
-    const ttdCents = core.convertUsdCentsToTtdCents(usdCents, rate);
-    const workspaceId = await ensureUserWorkspaceId(context.userId);
-    const fingerprint = createHash("sha256")
-      .update(
-        core.canonicalQuote({
-          userId: context.userId,
-          workspaceId,
-          planId: price.planId,
-          billingPeriod: price.billingPeriod,
-          addons: price.addons,
-          usdCents,
-          rate,
-          ttdCents,
-        }),
-      )
-      .digest("hex");
-
-    const { data: candidates } = await supabaseAdmin
-      .from("plan_orders")
-      .select("*")
-      .eq("user_id", context.userId)
-      .eq("payment_provider", "wam")
-      .eq("quote_fingerprint", fingerprint)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    let order = core.selectReusableOrder(candidates ?? [], fingerprint);
-
-    if (!order) {
-      const id = crypto.randomUUID();
-      const { data: row, error } = await supabaseAdmin
-        .from("plan_orders")
-        .insert({
-          id,
-          user_id: context.userId,
-          plan_id: price.planId,
-          billing_period: price.billingPeriod,
-          currency: "USD",
-          base_price: price.basePrice,
-          add_on_total: price.addOnTotal,
-          onboarding_fee: price.onboardingFee,
-          total_amount: price.total,
-          addons: price.addons as never,
-          payment_provider: "wam",
-          payment_status: "created",
-          payment_currency: core.WAM_SETTLEMENT_CURRENCY,
-          payment_amount_cents: ttdCents,
-          payment_amount: Number(core.centsToDecimal(ttdCents)),
-          exchange_rate: Number(rate.text),
-          quote_fingerprint: fingerprint,
-          merchant_reference: core.merchantReferenceFor(id),
-        })
-        .select("*")
-        .single();
-      if (error || !row) throw new Error("Could not create the order. Please try again.");
-      order = row;
-    }
-
-    const origin = trustedInviteOrigin(getRequestHeader("origin") ?? null);
-    // Amount/currency always come from the locked order row, never recalculated.
-    const intent = await wam.createPaymentIntent({
-      amountCents: order.payment_amount_cents!,
-      currency: core.WAM_SETTLEMENT_CURRENCY,
-      orderReference: order.merchant_reference!,
-      idempotencyKey: order.id,
-      description: `TP-CAMP OneSuite ${price.planName}`,
-      returnUrl: `${origin}/payment/wam/result?order=${order.id}`,
-      metadata: { onesuite_order_id: order.id },
-    });
-    if (
-      intent.amountCents !== order.payment_amount_cents ||
-      String(intent.currency).toUpperCase() !== core.WAM_SETTLEMENT_CURRENCY
-    ) {
-      await supabaseAdmin.from("plan_orders").update({ payment_status: "failed", last_error: "wam_intent_mismatch" }).eq("id", order.id);
-      throw new Error("The payment could not be prepared. Please contact TP-CAMP support.");
-    }
-    if (order.provider_reference && order.provider_reference !== intent.paymentId) {
-      throw new Error("The payment could not be prepared. Please contact TP-CAMP support.");
-    }
-    if (!order.provider_reference) {
-      await supabaseAdmin
-        .from("plan_orders")
-        .update({ provider_reference: intent.paymentId, provider_status: String(intent.status) })
-        .eq("id", order.id);
-    }
-
-    return {
-      orderId: order.id,
-      checkoutUrl: intent.checkoutUrl,
-      usdTotal: price.total,
-      exchangeRate: rate.text,
-      ttdAmount: core.centsToDecimal(order.payment_amount_cents!),
-      ttdAmountCents: order.payment_amount_cents!,
-    };
+    return runWamCheckout(
+      {
+        userId: context.userId,
+        origin: trustedInviteOrigin(getRequestHeader("origin") ?? null),
+        isStagingTester: () => isStagingTester(context),
+        readRate,
+        workspaceId: () => ensureUserWorkspaceId(context.userId),
+        sha256: (t) => createHash("sha256").update(t).digest("hex"),
+        newId: () => crypto.randomUUID(),
+        now: () => new Date(),
+        async findCandidates(fingerprint) {
+          const { data: rows } = await supabaseAdmin
+            .from("plan_orders").select("*")
+            .eq("user_id", context.userId).eq("payment_provider", "wam").eq("quote_fingerprint", fingerprint)
+            .order("created_at", { ascending: false }).limit(5);
+          return rows ?? [];
+        },
+        async insertOrder(row) {
+          const { data: r, error } = await supabaseAdmin.from("plan_orders").insert(row as never).select("*").single();
+          return error ? null : r;
+        },
+        async createIntent(input) {
+          const i = await createWamClient().createPaymentIntent(input);
+          return { paymentId: i.paymentId, checkoutUrl: i.checkoutUrl, amountCents: i.amountCents, currency: String(i.currency), status: String(i.status) };
+        },
+        async markOrder(orderId, patch) {
+          await supabaseAdmin.from("plan_orders").update(patch as never).eq("id", orderId);
+        },
+      },
+      data,
+    );
   });
 
 /** Passive, owner-only order status for the result page. Never activates. */
@@ -212,4 +176,30 @@ export const setWamCheckoutRate = createServerFn({ method: "POST" })
       .upsert({ key: WAM_RATE_SETTING_KEY, value: data.rate, updated_by: context.userId }, { onConflict: "key" });
     if (error) throw new Error("Rate could not be saved.");
     return { ok: true, value: data.rate };
+  });
+
+/**
+ * Super Admin recovery for an order stuck in "activating" (or unconfirmed) after
+ * an interrupted run. Re-verifies with WAM's status API and goes through the same
+ * reconciliation path as the webhook; never activates an unverified payment and
+ * never applies a paid order twice.
+ */
+export const recoverWamOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId?: string }) => {
+    const id = String(data?.orderId ?? "");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid order.");
+    return { orderId: id };
+  })
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("plan_orders").select("id, provider_reference")
+      .eq("id", data.orderId).eq("payment_provider", "wam").maybeSingle();
+    if (!row?.provider_reference) return { outcome: "no_wam_payment_linked", accessChanged: false };
+    const { reconcileWamPayment } = await import("./wam-reconcile");
+    const { realReconcileDeps } = await import("./wam-reconcile.server");
+    const r = await reconcileWamPayment(realReconcileDeps(), { paymentId: row.provider_reference });
+    return { outcome: r.outcome, accessChanged: r.accessChanged };
   });
