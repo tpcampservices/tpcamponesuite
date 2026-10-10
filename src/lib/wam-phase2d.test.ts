@@ -11,7 +11,7 @@ import {
 import { WAM_RESULT_LABELS, WAM_STALE_CLAIM_MS, WAM_TERMINAL_STATUSES } from "./wam-checkout.core";
 import { reconcileWamPayment, type ReconcileDeps } from "./wam-reconcile";
 
-const sel = { planId: "pro", billingPeriod: "annual", addons: [] } as never;
+const sel = { planId: "pro", billingPeriod: "monthly", addons: [] } as never;
 
 function mkDeps(over: Partial<CheckoutDeps> = {}) {
   const orders: CheckoutOrderRow[] = [];
@@ -125,7 +125,7 @@ describe("stale activation recovery", () => {
   it("recovery action is Super Admin-gated and re-checks WAM", () => {
     const src = readFileSync("src/lib/wam-checkout.functions.ts", "utf8");
     const block = src.slice(src.indexOf("export const recoverWamOrder"));
-    expect(block).toMatch(/super_admin/);
+    expect(block).toMatch(/assertSuperAdmin\(context\)/);
     expect(block).toMatch(/reconcileWamPayment/);
   });
 });
