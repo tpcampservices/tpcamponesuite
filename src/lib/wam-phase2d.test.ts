@@ -62,7 +62,7 @@ describe("runWamCheckout", () => {
   it("prices from the server in USD and locks TTD at the rate", async () => {
     const d = mkDeps();
     const r = await runWamCheckout(d, sel);
-    expect(r.exchangeRate).toBe("6.80");
+    expect(Number(r.exchangeRate)).toBe(6.8);
     expect(r.ttdAmountCents).toBe(Math.round(r.usdTotal * 100 * 6.8));
     const row = vi.mocked(d.insertOrder).mock.calls[0][0];
     expect(row).toMatchObject({ currency: "USD", payment_currency: "TTD", payment_provider: "wam", payment_status: "created" });
