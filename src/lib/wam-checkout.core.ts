@@ -210,3 +210,50 @@ export const WAM_RESULT_LABELS: Record<string, string> = {
   canceled: "The payment was canceled. No access was granted.",
   expired: "The payment session expired. No access was granted.",
 };
+
+/**
+ * Allowlisted, sanitized diagnostics for a failed WAM payment-intent call.
+ * Only these fields may ever be logged. `details`, `validationErrors`, stack,
+ * headers and any other property of the SDK error are never read. The
+ * message is kept only when it matches a known SDK-generated shape that
+ * contains no provider- or caller-supplied text; otherwise it is omitted.
+ */
+export type WamIntentErrorDiagnostics = {
+  orderId: string;
+  errorClass?: "WamPaymentError" | "Error" | "other";
+  code?: string;
+  statusCode?: number;
+  requestId?: string;
+  attempts?: number;
+  message?: string;
+};
+
+const SAFE_SDK_MESSAGES: RegExp[] = [
+  /^(GET|POST|PATCH|PUT|DELETE) \/api\/public\/[a-z0-9\-/]{1,60} failed with status \d{3}( \(after \d{1,2} attempts\))?$/,
+  /^Request to (GET|POST|PATCH|PUT|DELETE) \/api\/public\/[a-z0-9\-/]{1,60} timed out after \d{1,6}ms\.( \(after \d{1,2} attempts\))?$/,
+  /^Validation failed$/,
+];
+
+export function sanitizeWamIntentError(orderId: string, err: unknown): WamIntentErrorDiagnostics {
+  const out: WamIntentErrorDiagnostics = {
+    orderId: /^[0-9a-f-]{36}$/i.test(orderId) ? orderId : "invalid",
+  };
+  if (!err || typeof err !== "object") return { ...out, errorClass: "other" };
+  const e = err as Record<string, unknown>;
+  const name = typeof e.name === "string" ? e.name : "";
+  out.errorClass = name === "WamPaymentError" ? "WamPaymentError" : name === "Error" ? "Error" : "other";
+  if (typeof e.code === "string" && /^[A-Z][A-Z_]{1,39}$/.test(e.code)) out.code = e.code;
+  if (typeof e.statusCode === "number" && Number.isInteger(e.statusCode) && e.statusCode >= 100 && e.statusCode <= 599) {
+    out.statusCode = e.statusCode;
+  }
+  if (typeof e.requestId === "string" && /^[A-Za-z0-9._:-]{1,64}$/.test(e.requestId)) out.requestId = e.requestId;
+  if (typeof e.message === "string" && e.message.length <= 160) {
+    const m = e.message;
+    if (SAFE_SDK_MESSAGES.some((re) => re.test(m))) {
+      out.message = m;
+      const a = /\(after (\d{1,2}) attempts\)$/.exec(m);
+      if (a) out.attempts = Number(a[1]);
+    }
+  }
+  return out;
+}

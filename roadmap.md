@@ -21,3 +21,7 @@
 - [x] Hide PayPal checkout, PayWise notify/callback, success/error pages, diagnostics, tests
 - [ ] PAYWISE_SUBSCRIPTION_KEY, PAYWISE_BUSINESS_API_KEY, PAYWISE_IP_ADDRESS values (user to provide)
 - [ ] Publish so live URLs respond (awaiting approval)
+
+## WAM Phase 2E-2B
+- [x] Sanitized payment-intent error diagnostics + leak tests
+- [ ] Publish to capture next failure (awaiting approval)

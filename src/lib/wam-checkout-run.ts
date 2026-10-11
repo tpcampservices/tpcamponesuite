@@ -28,6 +28,8 @@ export type CheckoutDeps = {
     description: string; returnUrl: string; metadata: Record<string, string>;
   }): Promise<CheckoutIntent>;
   markOrder(orderId: string, patch: Record<string, unknown>): Promise<void>;
+  /** Receives sanitized diagnostics only. Defaults to a single structured console line. */
+  logError?(diag: core.WamIntentErrorDiagnostics): void;
   newId(): string;
   now(): Date;
   origin: string;
@@ -39,6 +41,10 @@ export type CheckoutSelection = { planId: PlanId; billingPeriod: BillingPeriod; 
 export const CHECKOUT_UNAVAILABLE = "Card checkout is not available for this account yet.";
 export const CHECKOUT_PREP_FAILED = "The payment could not be prepared. Please contact TP-CAMP support.";
 export const CHECKOUT_RETRY = "We couldn't reach the payment provider. Please try again in a moment.";
+
+function defaultLogError(diag: core.WamIntentErrorDiagnostics) {
+  console.error("[wam-checkout] intent_request_failed " + JSON.stringify(diag));
+}
 
 /** Server-authoritative quote: USD from plans.ts, TTD from the locked admin rate. */
 export async function quoteWamCheckout(deps: Pick<CheckoutDeps, "readRate">, sel: CheckoutSelection) {
@@ -87,7 +93,9 @@ export async function runWamCheckout(deps: CheckoutDeps, sel: CheckoutSelection)
       returnUrl: `${deps.origin}/payment/wam/result?order=${order.id}`,
       metadata: { onesuite_order_id: order.id },
     });
-  } catch {
+  } catch (err) {
+    // Only allowlisted, sanitized fields are logged — never the raw SDK error.
+    (deps.logError ?? defaultLogError)(core.sanitizeWamIntentError(order.id, err));
     // Order stays "created" and reusable, so the next attempt retries safely.
     await deps.markOrder(order.id, { last_error: "wam_intent_request_failed" });
     throw new Error(CHECKOUT_RETRY);
