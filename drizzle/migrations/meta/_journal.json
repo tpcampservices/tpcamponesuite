@@ -92,6 +92,13 @@
       "when": 1791504373386,
       "tag": "0012_wam_phase_2d_atomic_activation",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791851144243,
+      "tag": "0013_workspace_classification",
+      "breakpoints": true
     }
   ]
 }
