@@ -2442,6 +2442,7 @@ export type Database = {
           slug: string | null
           status: string
           updated_at: string
+          workspace_type: string
         }
         Insert: {
           created_at?: string
@@ -2451,6 +2452,7 @@ export type Database = {
           slug?: string | null
           status?: string
           updated_at?: string
+          workspace_type?: string
         }
         Update: {
           created_at?: string
@@ -2460,6 +2462,7 @@ export type Database = {
           slug?: string | null
           status?: string
           updated_at?: string
+          workspace_type?: string
         }
         Relationships: []
       }
