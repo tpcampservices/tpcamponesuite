@@ -2353,6 +2353,65 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_provisioning_requests: {
+        Row: {
+          actor_email: string | null
+          actor_user_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          input_hash: string
+          requested_slug: string | null
+          status: string
+          target_owner_user_id: string
+          updated_at: string
+          workspace_id: string | null
+          workspace_name: string
+          workspace_type: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_user_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          input_hash: string
+          requested_slug?: string | null
+          status?: string
+          target_owner_user_id: string
+          updated_at?: string
+          workspace_id?: string | null
+          workspace_name: string
+          workspace_type: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_user_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          input_hash?: string
+          requested_slug?: string | null
+          status?: string
+          target_owner_user_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+          workspace_name?: string
+          workspace_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_provisioning_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_role_permissions: {
         Row: {
           created_at: string
@@ -2440,6 +2499,7 @@ export type Database = {
           name: string
           owner_user_id: string
           slug: string | null
+          sso_eligible: boolean
           status: string
           updated_at: string
           workspace_type: string
@@ -2450,6 +2510,7 @@ export type Database = {
           name: string
           owner_user_id: string
           slug?: string | null
+          sso_eligible?: boolean
           status?: string
           updated_at?: string
           workspace_type?: string
@@ -2460,6 +2521,7 @@ export type Database = {
           name?: string
           owner_user_id?: string
           slug?: string | null
+          sso_eligible?: boolean
           status?: string
           updated_at?: string
           workspace_type?: string
@@ -2572,6 +2634,20 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      provision_additional_workspace_atomic: {
+        Args: {
+          _actor_email: string
+          _actor_user_id: string
+          _app_access_levels?: Json
+          _idempotency_key: string
+          _input_hash: string
+          _requested_slug: string
+          _target_owner_user_id: string
+          _workspace_name: string
+          _workspace_type: string
+        }
+        Returns: Json
       }
       provision_user_workspace: { Args: { _user_id: string }; Returns: string }
       purge_invitation_send_ledger: { Args: never; Returns: number }
