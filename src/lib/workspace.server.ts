@@ -320,10 +320,6 @@ export function entitlementCoversWorkspace(
   return Boolean(row?.workspace_id) && row!.workspace_id === workspaceId;
 }
 
-function _unusedEntitlementTail(row: unknown) {
-  return row;
-}
-
 export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
   const row = await workspaceEntitlementRow(workspaceId);
   return row?.access_status === "active";
