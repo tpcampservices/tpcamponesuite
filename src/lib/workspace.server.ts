@@ -306,8 +306,18 @@ export async function workspaceEntitlementRow(workspaceId: string) {
   if (!ws?.owner_user_id) return null;
   const row = await refreshEntitlementStatus(ws.owner_user_id);
   if (!row) return null;
-  if (row.workspace_id && row.workspace_id !== workspaceId) return null;
-  return row;
+  return entitlementCoversWorkspace(row, workspaceId) ? row : null;
+}
+
+/**
+ * Fail closed: an entitlement covers a workspace only when it is explicitly
+ * linked to that exact workspace. A NULL link never covers anything.
+ */
+export function entitlementCoversWorkspace(
+  row: { workspace_id: string | null } | null | undefined,
+  workspaceId: string,
+): boolean {
+  return Boolean(row?.workspace_id) && row!.workspace_id === workspaceId;
 }
 
 export async function workspaceHasActiveEntitlement(workspaceId: string): Promise<boolean> {
@@ -589,7 +599,14 @@ type MembershipRecord = {
   membershipStatus: MembershipStatus;
   roleKey: string | null;
   roleName: string | null;
+  /** False only for additionally provisioned workspaces (Phase 1A-C). */
+  ssoEligible: boolean;
 };
+
+/** Fail closed: only an explicit `true` makes a workspace a legacy SSO candidate. */
+export function isLegacySsoCandidate(record: { ssoEligible: boolean }): boolean {
+  return record.ssoEligible === true;
+}
 
 /**
  * EVERY membership row for the user, regardless of membership or workspace
@@ -600,13 +617,13 @@ export async function listMembershipRecords(userId: string): Promise<MembershipR
   const { data } = await supabaseAdmin
     .from("workspace_memberships")
     .select(
-      "id, workspace_id, status, workspace_roles(role_key, name), workspaces(status)",
+      "id, workspace_id, status, workspace_roles(role_key, name), workspaces(status, sso_eligible)",
     )
     .eq("user_id", userId);
 
   return (data ?? []).map((row) => {
     const role = row.workspace_roles as unknown as { role_key: string; name: string } | null;
-    const ws = row.workspaces as unknown as { status: string } | null;
+    const ws = row.workspaces as unknown as { status: string; sso_eligible: boolean } | null;
     return {
       membershipId: row.id,
       workspaceId: row.workspace_id,
@@ -614,6 +631,7 @@ export async function listMembershipRecords(userId: string): Promise<MembershipR
       membershipStatus: row.status as MembershipStatus,
       roleKey: role?.role_key ?? null,
       roleName: role?.name ?? null,
+      ssoEligible: ws?.sso_eligible === true,
     };
   });
 }
@@ -719,6 +737,11 @@ export async function resolveAppAuthorization(
   // mask the real reason coming from the workspace that holds the subscription.
   let best: AppAuthorization | null = null;
   for (const record of records) {
+    // Legacy untargeted SSO containment (Phase 1A-C): a workspace not marked
+    // sso_eligible is never a candidate here, whatever the caller's role,
+    // ownership, entitlement or Super Admin status. Scoped resolution
+    // (resolveWorkspaceAppAuthorization) is intentionally unaffected.
+    if (!isLegacySsoCandidate(record)) continue;
     const candidate = await evaluateWorkspaceApp(userId, record, slug, superAdmin, evaluatedAt);
     if (candidate.authorized) return candidate;
     if (!best) {
