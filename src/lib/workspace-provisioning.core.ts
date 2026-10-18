@@ -10,7 +10,6 @@ export const WORKSPACE_TYPES = [
   "integration_test",
 ] as const;
 export const PROVISION_APP_KEYS = ["catalog", "splits", "operations", "finance", "invoice"] as const;
-const LEVELS = ["no_access", "view", "edit", "manage"] as const;
 
 export const provisionInputSchema = z
   .object({
@@ -26,12 +25,7 @@ export const provisionInputSchema = z
       .nullable(),
     idempotencyKey: z.string().regex(/^[A-Za-z0-9_-]{16,128}$/),
     appAccess: z
-      .object(
-        Object.fromEntries(PROVISION_APP_KEYS.map((k) => [k, z.enum(LEVELS).optional()])) as Record<
-          (typeof PROVISION_APP_KEYS)[number],
-          z.ZodOptional<z.ZodEnum<typeof LEVELS>>
-        >,
-      )
+      .object({ catalog: z.enum(["no_access", "view", "edit", "manage"]).optional(), splits: z.enum(["no_access", "view", "edit", "manage"]).optional(), operations: z.enum(["no_access", "view", "edit", "manage"]).optional(), finance: z.enum(["no_access", "view", "edit", "manage"]).optional(), invoice: z.enum(["no_access", "view", "edit", "manage"]).optional() })
       .strict()
       .optional(),
   })
