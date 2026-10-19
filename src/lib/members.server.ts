@@ -37,6 +37,11 @@ import {
 } from "./permissions";
 import { APPS, isAppSlug, type AppSlug } from "./apps";
 import { INVITABLE_ROLE_KEYS, isInvitableRole } from "./invitations.server";
+import {
+  assertWorkspaceActiveForAdmin,
+  WORKSPACE_INACTIVE_MESSAGE,
+  workspaceAllowsAdminMutation,
+} from "./workspace-lifecycle.core";
 
 export type TeamMember = {
   membershipId: string;
@@ -94,6 +99,8 @@ async function assertMayManage(userId: string, workspaceId: string, permission: 
   if (access.membershipStatus !== "active") {
     throw new Error("You are not an active member of this workspace");
   }
+  // Phase 1A-E1: suspended/archived workspaces accept no ordinary admin mutation.
+  assertWorkspaceActiveForAdmin(access.workspace);
   if (!access.isOwner && !access.permissions.includes(permission)) {
     throw new Error("You do not have permission to manage team members");
   }
