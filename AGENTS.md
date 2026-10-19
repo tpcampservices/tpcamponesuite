@@ -18,3 +18,4 @@
 - WAM card checkout is refused unless WAM is in staging and the caller is a Super Admin; the WAM intent idempotency key is the order id. Why: no customer charge before approval, and retries can never create a second chargeable payment.
 
 - Workspaces carry a `workspace_type` classification (customer, managed_client, demo, internal, integration_test); it is metadata only and must never grant access, billing or permissions. Why: classification must not become a hidden authorization path.
+- Additional workspaces are created only via provision_additional_workspace_atomic (service-role only, called by provisionAdditionalWorkspace after a live Super Admin check) with sso_eligible=false; untargeted legacy SSO skips non-eligible workspaces and entitlements cover only their exact linked workspace (NULL never). Why: a secondary workspace must not be reachable through untargeted SSO until workspace-bound tickets exist.
