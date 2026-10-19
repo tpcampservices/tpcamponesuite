@@ -24,6 +24,7 @@ import {
   type SystemRoleKey,
 } from "./permissions";
 import type { AppSlug } from "./apps";
+import { assertWorkspaceActiveForAdmin } from "./workspace-lifecycle.core";
 
 /** Invitation lifetime. */
 export const INVITATION_TTL_DAYS = 7;
@@ -122,11 +123,18 @@ async function systemRoleId(roleKey: string): Promise<string | null> {
  * from a verified session. Owner always qualifies; anyone else needs the
  * workspace team permission from their role mapping.
  */
-export async function assertMayInvite(userId: string, workspaceId: string) {
+export async function assertMayInvite(
+  userId: string,
+  workspaceId: string,
+  opts: { allowInactiveWorkspace?: boolean } = {},
+) {
   const access = await resolveWorkspaceAccess(userId, workspaceId);
   if (access.membershipStatus !== "active") throw new Error("You are not an active member of this workspace");
   const may = access.isOwner || access.permissions.includes("workspace.team.invite");
   if (!may) throw new Error("You do not have permission to invite team members");
+  // Phase 1A-E1: create/resend need an active workspace. Listing and cancelling
+  // stay available on inactive workspaces as safe, de-escalating recovery.
+  if (!opts.allowInactiveWorkspace) assertWorkspaceActiveForAdmin(access.workspace);
   return access;
 }
 

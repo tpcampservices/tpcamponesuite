@@ -593,6 +593,9 @@ async function authorizeOverrideMutation(args: {
   if (access.membershipStatus !== "active") {
     reject("actor_not_active", "You are not an active member of this workspace");
   }
+  if (!workspaceAllowsAdminMutation(access.workspace?.status)) {
+    reject("workspace_inactive", WORKSPACE_INACTIVE_MESSAGE);
+  }
   if (!access.isOwner && !access.permissions.includes("workspace.permissions.manage")) {
     reject("actor_not_authorized", "You do not have permission to manage advanced permissions");
   }
