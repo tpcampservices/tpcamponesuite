@@ -295,7 +295,7 @@ export async function cancelInvitation(args: {
   workspaceId: string;
   invitationId: string;
 }) {
-  await assertMayInvite(args.actorUserId, args.workspaceId);
+  await assertMayInvite(args.actorUserId, args.workspaceId, { allowInactiveWorkspace: true });
 
   const { data: inv } = await supabaseAdmin
     .from("workspace_invitations")
@@ -452,7 +452,7 @@ export async function listInvitations(
   actorUserId: string,
   workspaceId: string,
 ): Promise<InvitationSummary[]> {
-  await assertMayInvite(actorUserId, workspaceId);
+  await assertMayInvite(actorUserId, workspaceId, { allowInactiveWorkspace: true });
   const { data } = await supabaseAdmin
     .from("workspace_invitations")
     .select(
