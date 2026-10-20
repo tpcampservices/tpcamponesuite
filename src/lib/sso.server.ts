@@ -147,37 +147,52 @@ async function signAssertion(payload: Record<string, unknown>) {
  */
 export async function redeemTicket(token: string, appSlug: string) {
   const hash = await sha256(token);
-  const { data: ticket } = await supabaseAdmin
+  const { data: ticket, error: readError } = await supabaseAdmin
     .from("sso_tickets")
-    .select("id, user_id, app_slug, expires_at, consumed_at")
+    .select("id, user_id, app_slug, expires_at, consumed_at, workspace_id")
     .eq("token_hash", hash)
     .maybeSingle();
+  if (readError) return { ok: false as const, reason: "unavailable" as const };
 
-  if (!ticket) return { ok: false as const, reason: "invalid" as const };
-  if (ticket.app_slug !== appSlug) return { ok: false as const, reason: "wrong_app" as const };
-  if (ticket.consumed_at) return { ok: false as const, reason: "already_used" as const };
-  if (new Date(ticket.expires_at).getTime() <= Date.now())
-    return { ok: false as const, reason: "expired" as const };
+  const pre = ticketPrecheck(ticket, appSlug, Date.now());
+  if (pre || !ticket) return { ok: false as const, reason: pre ?? ("invalid" as const) };
 
-  const { data: claimed } = await supabaseAdmin
+  // Atomic single-use claim: only an unconsumed, unexpired ticket can be
+  // claimed, so concurrent or late redemptions can never both succeed.
+  const nowIso = new Date().toISOString();
+  const { data: claimed, error: claimError } = await supabaseAdmin
     .from("sso_tickets")
-    .update({ consumed_at: new Date().toISOString() })
+    .update({ consumed_at: nowIso })
     .eq("id", ticket.id)
     .is("consumed_at", null)
+    .gt("expires_at", nowIso)
     .select("id")
     .maybeSingle();
+  if (claimError) return { ok: false as const, reason: "unavailable" as const };
   if (!claimed) return { ok: false as const, reason: "already_used" as const };
 
   const entitlement = await entitlementFor(ticket.user_id);
   if (!entitlement.email) return { ok: false as const, reason: "no_email" as const };
 
-  // Re-resolve authorization at redemption time from the authoritative resolver.
-  // Nothing about workspace, access level or role is ever taken from the request.
-  const { resolveAppAuthorization } = await import("./workspace.server");
-  const authz = await resolveAppAuthorization(ticket.user_id, appSlug);
+  // The persisted workspace is authoritative. A bound ticket is re-authorized
+  // against exactly that workspace; there is no fallback to another one.
+  // Historical NULL tickets use the legacy resolver (compatibility period only).
+  const { resolveAppAuthorization, resolveWorkspaceAppAuthorization } = await import(
+    "./workspace.server"
+  );
+  const authz = ticket.workspace_id
+    ? await resolveWorkspaceAppAuthorization(ticket.user_id, ticket.workspace_id, appSlug)
+    : await resolveAppAuthorization(ticket.user_id, appSlug);
   if (!authz.authorized || authz.accessLevel === "no_access") {
     return { ok: false as const, reason: authz.reason ?? ("no_access" as const) };
   }
+  if (!assertWorkspaceInvariant(ticket.workspace_id, authz.workspaceId)) {
+    return { ok: false as const, reason: "workspace_mismatch" as const };
+  }
+  if (!rolloutGateAllows(await workspaceSsoEligible(authz.workspaceId))) {
+    return { ok: false as const, reason: "workspace_not_enabled" as const };
+  }
+  const claims = scopedEntitlementClaims(authz.entitlement, entitlement.isSuperAdmin);
 
   const issuedAt = Math.floor(Date.now() / 1000);
   const expiresAt = issuedAt + ASSERTION_TTL_SECONDS;
