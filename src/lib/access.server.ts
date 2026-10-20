@@ -260,6 +260,18 @@ export async function applyPaidOrder(
   const { ensureUserWorkspaceId } = await import("./workspace.server");
   const workspaceId = await ensureUserWorkspaceId(order.user_id);
 
+  // Phase 1A-E1: the payment is still recorded (settlement + idempotency), but it
+  // never changes workspace status. An inactive workspace stays inaccessible
+  // because every access path re-checks workspace status independently.
+  const { paymentLifecycleOutcome } = await import("./workspace-lifecycle.core");
+  const { data: wsRow } = workspaceId
+    ? await supabaseAdmin.from("workspaces").select("status").eq("id", workspaceId).maybeSingle()
+    : { data: null };
+  const lifecycle = paymentLifecycleOutcome(wsRow?.status ?? null);
+  if (lifecycle.note) {
+    console.warn("[paid-order] paid_while_workspace_inactive", JSON.stringify({ order_id: orderRowId }));
+  }
+
   // Throws on provider mismatch before any write happens.
   const plan = planPaidOrderWrites({ order, existing, workspaceId, payment: verified });
 
