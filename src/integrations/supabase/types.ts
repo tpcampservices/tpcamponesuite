@@ -1902,6 +1902,7 @@ export type Database = {
           id: string
           token_hash: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           app_slug: string
@@ -1911,6 +1912,7 @@ export type Database = {
           id?: string
           token_hash: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           app_slug?: string
@@ -1920,8 +1922,17 @@ export type Database = {
           id?: string
           token_hash?: string
           user_id?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sso_tickets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
