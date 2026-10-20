@@ -323,6 +323,40 @@ export async function authorizationFor(
 ): Promise<AppAuthorizationResponse> {
   const { resolveAppAuthorization, reasonCode } = await import("./workspace.server");
   const authz = await resolveAppAuthorization(userId, appSlug);
+  return toAuthorizationResponse(userId, authz, reasonCode);
+}
+
+/**
+ * Phase 1B-A scoped live authorization: evaluates EXACTLY the given workspace.
+ * Never falls back to another workspace. The rollout gate (sso_eligible) is
+ * enforced here too, so an explicit workspace id cannot bypass containment.
+ */
+export async function scopedAuthorizationFor(
+  userId: string,
+  appSlug: string,
+  workspaceId: string,
+): Promise<AppAuthorizationResponse> {
+  const { resolveWorkspaceAppAuthorization, reasonCode } = await import("./workspace.server");
+  const authz = await resolveWorkspaceAppAuthorization(userId, workspaceId, appSlug);
+  const res = await toAuthorizationResponse(userId, authz, reasonCode);
+  if (res.authorized && !rolloutGateAllows(await workspaceSsoEligible(workspaceId))) {
+    return {
+      ...res,
+      authorized: false,
+      app_access: "no_access",
+      permissions: [],
+      reason: "workspace_not_enabled",
+      reason_code: "WORKSPACE_NOT_ENABLED",
+    };
+  }
+  return res;
+}
+
+async function toAuthorizationResponse(
+  userId: string,
+  authz: import("./workspace.server").AppAuthorization,
+  reasonCode: (r: import("./workspace.server").AppAuthorizationReason) => string | null,
+): Promise<AppAuthorizationResponse> {
   const workspaceName = await workspaceNameFor(authz.workspaceId);
   return {
     authorized: authz.authorized,
