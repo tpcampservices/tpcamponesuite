@@ -6,7 +6,6 @@ import {
   WORKSPACE_INACTIVE_MESSAGE,
   workspaceAllowsAdminMutation,
 } from "./workspace-lifecycle.core";
-import { isLegacySsoCandidate } from "./workspace.server.pure-shim";
 
 const members = readFileSync("src/lib/members.server.ts", "utf8");
 const invites = readFileSync("src/lib/invitations.server.ts", "utf8");
@@ -86,7 +85,7 @@ describe("SSO safeguards preserved", () => {
     expect(wsServer).toMatch(/!== "active"\) \{\s*return \{ \.\.\.detailed, accessLevel: "no_access", reason: "workspace_inactive" \}/);
   });
   it("secondary workspaces stay out of untargeted legacy SSO", () => {
-    expect(isLegacySsoCandidate({ ssoEligible: false })).toBe(false);
-    expect(isLegacySsoCandidate({ ssoEligible: true })).toBe(true);
+    expect(wsServer).toContain("return record.ssoEligible === true;");
+    expect(wsServer).toContain("if (!isLegacySsoCandidate(record)) continue;");
   });
 });
