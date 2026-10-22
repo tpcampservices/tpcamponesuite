@@ -46,11 +46,22 @@ export const Route = createFileRoute("/api/public/sso/authorization")({
           return Response.json({ error: "invalid_user_id" }, { status: 400 });
         }
 
-        const result = await authorizationFor(userId, appSlug);
-
-        // A workspace id in the request is only ever a cross-check of what the
-        // child app cached. It never selects or widens the workspace.
+        // Phase 1B-A scoped request: a workspace_id (taken by the child app from
+        // its own verified server session) is evaluated exactly, never widened
+        // and never substituted. The shared key proves the APP, not the user.
+        const { isWorkspaceId } = await import("@/lib/sso-scope.core");
         const claimed = typeof body.workspace_id === "string" ? body.workspace_id : null;
+        if (claimed !== null) {
+          if (!isWorkspaceId(claimed)) {
+            return Response.json({ error: "invalid_workspace_id" }, { status: 400 });
+          }
+          const { scopedAuthorizationFor } = await import("@/lib/sso.server");
+          const scoped = await scopedAuthorizationFor(userId, appSlug, claimed);
+          return Response.json(scoped, { headers: { "Cache-Control": "no-store" } });
+        }
+
+        // Legacy request (no workspace_id): unchanged behaviour.
+        const result = await authorizationFor(userId, appSlug);
         if (claimed && result.workspace_id && claimed !== result.workspace_id) {
           return Response.json(
             {
