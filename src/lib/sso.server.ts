@@ -6,6 +6,25 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { refreshEntitlementStatus, limitFor } from "./access.server";
 import { getPlan, LIMIT_LABELS, type PlanLimits } from "./plans";
 import { suiteApps } from "./tiers";
+import {
+  assertWorkspaceInvariant,
+  isWorkspaceId,
+  rolloutGateAllows,
+  scopedEntitlementClaims,
+  ticketPrecheck,
+} from "./sso-scope.core";
+
+/** Rollout gate input: the workspace's sso_eligible flag. Errors fail closed. */
+export async function workspaceSsoEligible(workspaceId: string | null): Promise<boolean> {
+  if (!workspaceId) return false;
+  const { data, error } = await supabaseAdmin
+    .from("workspaces")
+    .select("id, sso_eligible")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (error || !data || data.id !== workspaceId) return false;
+  return data.sso_eligible === true;
+}
 
 export const TICKET_TTL_SECONDS = 120;
 
@@ -26,15 +45,18 @@ function randomToken() {
 }
 
 /** Mint a one-time launch ticket for a signed-in OneSuite user. */
-export async function mintTicket(userId: string, appSlug: string) {
+export async function mintTicket(userId: string, appSlug: string, workspaceId: string) {
   const app = appBySlug(appSlug);
   if (!app) throw new Error("Unknown application");
+  // Phase 1B-A: a new ticket is never issued without a verified workspace.
+  if (!isWorkspaceId(workspaceId)) throw new Error("A verified workspace is required.");
   const token = randomToken();
   const expires = new Date(Date.now() + TICKET_TTL_SECONDS * 1000).toISOString();
   const { error } = await supabaseAdmin.from("sso_tickets").insert({
     token_hash: await sha256(token),
     user_id: userId,
     app_slug: appSlug,
+    workspace_id: workspaceId,
     expires_at: expires,
   });
   if (error) throw new Error("Could not start the secure hand-off.");
@@ -218,9 +240,11 @@ export async function redeemTicket(token: string, appSlug: string) {
       authorization_version: AUTHORIZATION_VERSION,
       is_owner: authz.isOwner,
       is_super_admin: entitlement.isSuperAdmin,
-      has_access: entitlement.hasAccess,
-      plan_id: entitlement.planId,
-      status: entitlement.status,
+      has_access: claims.has_access,
+      plan_id: claims.plan_id,
+      status: claims.status,
+      super_admin_override: claims.super_admin_override,
+      ticket_scope: ticket.workspace_id ? "workspace" : "legacy",
       jti,
       iat: issuedAt,
       exp: expiresAt,
@@ -249,7 +273,7 @@ export async function redeemTicket(token: string, appSlug: string) {
     issuedAt,
     expiresAt,
     jti,
-    entitlement,
+    entitlement: workspaceScopedPayload(entitlement, authz.entitlement, claims.has_access),
   };
 }
 
