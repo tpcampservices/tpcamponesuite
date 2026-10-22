@@ -273,7 +273,7 @@ export async function redeemTicket(token: string, appSlug: string) {
     issuedAt,
     expiresAt,
     jti,
-    entitlement,
+    entitlement: workspaceScopedPayload(entitlement, authz.entitlement, claims.has_access),
   };
 }
 
