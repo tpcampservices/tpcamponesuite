@@ -17,6 +17,7 @@ type Ticket = {
   id: string; token_hash: string; user_id: string; app_slug: string;
   expires_at: string; consumed_at: string | null; workspace_id: string | null;
 };
+let superAdmin = false;
 const db = {
   tickets: [] as Ticket[],
   workspaces: {
@@ -27,6 +28,14 @@ const db = {
 };
 
 function query(table: string) {
+  if (table === "profiles") {
+    const p = { select: () => p, eq: () => p, maybeSingle: async () => ({ data: { email: "u@example.test", full_name: "U" }, error: null }) };
+    return p as unknown as ReturnType<typeof query>;
+  }
+  if (table === "user_roles") {
+    const r = { select: () => r, eq: async () => ({ data: superAdmin ? [{ role: "super_admin" }] : [], error: null }) };
+    return r as unknown as ReturnType<typeof query>;
+  }
   const filters: [string, string, unknown][] = [];
   let update: Record<string, unknown> | null = null;
   let insert: Record<string, unknown> | null = null;
@@ -72,11 +81,11 @@ vi.mock("./access.server", () => ({
   limitFor: () => 1,
 }));
 
-let superAdmin = false;
-const paid = { hasAccess: true, status: "active" as const, planId: "growth", expiryDate: "2027-01-01" };
-const unpaid = { hasAccess: false, status: "none" as const, planId: null, expiryDate: null };
+const paid: Ent = { hasAccess: true, status: "active" as const, planId: "growth", expiryDate: "2027-01-01" };
+const unpaid: Ent = { hasAccess: false, status: "none" as const, planId: null, expiryDate: null };
 
-function authz(workspaceId: string | null, ok: boolean, reason: string | null, ent = paid) {
+type Ent = { hasAccess: boolean; status: "none" | "active" | "expired"; planId: string | null; expiryDate: string | null };
+function authz(workspaceId: string | null, ok: boolean, reason: string | null, ent: Ent = paid) {
   return {
     authorized: ok, userId: USER, workspaceId, workspaceStatus: "active", membershipId: "m",
     appSlug: "catalog", accessLevel: ok ? "manage" : "no_access", membershipStatus: "active",
