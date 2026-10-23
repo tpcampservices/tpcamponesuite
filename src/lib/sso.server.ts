@@ -511,3 +511,36 @@ export function childAppAuth(
 export function childAppAuthorized(request: Request) {
   return childAppAuth(request).ok;
 }
+
+/**
+ * Exchange-response entitlement rebuilt from the AUTHORIZED workspace only, so
+ * a user's other-workspace subscription is never inherited.
+ */
+export function workspaceScopedPayload(
+  user: EntitlementPayload,
+  ws: { hasAccess: boolean; status: "none" | "active" | "expired"; planId: string | null; expiryDate: string | null },
+  hasAccess: boolean,
+): EntitlementPayload {
+  const plan = getPlan(ws.planId ?? null);
+  const same = user.planId === (plan?.id ?? null) && user.status === ws.status;
+  return {
+    ...user,
+    planId: plan?.id ?? null,
+    planName: plan?.name ?? null,
+    status: ws.status,
+    hasAccess,
+    billingPeriod: same ? user.billingPeriod : null,
+    startDate: same ? user.startDate : null,
+    expiryDate: ws.expiryDate,
+    seats: same ? user.seats : plan ? limitFor(plan.id, "seats", 0) : 0,
+    limits: same
+      ? user.limits
+      : plan
+        ? (Object.keys(LIMIT_LABELS) as (keyof PlanLimits)[]).map((metric) => ({
+            metric,
+            label: LIMIT_LABELS[metric],
+            limit: limitFor(plan.id, metric, 0),
+          }))
+        : [],
+  };
+}
