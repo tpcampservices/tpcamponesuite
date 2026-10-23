@@ -27,14 +27,15 @@ const db = {
   } as Record<string, { id: string; sso_eligible: boolean; name: string }>,
 };
 
-function query(table: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function query(table: string): any {
   if (table === "profiles") {
     const p = { select: () => p, eq: () => p, maybeSingle: async () => ({ data: { email: "u@example.test", full_name: "U" }, error: null }) };
-    return p as unknown as ReturnType<typeof query>;
+    return p as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
   if (table === "user_roles") {
     const r = { select: () => r, eq: async () => ({ data: superAdmin ? [{ role: "super_admin" }] : [], error: null }) };
-    return r as unknown as ReturnType<typeof query>;
+    return r as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
   const filters: [string, string, unknown][] = [];
   let update: Record<string, unknown> | null = null;
