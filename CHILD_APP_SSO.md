@@ -185,3 +185,16 @@ server-side. Count your own records against the matching limit
 - No local session → redirect to `https://tpcamponesuite.app/auth`.
 - Logout → clear the local session, then redirect to
   `https://tpcamponesuite.app/dashboard`.
+
+## Workspace-bound tickets (Phase 1B-A)
+
+- Every new launch ticket is bound to one workspace. The exchange response and
+  assertion `workspace_id` are that verified workspace; `has_access`, `plan_id`
+  and `status` describe THAT workspace only. `super_admin_override: true` marks
+  a Super Admin entering a workspace without its own plan (`plan_id` stays null).
+- Live authorization with `workspace_id` evaluates exactly that workspace and
+  never substitutes another. Take `user_id` and `workspace_id` from your own
+  verified server-side session, never from browser input. The shared key only
+  proves which app is calling, not which user is signed in.
+- New denial reason: `workspace_not_enabled` / `WORKSPACE_NOT_ENABLED` — the
+  workspace is not yet enabled for app sign-in. Treat it like `no_access`.
